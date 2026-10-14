@@ -10,7 +10,7 @@ const idr = n => 'Rp' + new Intl.NumberFormat('id-ID',{ maximumFractionDigits:0 
 const signedMoney = n => (n > 0 ? '+' : n < 0 ? '−' : '') + idr(Math.abs(n));
 const modeName = () => S?.settings.mode === 'casual' ? 'Non-official' : 'Official';
 const BOT_OPTIONS = [
-  { value:'easy', label:'Bego', description:'Sering lewat, suka buang kartu acak, dan kurang menjaga kombinasi.' },
+  { value:'easy', label:'Easy', description:'Sering lewat, suka buang kartu acak, dan kurang menjaga kombinasi.' },
   { value:'normal', label:'Normal', description:'Main lebih santai, sesekali melewatkan peluang atau salah prioritas.' },
   { value:'hard', label:'Hard', description:'Strategi lama: utamakan kombinasi besar dan tahan lawan yang tinggal satu kartu.' }
 ];

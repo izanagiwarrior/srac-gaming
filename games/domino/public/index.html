@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#163b30"><title>Domino Gaple · Meja Kita</title>
+  <link rel="icon" href="/favicon.svg"><script src="/game-tools.js"></script><link rel="stylesheet" href="/hub-game.css"><link rel="stylesheet" href="/domino/style.css">
+  <script src="/hub-game.js" defer></script><script src="/domino/tiles.js" defer></script><script src="/domino/client.js" defer></script>
+</head>
+<body>
+  <nav class="hubbar" aria-label="Pilihan permainan"><a href="/" data-hub-home>← Pilih game</a><span>MEJA KITA</span></nav>
+  <header class="site-header"><a class="brand" href="/domino/"><span class="brand-mark">⠿</span><span>Domino <small>GAPLE · MEJA KITA</small></span></a><nav><span id="connection" role="status">Menyambungkan…</span><button class="button ghost small" id="rules-button">Cara main ↗</button></nav></header>
+  <main id="view" aria-label="Permainan Domino Gaple"></main>
+  <div id="toast" role="status" aria-live="polite"></div>
+  <dialog id="leave-dialog"><span class="eyebrow">SEBENTAR DULU</span><h2>Keluar dari meja?</h2><p id="leave-copy"></p><div class="button-row"><button class="button ghost" data-close-dialog>Batal</button><button class="button primary" id="leave-confirm">Ya, keluar</button></div></dialog>
+  <dialog id="rules-dialog"><span class="eyebrow">GAPLE · ATURAN MEJA KITA</span><h2>Sambung. Habis duluan.</h2><div class="rules-example" id="rules-example"></div><p>28 batu double-six, untuk 2–4 pemain. Masing-masing mendapat 7 batu. Sisanya menjadi stok tertutup jika pemain kurang dari 4.</p><h3>Siapa membuka?</h3><p>Pemegang balak tertinggi yang sudah dibagikan membuka dengan batu itu. Jika tidak ada balak di tangan mana pun, batu dengan jumlah angka tertinggi membuka. Saat 4 pemain, pembukanya selalu balak 6.</p><h3>Sambung kiri atau kanan</h3><p>Pilih batu di tangan, lalu ujung kiri atau kanan yang cocok. Batu otomatis dibalik agar angkanya menyambung. Balak dihitung seperti batu lain. Giliran berjalan menurut urutan kursi.</p><h3>Tidak punya batu yang cocok?</h3><p>Ambil dari stok sampai mendapat batu yang cocok atau stok habis. Setelah mengambil, giliran tetap milikmu. Lewat hanya boleh jika tidak ada batu cocok dan stok kosong.</p><h3>Menang atau buntu</h3><p>Habiskan batu untuk menang. Jika semua pemain lewat berturut-turut, meja buntu: jumlah titik di sisa batu paling sedikit menang. Jika seri, para pemenang mendapat 1 kemenangan masing-masing. Rekap menghitung kemenangan dan poin: yang kalah kehilangan poin sesuai titik tersisa; pemenang menerima jumlahnya. Nilai rupiah per poin dipilih host di lobby.</p><p>Bot menunggu 3 detik tiap aksi. Tanpa timer pemain. Koneksi terputus menjeda ronde; keluar dengan tombol Keluar menyerahkan kursi kepada bot. Untuk ronde berikutnya, semua pemain manusia menyetujui main lagi.</p><button class="button primary" data-close-dialog>Siap, gas</button></dialog>
+  <footer>DOMINO GAPLE · 28 BATU · SATU RONDE LAGI?</footer>
+</body>
+</html>

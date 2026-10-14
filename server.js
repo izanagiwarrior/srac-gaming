@@ -6,15 +6,19 @@ const os = require('node:os');
 const { createApp: createCapsa } = require('./games/capsa/server');
 const { createMahjongServer } = require('./games/mahjong/server');
 const { createPokerServer } = require('./games/poker/server');
+const { createChessServer } = require('./games/chess/server');
+const { createDominoServer } = require('./games/domino/server');
+const { createBlackjackServer } = require('./games/blackjack/server');
 
-const VERSION = '2026-10-14-game-hub-1';
+const VERSION = '2026-10-14-six-games-1';
 
 function createHub() {
   let closing = false;
   const runtimeDir = process.env.DATA_DIR || path.join(__dirname,'var');
   const sharedAddresses = () => {
     if (process.env.NODE_ENV === 'production') return [];
-    const port = server.address()?.port || Number(process.env.PORT || 3005);
+    if (['127.0.0.1','::1'].includes(server.address()?.address || process.env.HOST)) return [];
+    const port = server.address()?.port || Number(process.env.PORT || 3000);
     return [...new Set(Object.values(os.networkInterfaces()).flat().filter(n => n && n.family === 'IPv4' && !n.internal)
       .map(n => 'http://' + n.address + ':' + port))];
   };
@@ -22,7 +26,10 @@ function createHub() {
   const games = new Map([
     ['capsa',createCapsa()],
     ['mahjong',createMahjongServer()],
-    ['poker',createPokerServer({ dataDir:path.join(runtimeDir,'poker'), getAddresses:sharedAddresses })]
+    ['poker',createPokerServer({ dataDir:path.join(runtimeDir,'poker'), getAddresses:sharedAddresses })],
+    ['catur',createChessServer({ getAddresses:sharedAddresses })],
+    ['domino',createDominoServer({ getAddresses:sharedAddresses })],
+    ['blackjack',createBlackjackServer({ getAddresses:sharedAddresses })]
   ]);
   const assets = new Map([
     ['/', ['public/index.html','text/html; charset=utf-8']],
@@ -31,11 +38,14 @@ function createHub() {
     ['/hub.js', ['public/hub.js','application/javascript; charset=utf-8']],
     ['/hub-game.css', ['public/hub-game.css','text/css; charset=utf-8']],
     ['/hub-game.js', ['public/hub-game.js','application/javascript; charset=utf-8']],
+    ['/game-tools.js', ['public/game-tools.js','application/javascript; charset=utf-8']],
     ['/favicon.svg', ['public/favicon.svg','image/svg+xml']],
-    ['/table.svg', ['public/table.svg','image/svg+xml']]
+    ['/table.svg', ['public/table.svg','image/svg+xml']],
+    ['/chess-art.svg', ['public/chess-art.svg','image/svg+xml']],
+    ['/domino-art.svg', ['public/domino-art.svg','image/svg+xml']]
   ]);
   function route(url) {
-    const match = /^\/(capsa|mahjong|poker)(\/.*)?$/.exec(url.pathname);
+    const match = /^\/(capsa|mahjong|poker|catur|domino|blackjack)(\/.*)?$/.exec(url.pathname);
     return match ? { slug:match[1], remainder:match[2] || '/', app:games.get(match[1]), bare:!match[2] } : null;
   }
   const server = http.createServer((req,res) => {
@@ -89,7 +99,7 @@ function createHub() {
   return { server,games,close,version:VERSION };
 }
 if (require.main === module) {
-  const app = createHub(), port = Number(process.env.PORT || 3005), host = process.env.HOST || '0.0.0.0';
+  const app = createHub(), port = Number(process.env.PORT || 3000), host = process.env.HOST || '0.0.0.0';
   app.server.on('error',error => { console.error('Meja Kita:',error.message); app.close().finally(() => process.exit(1)); });
   app.server.listen(port,host,() => console.log('Meja Kita ' + VERSION + '\nLocal: http://localhost:' + port));
   let shutdown = false;

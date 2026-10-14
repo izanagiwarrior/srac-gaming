@@ -6,7 +6,7 @@ const os = require('node:os');
 const {randomInt, randomBytes} = require('node:crypto');
 const {WebSocketServer} = require('ws');
 const {Game, evaluate} = require('./engine');
-const DEFAULTS = {chipValue: 100, buyIn: 1000, smallBlind: 5, bigBlind: 10, maxPlayers: 6, bots: 0, allowRebuy: true};
+const DEFAULTS = {chipValue: 100, buyIn: 1000, smallBlind: 5, bigBlind: 10, maxPlayers: 6, bots: 0, allowRebuy: true, botLevel:'normal'};
 const BOT_NAMES = ['Mei', 'Raka', 'Sinta', 'Bima', 'Ayu', 'Dimas', 'Nina'];
 const uid = () => randomBytes(24).toString('hex');
 function cleanName(value) {
@@ -24,7 +24,8 @@ function settingsFor(input = {}) {
   if (s.bigBlind < 2 * s.smallBlind) throw new Error('Big blind must be at least twice the small blind.');
   if (s.buyIn < 20 * s.bigBlind) throw new Error('Starting buy-in must be at least 20 big blinds.');
   if (s.bots >= s.maxPlayers) throw new Error('Leave at least one seat for a person.');
-  if (s.bots) s.chipValue = 0;
+  if (input.botLevel !== undefined) s.botLevel=input.botLevel;
+  if (!['easy','normal','hard'].includes(s.botLevel)) throw new Error('Choose Easy, Normal, or Hard bots.');
   return s;
 }
 function settlement(players, rate) {
@@ -41,7 +42,7 @@ function settlement(players, rate) {
   }
   return payments;
 }
-function createPokerServer({dataDir = path.join(__dirname,'data'), botDelay = 1400, offlineDelay = 15000, minCycles = 3, timers = true, getAddresses = null} = {}) {
+function createPokerServer({dataDir = path.join(__dirname,'data'), botDelay = 3000, offlineDelay = 15000, minCycles = 3, timers = true, getAddresses = null} = {}) {
   const rooms = new Map();
   const stateFile = dataDir && path.join(dataDir,'sessions.json');
   function persist() {
@@ -55,17 +56,17 @@ function createPokerServer({dataDir = path.join(__dirname,'data'), botDelay = 14
   class Room {
     constructor(code, saved) {
       this.code=code; this.players=[]; this.settings={...DEFAULTS}; this.phase='lobby'; this.hostId=null;
-      this.game=null; this.history=[]; this.ledger=[]; this.createdAt=Date.now(); this.endedAt=null;
+      this.game=null; this.history=[]; this.ledger=[]; this.chat=[]; this.createdAt=Date.now(); this.endedAt=null;
       this.revision=0; this.actionTimer=null; this.hostTimer=null;
       if (saved) {
-        Object.assign(this,saved); this.players=saved.players.map(p=>({...p,ws:null,connected:false}));
+        Object.assign(this,saved); this.settings={...DEFAULTS,...this.settings}; this.players=saved.players.map(p=>({...p,ws:null,connected:false}));
         this.game=saved.game ? Game.restore(this.players,this.settings,saved.game,randomInt) : null;
       }
     }
     snapshot() {
       return {code:this.code, settings:this.settings, phase:this.phase, hostId:this.hostId,
         players:this.players.map(({ws,...p})=>({...p,connected:false})), game:this.game?.serialize() || null,
-        history:this.history,ledger:this.ledger,createdAt:this.createdAt,endedAt:this.endedAt,revision:this.revision};
+        history:this.history,ledger:this.ledger,chat:this.chat,createdAt:this.createdAt,endedAt:this.endedAt,revision:this.revision};
     }
     host() { return this.players.find(p=>p.id===this.hostId); }
     requireHost(p) { if (p.id!==this.hostId) throw new Error('Only the host can do this.'); }
@@ -114,8 +115,8 @@ function createPokerServer({dataDir = path.join(__dirname,'data'), botDelay = 14
         game:g ? {handNo:g.handNo,dealer:g.dealer,smallBlind:g.smallBlind,bigBlind:g.bigBlind,board:g.board,over:g.over,
           phase:g.phase,turn:g.turn,currentBet:g.currentBet,pot:g.over?0:g.pot(),options:g.options(idx),version:g.version,
           result:g.result,log:g.log} : null,
-        endGate:this.endGate(),history:this.history.slice(-20),ledger:this.ledger,
-        payments:this.phase==='ended' && this.settings.chipValue>0 ? settlement(this.players,this.settings.chipValue):[],endedAt:this.endedAt};
+        simulation:this.players.some(p=>p.bot)||this.settings.bots>0,chat:this.chat.slice(-70),endGate:this.endGate(),history:this.history.slice(-20),ledger:this.ledger,
+        payments:this.phase==='ended' && this.settings.chipValue>0 && !this.players.some(p=>p.bot) ? settlement(this.players,this.settings.chipValue):[],endedAt:this.endedAt};
     }
     changed() {
       this.revision++;persist();
@@ -139,7 +140,10 @@ function createPokerServer({dataDir = path.join(__dirname,'data'), botDelay = 14
       }
     }
     command(p,msg) {
-      if (msg.type==='settings') {
+      if (msg.type==='chat') {
+        const text=String(msg.text||'').replace(/[\u0000-\u001f]/g,'').trim().slice(0,200);
+        if(text){this.chat.push({name:p.name,text});this.chat=this.chat.slice(-70);}
+      } else if (msg.type==='settings') {
         this.requireHost(p);if(this.phase!=='lobby')throw new Error('Table settings are locked once play starts.');
         const next=settingsFor(msg.settings);if(this.players.length+next.bots>next.maxPlayers)throw new Error('Not enough seats for these players and bots.');
         this.settings=next;
@@ -149,6 +153,7 @@ function createPokerServer({dataDir = path.join(__dirname,'data'), botDelay = 14
         if(q.connected)throw new Error('Only disconnected seats can be removed.');this.players=this.players.filter(x=>x!==q);
       } else if(msg.type==='start') {
         this.requireHost(p);if(this.phase!=='lobby')throw new Error('This session has already started.');
+        if(msg.settings){const next=settingsFor(msg.settings);if(this.players.length+next.bots>next.maxPlayers)throw new Error('Not enough seats.');this.settings=next;}
         if(this.players.some(p=>!p.connected))throw new Error('Wait for disconnected players or remove their empty seats.');
         if(this.players.length+this.settings.bots<2)throw new Error('Invite a friend or add a practice bot in settings.');
         for(let i=0;i<this.settings.bots;i++)this.players.push({id:uid().slice(0,12),name:BOT_NAMES[i]+' (bot)',bot:true,connected:true,stack:0,totalBuyIn:0,buyIns:0,handsPlayed:0,dealerRounds:0});
@@ -199,8 +204,21 @@ function createPokerServer({dataDir = path.join(__dirname,'data'), botDelay = 14
             // Bots use only their own cards, the board and public betting information.
             const visible=[...p.hole,...this.game.board];
             const power=visible.length>=5?evaluate(visible).score[0]:(p.hole[0].r===p.hole[1].r?2:(Math.max(...p.hole.map(c=>c.r))>=12?1:0));
-            if(!o.check && (o.call<=this.settings.bigBlind*3||power>=2||randomInt(5)===0))action='call';
-            if(o.canRaise&&o.maxTo>=o.minTo&&power>=2&&randomInt(4)===0){action='raise';amount=Math.min(o.maxTo,o.minTo);}
+            const level=this.settings.botLevel || 'normal';
+            if(level==='easy'){
+              if(!o.check&&randomInt(4)!==0)action='call';
+              if(o.canRaise&&o.maxTo>=o.minTo&&randomInt(12)===0){action='raise';amount=o.minTo;}
+            }else if(level==='normal'){
+              if(!o.check&&(o.call<=this.settings.bigBlind*3||power>=2||randomInt(5)===0))action='call';
+              if(o.canRaise&&o.maxTo>=o.minTo&&power>=2&&randomInt(4)===0){action='raise';amount=o.minTo;}
+            }else{
+              const suited=Math.max(...['s','h','d','c'].map(s=>visible.filter(c=>c.s===s).length));
+              const draw=this.game.board.length<5&&suited>=4;
+              const strength=Math.min(.92,.16+power*.15+(draw?.18:0));
+              const cost=o.call/(this.game.pot()+o.call || 1);
+              if(!o.check&&(strength>cost+.05||o.call<=this.settings.bigBlind*2))action='call';
+              if(o.canRaise&&o.maxTo>=o.minTo&&power>=2&&randomInt(3)!==0){action='raise';amount=Math.min(o.maxTo,Math.max(o.minTo,this.game.currentBet+Math.floor(this.game.pot()*.5)));}
+            }
           }
           this.game.act(this.players.indexOf(p),action,amount);this.afterAction(false);this.changed();
         }catch(err){console.error('Table action failed:',err.message);}
@@ -218,7 +236,7 @@ function createPokerServer({dataDir = path.join(__dirname,'data'), botDelay = 14
     for(const entries of Object.values(os.networkInterfaces()))for(const a of entries||[])if(a.family==='IPv4'&&!a.internal)urls.push(`http://${a.address}:${port}`);
     return urls;
   }
-  const files={'/':['public/index.html','text/html; charset=utf-8'],'/client.js':['public/client.js','text/javascript; charset=utf-8'],'/style.css':['public/style.css','text/css; charset=utf-8'],'/engine.js':['engine.js','text/javascript; charset=utf-8'],'/favicon.svg':['public/favicon.svg','image/svg+xml']};
+  const files={'/odds.js':['public/odds.js','text/javascript; charset=utf-8'],'/odds-worker.js':['public/odds-worker.js','text/javascript; charset=utf-8'],'/':['public/index.html','text/html; charset=utf-8'],'/client.js':['public/client.js','text/javascript; charset=utf-8'],'/style.css':['public/style.css','text/css; charset=utf-8'],'/engine.js':['engine.js','text/javascript; charset=utf-8'],'/favicon.svg':['public/favicon.svg','image/svg+xml']};
   const server=http.createServer((req,res)=>{
     if(req.method!=='GET'&&req.method!=='HEAD'){res.writeHead(405);return res.end();}
     const url=new URL(req.url,'http://localhost');

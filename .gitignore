@@ -9,3 +9,5 @@ var/
 coverage/
 screenshots/
 *.zip
+
+*.pid

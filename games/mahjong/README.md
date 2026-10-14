@@ -37,10 +37,16 @@ Kode ruangan 4 huruf acak sudah cukup untuk jaringan lokal: hanya orang di WiFi 
 - Area tengah menampilkan hitungan per jenis ubin (berapa lembar sudah terlihat di meja dari buangan dan set terbuka, plus penanda ubin yang ada di tanganmu), bisa diganti ke tampilan buangan per pemain.
 - Permainan di server (anti curang): klien hanya melihat tangannya sendiri. Tangan semua pemain dibuka di akhir ronde untuk dibandingkan.
 - Tanpa batas waktu di semua tahap. Bar kuning "GILIRANMU" menandai giliranmu.
-- Kotak klaim hanya muncul jika buangan memberi pilihan Hu, Pung, Kong, atau Chow yang sah. Jika tidak ada pilihan yang sah, pemain otomatis lewat. Untuk Pung/Kong/Chow, susun kombinasinya dengan mengetuk atau menyeret 2 ubin (3 untuk Kong) ke kotak klaim, lalu tekan Klaim.
+- **Fast mode · auto lewat** adalah toggle host di lobby, default OFF. Aktif: server melewatkan pemain manusia yang tidak memiliki pilihan Hu/Pung/Kong/Chow sah. Pemain yang punya pilihan tetap menjawab sendiri; mode cepat tidak memilihkan klaim atau otomatis menolak kesempatan menang. Menunggu jawaban dalam mode cepat dapat memberi petunjuk bahwa pemain tersebut punya pilihan klaim, sehingga seluruh meja melihat pilihan mode sebelum mulai.
+- Fast mode nonaktif: setiap pemain manusia yang terhubung harus memilih Klaim atau menekan Lewat sendiri, termasuk ketika tidak punya klaim sah. Ronde menunggu semua jawaban; tidak ada batas waktu. Bot dan penanganan pemain offline mengikuti perilaku sebelumnya.
+- **Highlight set di tangan** juga toggle host di lobby, default ON. Kedua mode berlaku untuk seluruh room dan dikunci server sejak Mulai permainan, termasuk ronde berikutnya dan main lagi. Meja hanya menampilkan status mode; buat room baru untuk memilih mode lain.
+- Untuk Pung/Kong/Chow, susun kombinasinya dengan mengetuk atau menyeret 2 ubin (3 untuk Kong) ke kotak klaim, lalu tekan Klaim.
+- Jika highlight aktif: toska `C` menandai ubin pada Chow yang sudah lengkap di tangan; emas `P` menandai 3/4 ubin identik untuk Pung/Kong; ungu `C/P` menandai ubin yang bisa menjadi keduanya. Chow hanya dihitung pada angka berurutan dalam jenis yang sama; angin/naga tidak diberi tanda Chow.
+- Warna hanya memakai ubin yang sudah ada di tangan sendiri. Dua ubin identik atau dua angka berurutan belum dianggap set lengkap; buangan lawan dan opsi klaim tidak memengaruhi warna. Warna tidak memilihkan ubin untuk klaim. Highlight nonaktif menghilangkan warna/badge/legenda bantuan set dari tangan dan contoh lobby.
+- Warna menandai kemungkinan yang saling tumpang tindih, bukan pembagian set yang pasti. Semua salinan ubin yang sejenis diberi tanda yang sama karena masing-masing dapat dipakai; ubin yang sudah dipakai oleh satu set tidak dapat sekaligus dipakai set lain. Legenda dan label C/P membantu selain warna.
 - Posisi duduk diacak setiap ronde, sehingga pemain di sebelah kiri (sumber Chow) selalu berganti. Dealer tetap bergilir antar pemain.
 - Hanya host yang bisa memulai ronde berikutnya dan pertandingan baru; pemain lain melihat pesan menunggu host.
-- Satu-satunya otomatisasi: pemain yang koneksinya putus digantikan bot setelah beberapa detik supaya meja tidak tersandera, sampai ia kembali.
+- Selain auto lewat dalam mode cepat, pemain yang koneksinya putus digantikan bot setelah beberapa detik supaya meja tidak tersandera, sampai ia kembali.
 - Putus koneksi: kursi dimainkan bot sampai pemain kembali. Buka alamat yang sama di perangkat yang sama untuk otomatis kembali ke kursi.
 - Panduan interaktif, contekan cepat, atur tangan manual, dan tombol Petunjuk (dihitung di sisi klien hanya dari informasi yang memang terlihat pemain).
 
@@ -69,3 +75,18 @@ Kode ruangan 4 huruf acak sudah cukup untuk jaringan lokal: hanya orang di WiFi 
 - `engine.js`: logika mahjong (dipakai server dan klien).
 - `public/index.html`, `public/client.js`: tampilan di browser.
 - `public/tiles.js`: gambar muka ubin tradisional (SVG).
+- `public/hand-help.js`: warna set lengkap, hanya dari tangan sendiri.
+
+## Patch 2026-10-14-six-games-1
+
+Protokol Mahjong versi 6 mengharuskan browser dimuat ulang setelah pemasangan, agar klien lama tidak terus melakukan auto lewat saat host memilih manual. Server meminta reload secara ramah jika ada klien lama mencoba masuk; tidak menyuruh pemain menghentikan server.
+
+Pemeriksaan sintaks dan authoring tampilan dilakukan di preview terpisah. Tidak menambah/menjalankan tes otomatis atau pertandingan multiplayer/bot penuh tanpa permintaan pengguna.
+
+## Pengukuran poin dan sidebar
+
+Creator **Hendy W**. Panel kanan konsisten: chat → cheat sheet visual → rekap poin/rupiah/CSV → log. Panduan mock meja dapat dibuka di lobby; Petunjuk tetap terlihat di bawah tangan.
+
+Host memilih nilai 1 poin dalam rupiah di lobby; default 0 (latihan). Nilai dikunci sejak mulai. Fan tetap memakai logika sebelumnya: 1 fan = 10 poin per pembayar; zimo: tiga lawan membayar; Hu dari buangan: pembuang membayar 3×. Nilai rupiah = skor × rate, hasil setiap ronde dicatat dalam ledger. Main lagi memulai pertandingan baru dan mengosongkan skor/ledger pertandingan ini seperti sebelumnya; unduh rekap terlebih dahulu jika diperlukan.
+
+Fast mode default OFF dan Highlight set lengkap default ON tetap dipilih hanya di lobby dan dikunci saat mulai. Seluruh tingkat bot Easy/Normal/Hard menunggu sekurangnya 3 detik untuk aksi bot. Protokol v6 membutuhkan refresh klien lama setelah pemasangan.

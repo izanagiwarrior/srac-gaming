@@ -16,12 +16,12 @@ You need Node.js 18 or newer on the host computer only. The portable ZIP include
 Open **http://localhost:3001** on the host computer. Keep the server window open while playing. The server prints the network address friends should open, for example `http://192.168.1.10:3001`. The waiting room also has a **Copy invite link** button.
 
 1. Enter your name and create a room.
-2. In **Table settings**, set chip value in IDR, buy-in size, blinds, seats, and whether rebuys are allowed. Click **Save table settings**.
+2. In **Table settings**, set chip value in IDR, buy-in size, blinds, seats, and whether rebuys are allowed. Settings save automatically; starting also submits the values currently shown.
 3. Friends open the network address and enter the four-letter code, or use the invite link.
 4. When everyone has joined, the host starts the game. One initial buy-in is recorded for each player.
 5. After each hand, review the result. Only the host can deal the next hand.
 
-The game uses port 3001 so it can run alongside the Mahjong game on port 3000. To use another port, run `PORT=4001 npm start` on Mac/Linux, or `$env:PORT=4001; npm start` in Windows PowerShell.
+In this hub, open /poker/ on the shared port 3000. Standalone instructions above describe the original source. To use another port, run `PORT=4001 npm start` on Mac/Linux, or `$env:PORT=4001; npm start` in Windows PowerShell.
 
 ## What is included
 
@@ -30,7 +30,7 @@ The game uses port 3001 so it can run alongside the Mahjong game on port 3000. T
 - Two private cards visible only to their owner until a non-folded showdown. Folded cards stay private.
 - Six-page beginner guide; illustrated ten-hand cheat sheet; explanations of each betting action; the best available five-card hand highlighted in gold.
 - No decision timer while a human player is connected. Offline players check if possible or fold after 15 seconds; the app never automatically calls for them.
-- Optional practice bots using only their own cards and public information. Bots always set IDR value to zero. They automatically replenish their practice stack when busted.
+- Optional practice bots using only their own cards and public information. Easy/Normal/Hard bots retain the chosen chip value for simulated IDR results; rooms with bots do not create payment instructions. They automatically replenish their practice stack when busted.
 - Responsive phone and desktop layouts, light/dark theme, and keyboard-accessible dialogs and controls.
 - Live chip/IDR recap, approved buy-in ledger, recent hand results, CSV export, and final settlement.
 - Saved rooms and automatic recovery after a browser reload or server restart.
@@ -98,3 +98,13 @@ This app is designed for a trusted local network. It is a host-authoritative LAN
 The tests cover rankings, kickers, ace-low straights, side pots, short/cumulative all-ins, heads-up action, odd chips, uncalled refunds, random-game chip conservation, private-card filtering, host controls, three-cycle locks, end confirmation, early finish, rebuy accounting, reconnect/persistence, and offline behavior.
 
 Rules references: [PokerStars Hold’em rules](https://www.pokerstars.com/poker/games/texas-holdem/), [PokerStars betting and pot explanations](https://www.pokerstars.com/help/articles/poker-rules-master/229168/), and [Poker TDA raise/reopening rules](https://www.pokertda.com/view-poker-tda-rules/). The three-cycle minimum, fixed buy-in rebuys, and early-finish policy are house rules for this app.
+
+## Hub patch 2026-10-14-six-games-1
+
+Creator: **Hendy W**, shown on the landing card and inside the game. Right sidebar: chat, visual hand rankings, river category probabilities, net chip/IDR recap with full recap/ledger/history access, and game log. On small screens it stacks below the table. Room chat is saved in the existing private Poker session snapshots.
+
+Bot difficulty is chosen in the lobby and locked when play starts. Easy sometimes makes poor/random choices; Normal uses the previous basic strength policy; Hard also weighs call cost, public pot size and own flush draws. Bots use only their own cards and public board/betting information, waiting at least 3 seconds. These are local heuristics, not a tournament poker engine.
+
+Probabilities describe the best five-card category at the river, including use of the board. Preflop uses 10,000 random board completions. Flop/turn/river enumerate every unknown board completion (1,081 / 46 / 1). Categories are exclusive; royal flush is separated from other straight flushes. Percentages are rounded; preflop nominal sampling uncertainty is at most about ±1 percentage point at 95%. Opponent cards remain unknown, including at showdown; this is a hand-category distribution rather than opponent equity. Calculation happens in a browser Worker.
+
+Settings auto-save before play; Start submits current form values. Bots do not force the IDR rate to zero anymore. All bot balances are simulation; no payment instructions are generated for bot tables. The original detailed recap, ledger, CSV, session save and human-only settlement calculation remain available.

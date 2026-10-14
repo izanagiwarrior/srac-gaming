@@ -3,6 +3,8 @@ const http = require('http'), fs = require('fs'), path = require('path'), os = r
 const { WebSocketServer } = require('ws');
 const { randomInt, randomBytes } = require('node:crypto');
 const E = require('./engine');
+const {tableSettings}=require('../shared/table-settings');
+const BUILD = '2026-10-14-six-games-1', CLIENT_VERSION = 6;
 
 function createMahjongServer() {
 const PUBLIC = path.join(__dirname, 'public');
@@ -18,10 +20,11 @@ function makeCode() { const a = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; for (let len = 4; le
 function token() { return randomBytes(24).toString('hex'); }
 function send(ws, obj) { if (ws && ws.readyState === 1) ws.send(JSON.stringify(obj)); }
 function cleanName(n) { return String(n || '').replace(/[<>&"]/g, '').trim().slice(0, 16) || 'Pemain'; }
+function hasClaimChoice(o) { return !!(o && (o.win || o.pung || o.kong || (o.chows && o.chows.length))); }
 
 class Room {
   constructor(code) {
-    this.code = code; this.players = []; this.spectators = []; this.chat = []; this.history = []; this.state = 'lobby'; this.settings = { rounds: 4, turnSeconds: 0, claimSeconds: 0, botLevel: 'normal' }; this.G = null; this.timers = {}; this.lastActivity = Date.now();
+    this.code = code; this.players = []; this.spectators = []; this.chat = []; this.history = []; this.ledger = []; this.state = 'lobby'; this.settings = { rounds: 4, turnSeconds: 0, claimSeconds: 0, botLevel: 'normal', pointValue:0, autoPass: false, highlightSets: true }; this.G = null; this.timers = {}; this.lastActivity = Date.now();
   }
   humans() { return this.players.filter(p => !p.bot); }
   hostSeat() { const h = this.players.find(p => !p.bot && p.connected && p.token === this.hostToken) || this.players.find(p => !p.bot && p.connected) || this.players.find(p => !p.bot); return h ? h.seat : -1; }
@@ -55,18 +58,28 @@ class Room {
     }
   }
   broadcastLobby() {
-    const base = { type: 'lobby', v: 5, code: this.code, hostSeat: this.hostSeat(), settings: this.settings, players: this.players.map(p => ({ seat: p.seat, name: p.name, connected: p.connected, bot: p.bot })), spectators: this.spectators.map(s => s.name), chat: this.chat.slice(-50) };
+    const base = { type: 'lobby', v: CLIENT_VERSION, build: BUILD, code: this.code, hostSeat: this.hostSeat(), settings: this.settings,ledger:this.ledger, players: this.players.map(p => ({ seat: p.seat, name: p.name, score:p.score,connected: p.connected, bot: p.bot })), spectators: this.spectators.map(s => s.name), chat: this.chat.slice(-50) };
     for (const p of this.everyone()) send(p.ws, { ...base, spectator: !!p.spectator });
   }
   start(seat, settings) {
     if (this.state !== 'lobby') return; if (seat !== this.hostSeat()) return;
-    if (settings && [4, 8, 12].includes(+settings.rounds)) this.settings.rounds = +settings.rounds;
-    if (settings && ['easy', 'normal', 'hard'].includes(settings.botLevel)) this.settings.botLevel = settings.botLevel;
+    if(this.updateSettings(seat, settings, false)===false)return;
     let k = 0; while (this.players.length < 4) { let n; do { n = BOT_NAMES[k++ % BOT_NAMES.length]; } while (this.players.some(p => p.name.toLowerCase() === n.toLowerCase()) && k < 20); this.players.push({ seat: this.players.length, name: n, bot: true, connected: true, hand: [], melds: [], discards: [], drawn: null, score: 0 }); }
     this.state = 'playing'; this.newMatch();
   }
+  updateSettings(seat, settings, notify = true) {
+    if (seat !== this.hostSeat() || !settings || typeof settings !== 'object') return false;
+    if (this.state !== 'lobby'){send(this.players[seat]?.ws,{type:'error',msg:'Pengaturan dikunci sejak permainan dimulai. Buat ruangan baru untuk memilih mode lain.'});return false;}
+    try{this.settings=tableSettings(settings,this.settings);}catch(error){send(this.players[seat]?.ws,{type:'error',msg:error.message});return false;}
+    if ([4, 8, 12].includes(+settings.rounds)) this.settings.rounds = +settings.rounds;
+    if (['easy', 'normal', 'hard'].includes(settings.botLevel)) this.settings.botLevel = settings.botLevel;
+    if (typeof settings.autoPass === 'boolean') this.settings.autoPass = settings.autoPass;
+    if (typeof settings.highlightSets === 'boolean') this.settings.highlightSets = settings.highlightSets;
+    this.lastActivity = Date.now();
+    if (notify) this.broadcastLobby();return true;
+  }
   newMatch() {
-    for (const p of this.players) p.score = 0;
+    this.ledger=[];for (const p of this.players) p.score = 0;
     this.G = { dealer: 0, hand: 1, maxHands: this.settings.rounds, wall: [], current: 0, phase: 'idle', last: null, pending: null, over: false, result: null, log: '', gen: 0, final: false, turnDeadline: null };
     const first = this.players[Math.floor(Math.random() * 4)];
     this.startHand(first);
@@ -106,7 +119,7 @@ class Room {
     this.log(`${P.name} mengambil ubin.`);
     if (!P.bot) { this.armTurn(p); this.broadcastState(); return; }
     this.broadcastState();
-    await sleep(700); return this.botAct(p, true);
+    await sleep(3000); return this.botAct(p, true);
   }
   scheduleOfflineAct(p) {
     const G = this.G; const gen = G.gen; clearTimeout(this.timers.offline);
@@ -133,10 +146,11 @@ class Room {
     const r = G.wall.pop(); P.hand.push(r); P.drawn = r; G.phase = 'discard'; this.bump();
     if (!P.bot) { this.armTurn(p); this.broadcastState(); return; }
     this.broadcastState();
-    await sleep(600); return this.botAct(p, true);
+    await sleep(3000); return this.botAct(p, true);
   }
   async discardTile(p, t) {
     const G = this.G; const P = this.players[p]; const k = P.hand.indexOf(t); if (k < 0) return;
+    const claimAutoPass = this.settings.autoPass; // Mode dipilih di lobby dan dikunci selama permainan.
     const prevLast = G.last; const hadDrawn = P.drawn;
     P.hand.splice(k, 1); P.drawn = null; P.discards.push(t); G.last = { tile: t, from: p }; G.phase = 'claim'; G.pending = null; this.bump(); const gen = G.gen;
     this.log(`${G.autoNote || ''}${P.name} membuang ${E.tileName(t)}.`); G.autoNote = null;
@@ -149,10 +163,12 @@ class Room {
     for (let q = 0; q < 4; q++) {
       if (q === p) continue; const Q = this.players[q]; const o = E.computeOptions(Q.hand, Q.melds, t, q === (p + 1) % 4);
       if (Q.bot) { const d = E.botDecideLevel(Q.hand, Q.melds, o, t, this.settings.botLevel); if (d) claims.push({ p: q, ...d }); continue; }
-      opts[q] = o; if (Q.connected) waiting.add(q); // semua manusia dapat jendela klaim, punya opsi atau tidak
+      opts[q] = o;
+      const hasOption = hasClaimChoice(o);
+      if (Q.connected && (!claimAutoPass || hasOption)) waiting.add(q);
     }
     if (waiting.size) {
-      G.pending = { claims, opts, waiting, deadline: null }; this.broadcastState();
+      G.pending = { claims, opts, waiting, deadline: null, autoPass: claimAutoPass }; this.broadcastState();
       return; // menunggu semua pemain menekan Klaim atau Lewat
     }
     return this.resolveClaims(claims);
@@ -160,6 +176,7 @@ class Room {
   humanClaim(seat, msg) {
     const G = this.G; const pend = G.pending; if (!pend || !pend.waiting.has(seat)) return; const o = pend.opts[seat];
     const c = msg.claim; const P = this.players[seat];
+    if (!['win', 'set', 'pass'].includes(c)) return send(P.ws, { type: 'error', msg: 'Pilih Klaim, Hu, atau Lewat.' });
     if (c === 'win') { if (!o.win) return send(P.ws, { type: 'error', msg: 'Ubin ini tidak membuat tanganmu menang.' }); pend.claims.push({ p: seat, type: 'win', win: o.win }); }
     else if (c === 'set') {
       const v = this.validateSet(seat, msg.tiles || []); if (v.error) return send(P.ws, { type: 'error', msg: v.error });
@@ -187,6 +204,7 @@ class Room {
   }
   async resolveClaims(claims) {
     const G = this.G; if (G.over) return; G.pending = null; G.undo = null; this.bump(); const from = G.last.from; const order = q => (q - from + 4) % 4;
+    if(claims.some(c=>this.players[c.p].bot)){const gen=G.gen;await sleep(3000);if(G.gen!==gen||G.over)return;}
     const wins = claims.filter(c => c.type === 'win').sort((a, b) => order(a.p) - order(b.p));
     if (wins.length) { const w = wins[0]; const P = this.players[w.p]; P.hand.push(G.last.tile); this.players[from].discards.pop(); return this.endHand(w.p, G.last.tile, false, w.win, from); }
     const pk = claims.find(c => c.type === 'kong') || claims.find(c => c.type === 'pung');
@@ -203,9 +221,9 @@ class Room {
     G.current = cl.p; G.phase = 'discard'; P.drawn = null; this.bump();
     const label = cl.type === 'chow' ? 'Chow' : cl.type === 'pung' ? 'Pung' : 'Kong';
     this.log(`${P.name} ${label} ${E.tileName(t)} dari ${this.players[G.last.from].name}!`); this.broadcastState(); await sleep(650);
-    if (cl.type === 'kong') { if (!G.wall.length) return this.endHand(null); const r = G.wall.pop(); P.hand.push(r); P.drawn = r; this.bump(); if (!P.bot) { this.armTurn(cl.p); this.broadcastState(); return; } this.broadcastState(); await sleep(600); return this.botAct(cl.p, true); }
+    if (cl.type === 'kong') { if (!G.wall.length) return this.endHand(null); const r = G.wall.pop(); P.hand.push(r); P.drawn = r; this.bump(); if (!P.bot) { this.armTurn(cl.p); this.broadcastState(); return; } this.broadcastState(); await sleep(3000); return this.botAct(cl.p, true); }
     if (!P.bot) { this.armTurn(cl.p); this.broadcastState(); return; }
-    return this.botAct(cl.p, false);
+    await sleep(3000);return this.botAct(cl.p, false);
   }
   endHand(winner, tile, zimo, win, from) {
     const G = this.G; G.over = true; G.phase = 'end'; G.pending = null; this.bump(); clearTimeout(this.timers.claim);
@@ -226,6 +244,7 @@ class Room {
     });
     r.round = G.hand; r.maxHands = G.maxHands; r.final = G.hand >= G.maxHands;
     if (r.final) r.ranking = this.players.map((P, i) => ({ seat: i, name: P.name, score: P.score })).sort((a, b) => b.score - a.score);
+    this.ledger.push({label:'Ronde '+G.hand,time:Date.now(),rate:this.settings.pointValue,players:this.players.map((P,i)=>({name:P.name,delta:r.delta?.[i]||0,amount:(r.delta?.[i]||0)*this.settings.pointValue}))});this.ledger=this.ledger.slice(-200);
     G.result = r; this.broadcastState();
   }
   next(seat) {
@@ -267,9 +286,9 @@ class Room {
   personal(v) {
     const G = this.G; const reveal = G.over; const spec = v < 0;
     return {
-      type: 'state', v: 5, code: this.code, you: v, hand: G.hand, maxHands: G.maxHands, dealer: G.dealer, current: G.current, phase: G.phase, wall: G.wall.length, log: G.log, over: G.over, final: G.final,
+      type: 'state', v: CLIENT_VERSION, build: BUILD, code: this.code, you: v, hand: G.hand, maxHands: G.maxHands, dealer: G.dealer, current: G.current, phase: G.phase, wall: G.wall.length, log: G.log, over: G.over, final: G.final,
       last: G.last ? { tile: G.last.tile, from: G.last.from } : null,
-      hostSeat: this.hostSeat(),
+      hostSeat: this.hostSeat(),settings:this.settings,ledger:this.ledger,
       players: this.players.map((P, i) => ({
         name: P.name, bot: P.bot, connected: P.connected, score: P.score, wind: this.wind(i), handCount: P.hand.length,
         hand: (!spec && i === v || reveal) ? P.hand : null, drawn: !spec && i === v && P.drawn ? P.drawn.id : null,
@@ -281,6 +300,11 @@ class Room {
       options: !spec && G.pending && G.pending.waiting.has(v) ? G.pending.opts[v] : null,
       claimDeadline: G.pending ? G.pending.deadline : null,
       claimOpen: !!G.pending,
+      autoPass: this.settings.autoPass,
+      highlightSets: this.settings.highlightSets,
+      claimAutoPass: G.pending ? G.pending.autoPass : this.settings.autoPass,
+      claimWaiting: G.pending ? [...G.pending.waiting] : [],
+      autoPassed: !!(!spec && G.pending && G.pending.autoPass && G.last.from !== v && G.pending.opts[v] && !hasClaimChoice(G.pending.opts[v])),
       turnDeadline: G.turnDeadline, turnSeconds: this.settings.turnSeconds, claimSeconds: this.settings.claimSeconds,
       result: G.result
     };
@@ -289,7 +313,7 @@ class Room {
 }
 
 // ---------- HTTP statis ----------
-const assets = { '/':'public/index.html', '/index.html':'public/index.html', '/engine.js':'engine.js', '/client.js':'public/client.js', '/tiles.js':'public/tiles.js' };
+const assets = { '/':'public/index.html', '/index.html':'public/index.html', '/engine.js':'engine.js', '/client.js':'public/client.js', '/tiles.js':'public/tiles.js', '/hand-help.js':'public/hand-help.js' };
 const server = http.createServer((req, res) => {
   if (!['GET','HEAD'].includes(req.method)) { res.writeHead(405); return res.end(); }
   let url;
@@ -317,6 +341,7 @@ wss.on('connection', ws => {
     if (!msg || typeof msg !== 'object') return;
     const rp = ws.roomPlayer;
     if (rp && ['create','join','rejoin'].includes(msg.type)) return send(ws,{ type:'error',msg:'Keluar dari room ini sebelum pindah.' });
+    if (['create','join','rejoin'].includes(msg.type) && msg.v !== CLIENT_VERSION) return send(ws,{ type:'error',msg:'Mahjong sudah diperbarui. Muat ulang halaman untuk menggunakan warna set dan mode lewat terbaru.',fatal:true });
     if (msg.type === 'create') {
       if (rooms.size >= 200) return send(ws,{ type:'error',msg:'Server penuh. Coba lagi nanti.' });
       const room = new Room(makeCode()); rooms.set(room.code, room);
@@ -346,6 +371,7 @@ wss.on('connection', ws => {
     if (msg.type === 'leave') { ws.roomPlayer = null; room.disconnect(player); send(ws, { type: 'left' }); return; }
     if (player.spectator) return;
     if (msg.type === 'start') return room.start(player.seat, msg.settings);
+    if (msg.type === 'settings') return room.updateSettings(player.seat, msg.settings);
     if (msg.type === 'host') return room.makeHost(player.seat, msg.seat | 0);
     if (msg.type === 'action') return room.onAction(player.seat, msg);
     if (msg.type === 'next') return room.next(player.seat);

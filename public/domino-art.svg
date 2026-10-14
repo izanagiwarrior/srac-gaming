@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 205">
+  <defs><filter id="shadow" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="0" dy="8" stdDeviation="5" flood-color="#071e13" flood-opacity=".5"/></filter><g id="six"><circle cx="13" cy="11" r="3.7"/><circle cx="31" cy="11" r="3.7"/><circle cx="13" cy="23" r="3.7"/><circle cx="31" cy="23" r="3.7"/><circle cx="13" cy="35" r="3.7"/><circle cx="31" cy="35" r="3.7"/></g><g id="three"><circle cx="12" cy="11" r="3.7"/><circle cx="22" cy="23" r="3.7"/><circle cx="32" cy="35" r="3.7"/></g><g id="one"><circle cx="22" cy="23" r="3.7"/></g></defs>
+  <ellipse cx="180" cy="102" rx="131" ry="65" fill="none" stroke="#dfc58d" stroke-opacity=".24"/><ellipse cx="180" cy="102" rx="142" ry="75" fill="none" stroke="#dfc58d" stroke-opacity=".08"/>
+  <g filter="url(#shadow)" fill="#f6efde" stroke="#c4b799" stroke-width="1.5">
+    <g transform="translate(90 55) rotate(-20 28 51)"><rect width="56" height="112" rx="7"/><path d="M6 56h44" stroke="#b4ab95"/><g fill="#204434" stroke="none"><use href="#six" x="6" y="5"/><use href="#six" x="6" y="61"/></g><circle cx="28" cy="56" r="2" fill="#d2b879" stroke="none"/></g>
+    <g transform="translate(155 31) rotate(-2 28 51)"><rect width="56" height="112" rx="7"/><path d="M6 56h44" stroke="#b4ab95"/><g fill="#204434" stroke="none"><use href="#six" x="6" y="5"/><use href="#three" x="6" y="61"/></g><circle cx="28" cy="56" r="2" fill="#d2b879" stroke="none"/></g>
+    <g transform="translate(220 58) rotate(18 28 51)"><rect width="56" height="112" rx="7"/><path d="M6 56h44" stroke="#b4ab95"/><g fill="#204434" stroke="none"><use href="#three" x="6" y="5"/><use href="#one" x="6" y="61"/></g><circle cx="28" cy="56" r="2" fill="#d2b879" stroke="none"/></g>
+  </g>
+</svg>
