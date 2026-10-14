@@ -1,0 +1,5 @@
+.hubbar { box-sizing:border-box; display:flex; align-items:center; justify-content:space-between; width:100%; padding:9px 20px; background:#0c211b; color:#e7d9ba; font:11px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; border-bottom:1px solid #ffffff15; }
+.hubbar a { color:#e7d9ba; text-decoration:none; padding:3px 0; }
+.hubbar a:hover { color:#fff; }
+.hubbar a:focus-visible { outline:2px solid #d5b67c; outline-offset:4px; }
+.hubbar span { font-size:9px; letter-spacing:2px; }
