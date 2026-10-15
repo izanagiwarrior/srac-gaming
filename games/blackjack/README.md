@@ -30,3 +30,7 @@ Panel kanan: chat, cheat sheet visual, rekap chip/rupiah/CSV, log, pengaturan me
 ## Pemeriksaan patch
 
 Sintaks dan authoring halaman masuk/lobby ditinjau pada port terpisah, tanpa memulai ronde atau memasang chip. Tidak menjalankan tes otomatis atau pertandingan. Belum diverifikasi lewat ronde multiplayer, split/double, payout nyata dalam permainan, dan pemulihan koneksi saat ronde berjalan.
+
+## Sesi bersama pada hub
+
+Hub build `2026-10-15-social-save-2` menambahkan save privat/pemulihan dijeda, nama bersama, kunci room, antrean penonton dan rotasi antar ronde, saldo akun yang tetap tercatat, panel lipat, serta suara/volume/pengurangan animasi. Lihat [panduan sesi](../../docs/SOCIAL-SESSIONS.md), termasuk migrasi pertama dari game RAM dan batas pemeriksaan. Keterangan RAM/restart pada riwayat build lama tidak berlaku sebagai jaminan perilaku build ini.

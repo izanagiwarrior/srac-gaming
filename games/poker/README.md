@@ -108,3 +108,7 @@ Bot difficulty is chosen in the lobby and locked when play starts. Easy sometime
 Probabilities describe the best five-card category at the river, including use of the board. Preflop uses 10,000 random board completions. Flop/turn/river enumerate every unknown board completion (1,081 / 46 / 1). Categories are exclusive; royal flush is separated from other straight flushes. Percentages are rounded; preflop nominal sampling uncertainty is at most about ±1 percentage point at 95%. Opponent cards remain unknown, including at showdown; this is a hand-category distribution rather than opponent equity. Calculation happens in a browser Worker.
 
 Settings auto-save before play; Start submits current form values. Bots do not force the IDR rate to zero anymore. All bot balances are simulation; no payment instructions are generated for bot tables. The original detailed recap, ledger, CSV, session save and human-only settlement calculation remain available.
+
+## Sesi bersama pada hub
+
+Hub build `2026-10-15-social-save-2` menambahkan save privat/pemulihan dijeda, nama bersama, kunci room, antrean penonton dan rotasi antar ronde, saldo akun yang tetap tercatat, panel lipat, serta suara/volume/pengurangan animasi. Lihat [panduan sesi](../../docs/SOCIAL-SESSIONS.md), termasuk migrasi pertama dari game RAM dan batas pemeriksaan. Keterangan RAM/restart pada riwayat build lama tidak berlaku sebagai jaminan perilaku build ini.

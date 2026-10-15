@@ -9,7 +9,7 @@ Read the root AGENTS.md. Treat the human's current instructions as the source of
 
 ## Change a game
 
-Read [docs/GAME-CONVENTIONS.md](../../../docs/GAME-CONVENTIONS.md). Reuse public/game-tools.js and public/hub-game.css for the room sidebar and game credits, and games/shared/table-settings.js for point value and difficulty validation where appropriate. Preserve each game's private state and existing rule variations.
+Read [docs/GAME-CONVENTIONS.md](../../../docs/GAME-CONVENTIONS.md). Reuse public/game-tools.js and public/hub-game.css for the room sidebar and game credits, and games/shared/table-settings.js for point value and difficulty validation where appropriate. Preserve each game's private state and existing rule variations. Read [docs/SOCIAL-SESSIONS.md](../../../docs/SOCIAL-SESSIONS.md) for shared room lifecycle, save migration, paused recovery and seat/account rotation.
 
 Prepare the patch away from the served checkout; keep its base/source manifest outside deployable files. Bump the hub build/package when publishing new behavior and include any game protocol change that requires clients to refresh. No gameplay/automated tests unless requested. Check JavaScript syntax and inspect the representative UI on a separate loopback origin; identify remaining verification limits.
 

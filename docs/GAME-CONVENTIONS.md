@@ -61,3 +61,13 @@ Poker category percentages use the own hole cards plus visible board to describe
 - Server validates turn, phase, actor/host, selected IDs, input ranges and state revision. Send each viewer only their allowed state; return explicit errors for stale/illegal actions. Spectators cannot play or change settings. Preserve reconnect behavior and limits on rooms/messages.
 - Use an explicit asset allowlist. Do not serve repository files, runtime, credentials or arbitrary paths. Keep same-origin WebSockets compatible with both local HTTP/ws and tunnel HTTPS/wss. Stop owned timers/sockets on close.
 - No new dependency unless it supports the requested feature. Preserve root lockfile and the six existing games. Check source diff and syntax; only run gameplay/automated tests if requested. Any authoring preview uses its own port, rooms and DATA_DIR.
+
+## Shared room lifecycle
+
+Follow [SOCIAL-SESSIONS.md](SOCIAL-SESSIONS.md). The room toolbar provides lock, private recovery download, queue/volunteer controls and host continuation at completed-round boundaries. The right sidebar keeps its existing order and gains persistent folds. New games must implement the room-service adapter, persist only game data, restore paused without running bots, and keep account balances with people when seats change. Do not expose private save snapshots or tokens in directory/API/chat/CSV.
+
+Use the shared saved-session choice before restoring a seat on a fresh page. Each client calls MejaRoom.connected(savedSeat, send, onEntry), MejaRoom.disconnected(), gates every send with MejaRoom.outgoing, and respects consumed messages from MejaRoom.receive. A different invitation must preserve the old seat until the player chooses to leave and the server acknowledges it. Only explicit authentication/room expiry responses carry sessionUnavailable; rate limits, version errors and transport timeouts do not. Keep automatic same-page reconnect and native account/leave rules intact.
+
+## Collapsible sidebar panels
+
+Use the shared Buka/Lipat button for each sidebar panel. The enhancer marks exactly its top-level heading/header with data-mk-panel-header; collapsing hides every other direct child, including content containing nested subheadings. Do not use the presence of h2/h3 inside content as a reason to keep it visible. Keep the outer panel as the single disclosure control, retain its state after native rerenders, and synchronize its text and aria-expanded. Capsa uses the same behavior for chat, cheat sheet, recap, log, round history and bot controls.

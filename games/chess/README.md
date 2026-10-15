@@ -29,3 +29,7 @@ Creator **Faiz T**. Panel kanan mengikuti chat → cheat sheet bidak → rekap p
 Default nilai poin 0, bot Normal. Host memilih rupiah per poin dan Easy/Normal/Hard sebelum mulai; pilihan dikunci termasuk saat main lagi. Menang +1 poin, kalah −1, remis 0. Menyerah atau keluar dari pertandingan berjalan dihitung kalah. Rekap berlanjut saat main lagi dan mencatat setiap hasil sekali. Rupiah = poin × nilai lobby; total dua pemain nol, termasuk simulasi bot.
 
 Easy memilih langkah legal acak. Normal menimbang tangkapan, pengembangan dan ancaman. Hard juga mempertimbangkan tanggapan lawan satu langkah berikutnya dengan nilai material. Semua menunggu 3 detik.
+
+## Sesi bersama pada hub
+
+Hub build `2026-10-15-social-save-2` menambahkan save privat/pemulihan dijeda, nama bersama, kunci room, antrean penonton dan rotasi antar ronde, saldo akun yang tetap tercatat, panel lipat, serta suara/volume/pengurangan animasi. Lihat [panduan sesi](../../docs/SOCIAL-SESSIONS.md), termasuk migrasi pertama dari game RAM dan batas pemeriksaan. Keterangan RAM/restart pada riwayat build lama tidak berlaku sebagai jaminan perilaku build ini.

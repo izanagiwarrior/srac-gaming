@@ -6,10 +6,11 @@ const { randomInt, randomUUID } = require('node:crypto');
 const { WebSocketServer } = require('ws');
 const { Chess } = require('chess.js');
 const { tableSettings,record }=require('../shared/table-settings');
+const {snapshotRoom}=require('../shared/room-service');
 
 function createChessServer({ getAddresses = () => [] } = {}) {
   const rooms = new Map();
-  let closing = false;
+  let closing = false, hub = null;
   const files = new Map([
     ['/', ['public/index.html','text/html; charset=utf-8']],
     ['/client.js', ['public/client.js','application/javascript; charset=utf-8']],
@@ -28,7 +29,7 @@ function createChessServer({ getAddresses = () => [] } = {}) {
       res.end(req.method === 'HEAD' ? undefined : data);
     });
   });
-  const send = (ws,data) => { if (ws?.readyState === 1) ws.send(JSON.stringify(data)); };
+  const send = (ws,data) => { if (ws?.readyState === 1) ws.send(JSON.stringify(hub ? hub.enrich(ws,data) : data)); };
   const nameFor = value => String(value || '').replace(/[\u0000-\u001f\u007f<>"\\]/g,'').trim().slice(0,24) || 'Pemain';
   const opposite = color => color === 'w' ? 'b' : 'w';
   function codeFor() {
@@ -56,6 +57,7 @@ function createChessServer({ getAddresses = () => [] } = {}) {
   }
   function broadcast(room) {
     if (closing) return;
+    hub?.changed(room);
     for (const entity of [...room.players,...room.spectators]) if (entity.connected && !entity.bot) send(entity.ws,publicState(room,entity));
   }
   function finish(room,reason,winner = null) {
@@ -107,7 +109,7 @@ function createChessServer({ getAddresses = () => [] } = {}) {
   }
   function armBot(room) {
     clearTimeout(room.botTimer); room.botTimer = null;
-    if (closing || room.phase !== 'playing' || !ready(room) || !room.players.find(p => p.color === room.chess.turn())?.bot) return;
+    if (closing || room.recovering || room.phase !== 'playing' || !ready(room) || !room.players.find(p => p.color === room.chess.turn())?.bot) return;
     const match = room.matchId, ply = room.chess.history().length;
     room.botTimer = setTimeout(() => {
       room.botTimer = null;
@@ -145,7 +147,7 @@ function createChessServer({ getAddresses = () => [] } = {}) {
     ws.room = null; ws.entity = null;
     if (!room || !entity || entity.ws !== ws) return;
     entity.ws = null; entity.connected = false; room.active = Date.now();
-    if (entity.color === null) room.spectators = room.spectators.filter(p => p !== entity);
+    if (entity.color === null) {if(!entity.hasAccount)room.spectators = room.spectators.filter(p => p !== entity);}
     else if (explicit) {
       note(room,`${entity.name} keluar dari room.`);
       if (room.phase === 'lobby') { room.players = room.players.filter(p => p !== entity); room.players.forEach((p,i) => p.color = i === 0 ? 'w' : 'b'); }
@@ -168,6 +170,7 @@ function createChessServer({ getAddresses = () => [] } = {}) {
       try {
         const msg = JSON.parse(raw.toString());
         if (!msg || typeof msg !== 'object') throw new Error('Pesan tidak valid.');
+        if (hub?.handle(ws,msg)) return;
         if (['create','join','resume'].includes(msg.type)) {
           if (ws.entity) throw new Error('Keluar dari room sekarang sebelum pindah.');
           if (msg.type === 'create') {
@@ -179,14 +182,14 @@ function createChessServer({ getAddresses = () => [] } = {}) {
             rooms.set(room.code,room); note(room,`${entity.name} membuka meja catur.`); attach(ws,room,entity); return;
           }
           const code = String(msg.code || '').trim().toUpperCase(), room = rooms.get(code);
-          if (!room) { send(ws,{ type:'error', message:'Room tidak ditemukan. Buat room baru atau cek kode.', fatal:msg.type === 'resume' }); return; }
+          if (!room) { send(ws,{ type:'error', message:'Room tidak ditemukan. Buat room baru atau cek kode.', sessionUnavailable:msg.type === 'resume',fatal:msg.type === 'resume' }); return; }
           if (msg.type === 'resume') {
             const entity = [...room.players,...room.spectators].find(p => !p.left && p.token && p.token === msg.token);
-            if (!entity) { send(ws,{ type:'error', message:'Sesi sudah berakhir. Gabung dengan kode room.', fatal:true }); return; }
+            if (!entity) { send(ws,{ type:'error', message:'Sesi sudah berakhir. Gabung dengan kode room.', fatal:true,sessionUnavailable:true }); return; }
             attach(ws,room,entity); return;
           }
           const spectator = room.phase !== 'lobby' || room.players.length >= 2;
-          if (spectator && room.spectators.length >= 16) throw new Error('Kursi penonton penuh.');
+          if (spectator && room.spectators.filter(p=>p.connected&&!p.bot).length >= 16) throw new Error('Kursi penonton penuh.');
           const entity = playerFor(msg.name,spectator ? null : room.players.length === 0 ? 'w' : 'b');
           (spectator ? room.spectators : room.players).push(entity); note(room,`${entity.name} ${spectator ? 'menonton' : 'bergabung'}.`); attach(ws,room,entity); return;
         }
@@ -242,7 +245,7 @@ function createChessServer({ getAddresses = () => [] } = {}) {
   });
   const maintenance = setInterval(() => {
     for (const ws of wss.clients) { if (!ws.alive) { ws.terminate(); continue; } ws.alive = false; ws.ping(); }
-    for (const [code,room] of rooms) if (![...room.players,...room.spectators].some(p => !p.bot && p.connected) && Date.now() - room.active > 3600000) { clearTimeout(room.botTimer); rooms.delete(code); }
+    for (const [code,room] of rooms) if (![...room.players,...room.spectators].some(p => !p.bot && p.connected) && Date.now() - room.active > 7 * 86400000) { clearTimeout(room.botTimer); rooms.delete(code); }
   },30000); maintenance.unref();
   async function close() {
     closing = true; clearInterval(maintenance);
@@ -250,6 +253,14 @@ function createChessServer({ getAddresses = () => [] } = {}) {
     for (const ws of wss.clients) { ws.room = null; ws.entity = null; ws.terminate(); }
     await new Promise(resolve => wss.close(resolve)); await new Promise(resolve => server.close(resolve));
   }
-  return { server,wss,rooms,close };
+  return { server,wss,rooms,close,
+    setRoomService(value){hub=value;},capacity:()=>2,
+    exportRoom(room){return {...snapshotRoom({...room,chess:null}),chessPgn:room.chess.pgn()};},
+    restoreRoom(saved){const room={...saved,chess:new Chess(),botTimer:null};if(saved.chessPgn)room.chess.loadPgn(saved.chessPgn);return room;},
+    setSpectator(p,value){if(value)p.color=null;},
+    admit(room,p){p.score??=0;p.left=false;},
+    onRotation(room){room.practice=room.players.some(p=>p.bot);},
+    broadcastRoom:broadcast,resumeRoom:armBot,nextRound(room){start(room,true);}
+  };
 }
 module.exports = { createChessServer };

@@ -4,7 +4,7 @@
 // No pot, buy-in, payment processing, or loss multiplier is needed.
 function recap(players, history, settings, phase, practice) {
   const rate = settings.pointValue;
-  const rows = players.map((p,seat) => ({ seat, name:p.name, bot:p.bot, points:p.score, net:p.score * rate }));
+  const rows = players.map((p,seat) => ({ id:p.id,seat, name:p.name, bot:p.bot, outside:!!p.spectator, points:p.score, net:p.score * rate }));
   const total = rows.reduce((sum,p) => sum + p.net,0);
   if (total !== 0 || rows.some(p => !Number.isSafeInteger(p.net))) throw new Error('Rekap rupiah tidak seimbang.');
   const debtors = rows.filter(p => p.net < 0).map(p => ({ ...p, remaining:-p.net })).sort((a,b) => b.remaining - a.remaining);

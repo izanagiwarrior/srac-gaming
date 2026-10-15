@@ -1,5 +1,5 @@
 /* Klien Mahjong P2P */
-const CLIENT_VERSION = 7, HAND_HELP = window.MahjongHandHelp;
+const CLIENT_VERSION = 8, HAND_HELP = window.MahjongHandHelp;
 const { SUITS, WINDS, WIND_ID, DRAG, DRAG_ID, T, idxOf, fromIdx, isSuit, tileName, byIdx, counts, shanten, findWin, acceptance } = Engine;
 const $ = id => document.getElementById(id);
 const ls = { get: (k, d) => { try { const v = localStorage.getItem(k); return v === null ? d : v; } catch (e) { return d; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) { } }, del: k => { try { localStorage.removeItem(k); } catch (e) { } } };
@@ -17,19 +17,20 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
 
 // ---------- Koneksi ----------
 let ws = null, S = null, lobby = null, myCode = null, myToken = null, screen = 'landing', reconnectTimer = null, pendingRejoin = false, isSpectator = false, chatLog = [], replaced = false;
-const UI = { sound: ls.get('mejakita.mahjong.sound', '1') !== '0', bubbles: {}, wasMyTurn: false, prev: null, big: ls.get('mejakita.mahjong.big', '0') === '1', poolMode: ls.get('mejakita.mahjong.pool', 'tile'), autoSort: ls.get('mejakita.mahjong.autosort', '1') !== '0', cheatOpen: ls.get('mejakita.mahjong.cheat', '1') !== '0', sel: null, drag: null, clue: null, order: [], resultShown: null, countdown: null, pick: [], pickKey: null };
+const UI = { sound: window.MejaRoom.preferences().sound, bubbles: {}, wasMyTurn: false, prev: null, big: ls.get('mejakita.mahjong.big', '0') === '1', poolMode: ls.get('mejakita.mahjong.pool', 'tile'), autoSort: ls.get('mejakita.mahjong.autosort', '1') !== '0', sel: null, drag: null, clue: null, order: [], resultShown: null, countdown: null, pick: [], pickKey: null };
 function connect() {
   const proto = location.protocol === 'https:' ? 'wss' : 'ws'; ws = new WebSocket(`${proto}://${location.host}/mahjong/ws`);
-  ws.onopen = () => { setConn(true); if (myCode && myToken) { pendingRejoin = true; sendMsg({ type: 'rejoin', code: myCode, token: myToken }); } };
+  ws.onopen = () => { setConn(true); window.MejaRoom.connected(myCode&&myToken?{code:myCode,token:myToken}:null,sendMsg,target => { $('joincode').value=target; }); };
   ws.onmessage = e => { let m; try { m = JSON.parse(e.data); } catch (err) { return; } onMsg(m); };
-  ws.onclose = () => { setConn(false); clearTimeout(reconnectTimer); if(replaced){$('conn').textContent='Sesi dibuka di tab lain. Tutup tab ini, atau muat ulang untuk mengambil alih.';return;}reconnectTimer = setTimeout(connect, 1500); };
+  ws.onclose = () => { window.MejaRoom.disconnected(); setConn(false); clearTimeout(reconnectTimer); if(replaced){$('conn').textContent='Sesi dibuka di tab lain. Tutup tab ini, atau muat ulang untuk mengambil alih.';return;}reconnectTimer = setTimeout(connect, 1500); };
   ws.onerror = () => { try { ws.close(); } catch (e) { } };
 }
-function sendMsg(o) { if (ws && ws.readyState === 1) ws.send(JSON.stringify({ ...o, v: CLIENT_VERSION })); else toast('Belum terhubung ke server. Mencoba lagi...'); }
+function sendMsg(o) { if(!window.MejaRoom.outgoing(o))return false; if (ws && ws.readyState === 1) { ws.send(JSON.stringify({ ...o, v: CLIENT_VERSION })); return true; } toast('Belum terhubung ke server. Mencoba lagi...'); return false; }
 function setConn(on) { const el = $('conn'); if (el) { el.textContent = on ? '' : 'Terputus dari server, menyambung ulang...'; el.style.display = on ? 'none' : 'block'; } }
 let toastT; function toast(msg) { const t = $('toast'); t.textContent = msg; t.style.display = 'block'; clearTimeout(toastT); toastT = setTimeout(() => t.style.display = 'none', 3500); }
 
 function onMsg(m) {
+  if(window.MejaRoom.receive(m,sendMsg))return;
   if(m.type==='replaced'){replaced=true;clearTimeout(reconnectTimer);leaveLocal(false);toast('Sesi dibuka di tab lain. Tab ini berhenti menyambung ulang.');return;}
   if (m.type === 'error') { toast(m.msg); if (m.fatal) { leaveLocal(); } return; }
   if (m.type === 'joined') { mySeat = m.seat; isSpectator = !!m.spectator; myCode = m.code; myToken = m.token; ls.set('mejakita.mahjong.room', m.code); ls.set('mejakita.mahjong.token', m.token); pendingRejoin = false; history.replaceState(null, '', '?room=' + m.code); if (isSpectator) toast('Meja sudah penuh atau sedang berjalan, kamu masuk sebagai penonton.'); return; }
@@ -52,7 +53,7 @@ function show(name) { screen = name; for (const s of ['landing', 'lobby', 'game'
 // ---------- Landing ----------
 function doCreate() { const name = $('name').value.trim(); if (!name) return toast('Isi nama dulu.'); ls.set('mejakita.mahjong.name', name); sendMsg({ type: 'create', name }); }
 function doJoin() { const name = $('name').value.trim(); const code = $('joincode').value.trim().toUpperCase(); if (!name) return toast('Isi nama dulu.'); if (code.length < 4) return toast('Masukkan kode ruangan 4 huruf.'); ls.set('mejakita.mahjong.name', name); sendMsg({ type: 'join', name, code }); }
-function doLeave() { sendMsg({ type: 'leave' }); leaveLocal(); }
+function doLeave() { sendMsg({ type: 'leave' }); }
 
 // ---------- Ruang tunggu ----------
 function renderLobby() {
@@ -133,7 +134,7 @@ function moveTile(a, b) { const fi = UI.order.indexOf(a), ti = UI.order.indexOf(
 function dragStart(e, id) { UI.drag = id; try { e.dataTransfer.setData('text/plain', String(id)); } catch (err) { } }
 function dropOn(e, id) { e.preventDefault(); if (UI.drag === null) return; if (hasSetClaimOption(S.options)) { if (!UI.pick.includes(UI.drag) && UI.pick.length < 3) UI.pick.push(UI.drag); UI.drag = null; renderGame(); return; } if (!UI.autoSort) moveTile(UI.drag, id); UI.drag = null; UI.sel = null; renderGame(); }
 function discardSel() { if (!canDiscard() || UI.sel === null) return; sendMsg({ type: 'action', action: 'discard', id: UI.sel }); }
-function setSound(on) { UI.sound = on; ls.set('mejakita.mahjong.sound', on ? '1' : '0'); if (on) beep(); renderGame(); }
+function setSound(on) { window.MejaRoom.setPrefs({sound:on});window.MejaRoom.unlock();UI.sound = on; ls.set('mejakita.mahjong.sound', on ? '1' : '0'); if (on) beep(); renderGame(); }
 function setAutoSort(on) { if (!on && UI.autoSort) UI.order = displayOrder().map(t => t.id); UI.autoSort = on; UI.sel = null; ls.set('mejakita.mahjong.autosort', on ? '1' : '0'); renderGame(); }
 function sortOnce() { const d = me().drawn; UI.order = myHand().filter(t => t.id !== d).sort(byIdx).concat(myHand().filter(t => t.id === d)).map(t => t.id); UI.sel = null; renderGame(); }
 function act(a) { sendMsg({ type: 'action', ...a }); }
@@ -152,7 +153,6 @@ function pickSet() {
   if (same && all[1] === all[0] + 1 && all[2] === all[1] + 1) return { ok: true, label: 'Chow ' + all.map(i => fromIdx(i).n).join('-') + ' ' + SUITS[t.s].name };
   return { ok: false, label: 'Bukan Pung, Kong, atau Chow' };
 }
-function toggleCheat(el) { UI.cheatOpen = el.open; ls.set('mejakita.mahjong.cheat', el.open ? '1' : '0'); }
 function setPool(m) { UI.poolMode = m; ls.set('mejakita.mahjong.pool', m); renderGame(); }
 function setBig(on) { UI.big = on; ls.set('mejakita.mahjong.big', on ? '1' : '0'); document.body.classList.toggle('big', on); renderGame(); }
 // Papan hitung: berapa lembar tiap jenis ubin yang sudah terlihat di meja (buangan + set terbuka).
@@ -255,12 +255,7 @@ function sendChat() { const inp = $('chatinput'); const text = inp.value.trim();
 function sendEmoji(e) { sendMsg({ type: 'chat', text: e, emoji: true }); }
 // ---------- Notifikasi giliran ----------
 let audioCtx = null, blinkT = null; const baseTitle = document.title;
-function beep() {
-  if (!UI.sound) return;
-  try { audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)(); if (audioCtx.state === 'suspended') audioCtx.resume();
-    const t = audioCtx.currentTime; [[880, 0], [1175, .12]].forEach(([f, d]) => { const o = audioCtx.createOscillator(), g = audioCtx.createGain(); o.type = 'sine'; o.frequency.value = f; g.gain.setValueAtTime(0.0001, t + d); g.gain.exponentialRampToValueAtTime(0.25, t + d + .02); g.gain.exponentialRampToValueAtTime(0.0001, t + d + .25); o.connect(g).connect(audioCtx.destination); o.start(t + d); o.stop(t + d + .3); });
-  } catch (e) { }
-}
+function beep() { /* Shared room feedback owns the turn sound. */ }
 function startBlink(msg) { stopBlink(); let on = false; blinkT = setInterval(() => { on = !on; document.title = on ? msg : baseTitle; }, 900); }
 function stopBlink() { if (blinkT) { clearInterval(blinkT); blinkT = null; } document.title = baseTitle; }
 function notifyTurn() {
@@ -324,7 +319,7 @@ function computeClue() {
 const chow = (s, n) => ts(T(s, n), T(s, n + 1), T(s, n + 2)); const pung = (s, n) => ts(T(s, n), T(s, n), T(s, n));
 const gap = '<span class="gap"></span>', plus = '<span class="plus">+</span>';
 function cheatHTML(left) {
-  return `<details class="cheat" ${UI.cheatOpen ? 'open' : ''} ontoggle="toggleCheat(this)"><summary>Contekan cepat</summary><div class="cgrid">
+  return `<div class="cheat"><div class="cgrid">
 <div class="cbox"><h3>Bentuk set</h3>
 <div class="crow"><div class="tiles">${ts(T('c', 3), T('c', 3))}</div><span><b>Pasang</b>: 2 identik. Butuh tepat 1 untuk menang.</span></div>
 <div class="crow"><div class="tiles">${pung('b', 8)}</div><span><b>Pung</b>: 3 identik, angka atau huruf.</span></div>
@@ -336,7 +331,7 @@ function cheatHTML(left) {
 <div class="cbox"><h3>Fan &amp; poin</h3><p class="cheat-note">1 fan = 10 poin per pembayar.</p>
 <table class="fan cheat-fan" aria-label="Nilai fan"><tbody><tr><td>Menang dasar</td><td>1</td></tr><tr><td>Zimo / tangan tertutup</td><td>+1 tiap</td></tr><tr><td>Pung naga, angin sendiri, angin Timur</td><td>+1 tiap set</td></tr><tr><td>Semua Pung / campur satu warna</td><td>+2</td></tr><tr><td>Tujuh Pasang</td><td>+3</td></tr><tr><td>Satu warna penuh / semua huruf</td><td>+5</td></tr></tbody></table>
 <p class="cheat-note">Zimo: 3 lawan bayar. Dari buangan: pembuang bayar 3×.</p></div>
-</div></details>`;
+</div></div>`;
 }
 
 // ---------- Hasil ----------
@@ -376,12 +371,12 @@ const STEPS = [
   { t: 'Skor', h: `<p>Setiap kemenangan dihitung dalam <b>fan</b>. 1 fan bernilai 10 poin per pembayar.</p><table class="fan"><tr><td>Menang (Hu)</td><td>1 fan</td></tr><tr><td>Zimo</td><td>+1</td></tr><tr><td>Tangan tertutup (menang tanpa klaim)</td><td>+1</td></tr><tr><td>Pung naga, angin sendiri, atau angin Timur</td><td>+1 tiap set</td></tr><tr><td>Semua Pung (tidak ada Chow)</td><td>+2</td></tr><tr><td>Campur satu warna (1 jenis angka + huruf)</td><td>+2</td></tr><tr><td>Tujuh Pasang</td><td>+3</td></tr><tr><td>Satu warna penuh / semua huruf</td><td>+5</td></tr></table><p class="cap">Zimo: 3 lawan masing-masing membayar. Dari buangan: pembuang membayar 3x sendirian. Total yang diterima pemenang sama besar.</p>` },
   { t: 'Siap main', h: `<p>Beberapa tips: buang dulu ubin huruf yang cuma 1 lembar dan ubin 1 atau 9 yang sendirian. Simpan ubin tengah (3 sampai 7). Jangan terlalu rajin klaim. Perhatikan buangan lawan, terutama yang sudah membuka 2 set.</p><p>Jika host menyalakan <b>Highlight set di tangan</b> di lobby, warna membantu mengenali set yang sudah lengkap dalam tanganmu sendiri: toska <b>C</b> untuk Chow, emas <b>P</b> untuk Pung/Kong, dan ungu <b>C/P</b> kalau ubin bisa menjadi keduanya. Bantuan ini tidak memakai buangan lawan dan tidak menandai calon klaim. Set dapat berbagi ubin yang sama, jadi tidak semua kemungkinan bisa dipakai sekaligus. Pilihan highlight dikunci selama permainan.</p><p>Kalau bingung, tekan <b>Petunjuk</b> di bawah tangan: buangan paling efisien ditandai hijau, pilihan aman ditandai biru.</p><p>Kalau koneksimu putus, buka lagi alamat yang sama di perangkat yang sama dan kamu otomatis kembali ke kursimu. Selama kamu offline, bot memainkan kursimu.</p><p>Selamat bermain!</p>` }
 ];
-let step = 0, tutReview = false, tutOpen = false;
-function openTutorial(first) { tutReview = !first; step = 0; tutOpen = true; renderTut(); }
+let step = 0, tutOpen = false;
+function openTutorial() { step = 0; tutOpen = true; renderTut(); }
 function renderTut() {
   const ov = $('overlay'); const s = STEPS[step]; const lastS = step === STEPS.length - 1;
-  ov.innerHTML = `<div class="modal"><div class="cap">Panduan ${step + 1} dari ${STEPS.length}</div><h2>${s.t}</h2>${s.h}<div class="steps">${STEPS.map((_, i) => `<i class="${i === step ? 'on' : ''}"></i>`).join('')}</div>
- <div class="nav"><button class="btn ghost" onclick="${step === 0 ? 'closeTut()' : 'tutStep(-1)'}">${step === 0 ? (tutReview ? 'Tutup' : 'Lewati panduan') : 'Sebelumnya'}</button><button class="btn ${lastS ? 'primary' : ''}" onclick="${lastS ? 'closeTut()' : 'tutStep(1)'}">${lastS ? 'Tutup' : 'Berikutnya'}</button></div></div>`;
+  ov.innerHTML = `<div class="modal tutorial" role="dialog" aria-modal="true" aria-labelledby="tutorial-title"><div class="tutorial-top"><span class="cap" role="status">Panduan ${step + 1} dari ${STEPS.length}</span><button type="button" class="btn ghost tutorial-skip" onclick="closeTut()">Lewati panduan</button></div><h2 id="tutorial-title">${s.t}</h2>${s.h}<div class="steps" aria-hidden="true">${STEPS.map((_, i) => `<i class="${i === step ? 'on' : ''}"></i>`).join('')}</div>
+ <div class="nav"><button type="button" class="btn ghost" onclick="tutStep(-1)" ${step === 0 ? 'disabled' : ''}>Sebelumnya</button><button type="button" class="btn ${lastS ? 'primary' : ''}" onclick="${lastS ? 'closeTut()' : 'tutStep(1)'}">${lastS ? 'Selesai' : 'Berikutnya'}</button></div></div>`;
   ov.style.display = 'flex'; ov.scrollTop = 0;
 }
 function tutStep(d) { step = Math.max(0, Math.min(STEPS.length - 1, step + d)); renderTut(); }
@@ -390,15 +385,16 @@ function quizPick(el, ok) { document.querySelectorAll('.quiz .tile').forEach(x =
 
 // ---------- Mulai ----------
 (function init() {
-  $('name').value = ls.get('mejakita.mahjong.name', '');
+  $('name').value = window.MejaRoom.name(ls.get('mejakita.mahjong.name', ''));
+  const sharedSeat=window.MejaRoom.saved('mahjong');if(sharedSeat){ls.set('mejakita.mahjong.room',sharedSeat.code);ls.set('mejakita.mahjong.token',sharedSeat.token);}
   const q = new URLSearchParams(location.search); const roomQ = (q.get('room') || '').toUpperCase();
   const savedRoom = ls.get('mejakita.mahjong.room', null), savedTok = ls.get('mejakita.mahjong.token', null);
-  if (savedRoom && savedTok && (!roomQ || roomQ === savedRoom)) { myCode = savedRoom; myToken = savedTok; }
+  if (savedRoom && savedTok) { myCode = savedRoom; myToken = savedTok; }
   if (roomQ) $('joincode').value = roomQ;
   $('addr').textContent = location.host;
   document.body.classList.toggle('big', UI.big);
-  document.addEventListener('pointerdown', () => { try { audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { } }, { once: true });
+  document.addEventListener('meja-preferences',e=>{UI.sound=e.detail.sound;if(S)renderGame();});
   const ci = $('chatinput'); if (ci) ci.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); sendChat(); } });
   show('landing'); connect();
-  if (ls.get('mejakita.mahjong.tut', '0') !== '1') openTutorial(true);
+  if (!myCode && ls.get('mejakita.mahjong.tut', '0') !== '1') openTutorial(true);
 })();

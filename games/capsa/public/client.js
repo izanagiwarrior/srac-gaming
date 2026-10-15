@@ -1,6 +1,6 @@
 'use strict';
 const E = CapsaBanting;
-const CLIENT_VERSION = '2026-10-13-easy-room-1';
+const CLIENT_VERSION = '2026-10-15-guide-sidebar-1';
 const $ = id => document.getElementById(id);
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
 const storage = { get(k, d) { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } }, set(k,v) { try { localStorage.setItem(k,JSON.stringify(v)); } catch {} }, remove(k) { try { localStorage.removeItem(k); } catch {} } };
@@ -19,8 +19,8 @@ function botControls(host) {
   const chosen = botOption();
   return '<div class="segments bot-levels" role="group" aria-label="Tingkat bot">' + BOT_OPTIONS.map(option => '<button type="button" data-bot-level="' + option.value + '" class="' + (chosen.value === option.value ? 'active' : '') + '" aria-pressed="' + (chosen.value === option.value) + '"' + (!host ? ' disabled' : '') + '>' + option.label + '</button>').join('') + '</div><p class="bot-level-note">' + chosen.description + '</p>';
 }
-let ws, S = null, connected = false, session = storage.get('mejakita.capsa.session',null), selected = new Set(), pending = false;
-let sortBy = 'rank', toastTimer, lastChatId = '', sound = storage.get('mejakita.capsa.sound',true), audio;
+let ws, S = null, connected = false, replaced = false, session = storage.get('mejakita.capsa.session',null) || window.MejaRoom.saved('capsa'), selected = new Set(), pending = false;
+let sortBy = 'rank', toastTimer, lastChatId = '', sound = window.MejaRoom.preferences().sound, audio;
 let serverOffset = 0, effectTimer, awaitingSnapshot = true;
 let updateCheckRunning = false, updateAvailable = false;
 let moneyDraft = null, moneySaveTimer, hintPending = false, undoTarget = null, easyPrompt = null, easyConsentCode = null;
@@ -76,8 +76,7 @@ const COMBO_EXAMPLES = [
   { category:4, note:'5 kartu dengan simbol sama', cards:[[3,2],[5,2],[8,2],[11,2],[14,2]], flair:'ALL IN ONE SUIT', mark:'♥' },
   { category:3, note:'5 angka berurutan', cards:[[4,0],[5,1],[6,2],[7,3],[8,0]], flair:'ON A ROLL', mark:'↗' }
 ];
-const urlRoom = (new URLSearchParams(location.search).get('room') || '').toUpperCase().slice(0,4);
-if (urlRoom && session && urlRoom !== session.code) { session = null; storage.remove('mejakita.capsa.session'); }
+let urlRoom = (new URLSearchParams(location.search).get('room') || '').toUpperCase().slice(0,4);
 const myTurn = () => !!S && S.phase === 'playing' && S.you >= 0 && S.turn === S.you;
 function cardHTML(c, decorative = false, mini = false) {
   const red = c.suit === 0 || c.suit === 2;
@@ -91,7 +90,7 @@ function renderComboExamples() {
 function comboEffect(evaluation, name, preview = false) {
   const example = COMBO_EXAMPLES.find(c => c.category === evaluation.category);
   if (!example) return;
-  const layer = $('combo-effects'), reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const layer = $('combo-effects'), reduceMotion = window.MejaRoom.preferences().reduced;
   clearTimeout(effectTimer); layer.replaceChildren();
   if (reduceMotion) { toast((preview ? 'Contoh · ' : name + ' · ') + evaluation.label); return; }
   const tier = evaluation.category, particles = [0,0,0,8,12,18,24,36][tier];
@@ -133,9 +132,11 @@ async function checkForClientUpdate() {
 function connect() {
   awaitingSnapshot = true;
   ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/capsa/ws');
-  ws.onopen = () => { setConnection(true); if (session) send({ type:'rejoin', ...session }); checkForClientUpdate(); };
+  ws.onopen = () => { setConnection(true); window.MejaRoom.connected(session,send,target => { urlRoom=target; render(); }); checkForClientUpdate(); };
   ws.onmessage = event => {
     let m; try { m = JSON.parse(event.data); } catch { return; }
+    if(window.MejaRoom.receive(m,send))return;
+    if(m.type==='replaced'){replaced=true;session=null;S=null;toast('Sesi dibuka di tab lain. Muat ulang untuk mengambil alih.');render();return;}
     if (m.type === 'joined') { session = { code:m.code, token:m.token }; storage.set('mejakita.capsa.session',session); history.replaceState(null,'','?room=' + m.code); }
     if (m.type === 'left') leaveLocal();
     if (m.type === 'error') { pending = false; hintPending = false; toast(m.message); if (m.fatal) leaveLocal(); else render(); }
@@ -174,7 +175,7 @@ function connect() {
       if (rolledBack && S.lastUndo) toast(S.lastUndo.name + ' memakai undo. Semua kartu, saldo, chat, dan riwayat kembali ke awal giliran terakhirnya.');
     }
   };
-  ws.onclose = () => { setConnection(false); setTimeout(connect,1800); }; ws.onerror = () => ws.close();
+  ws.onclose = () => { window.MejaRoom.disconnected(); setConnection(false); if(!replaced)setTimeout(connect,1800); }; ws.onerror = () => ws.close();
 }
 function setConnection(value) {
   connected = value; $('connection').classList.toggle('online',value); $('connection').innerHTML = '<i></i>' + (value ? 'Terhubung' : 'Menyambungkan…');
@@ -182,7 +183,7 @@ function setConnection(value) {
   $('chat-input').disabled = !value; $('chat-form').querySelector('button').disabled = !value;
   if (S?.phase === 'lobby') updateMoneyDraftUI();
 }
-function send(message) { if (ws?.readyState === WebSocket.OPEN) { ws.send(JSON.stringify(message)); return true; } toast('Koneksi sedang tersambung ulang.'); return false; }
+function send(message) { if(!window.MejaRoom.outgoing(message))return false; if (ws?.readyState === WebSocket.OPEN) { ws.send(JSON.stringify(message)); return true; } toast('Koneksi sedang tersambung ulang.'); return false; }
 function leaveLocal() {
   S = null; session = null; selected.clear(); pending = false; storage.remove('mejakita.capsa.session'); lastChatId = '';
   history.replaceState(null,'',location.pathname); document.title = 'Capsa Banting · Capsa Club'; render();
@@ -191,11 +192,8 @@ function leaveLocal() {
   for (const id of ['easy-dialog','undo-dialog']) if ($(id).open) $(id).close();
 }
 function toast(text) { $('toast').textContent = text; $('toast').classList.add('visible'); clearTimeout(toastTimer); toastTimer = setTimeout(() => $('toast').classList.remove('visible'),3200); }
-function warmAudio() { if (!sound) return; try { audio ||= new (window.AudioContext || window.webkitAudioContext)(); if (audio.state === 'suspended') audio.resume(); } catch {} }
-function beep() {
-  if (!sound || !audio || audio.state !== 'running') return;
-  [660,880].forEach((f,i) => { const o = audio.createOscillator(), gain = audio.createGain(), start = audio.currentTime + i * .12; o.frequency.value = f; gain.gain.setValueAtTime(.001,start); gain.gain.exponentialRampToValueAtTime(.06,start + .02); gain.gain.exponentialRampToValueAtTime(.001,start + .22); o.connect(gain).connect(audio.destination); o.start(start); o.stop(start + .25); });
-}
+function warmAudio() { window.MejaRoom.unlock(); }
+function beep() { /* Shared room feedback owns the turn sound. */ }
 function inviteUrl() {
   const local = ['localhost','127.0.0.1','[::1]'].includes(location.hostname);
   const host = local && S?.addresses?.length ? S.addresses[0] + (location.port ? ':' + location.port : '') : location.host;
@@ -209,7 +207,7 @@ async function copy(text, message) {
   } catch { toast('Salin alamat ini: ' + text); }
 }
 function renderLanding() {
-  return '<div class="hero"><div class="hero-copy"><div class="eyebrow">CAPSA BANTING · BIG TWO</div><h1>Giliranmu.<br>Banting kartumu.<br><em>Habiskan duluan.</em></h1><p>Lawan kartu dengan yang lebih tinggi, atau lewat dan tunggu kesempatan. Main bergiliran bareng teman atau bot.</p><div class="hero-meta"><span><i></i>3 TERENDAH</span><span><i></i>2 TERTINGGI</span><span><i></i>3–8 PEMAIN</span></div><div class="card-fan" aria-hidden="true">' + [1,15,29,43,39].map(id => cardHTML(E.card(id),true)).join('') + '</div></div><form class="join-card" id="entry-form"><div class="eyebrow">MEJAMU MENUNGGU</div><h2>Siapa habis duluan?</h2><p class="sub">Buat ruangan atau ikut giliran di meja teman.</p><label class="field" for="name-input">Nama panggilan</label><input class="field-input" id="name-input" value="' + esc(storage.get('mejakita.capsa.name','')) + '" maxlength="20" placeholder="Kamu mau dipanggil siapa?" required autocomplete="nickname"><label class="field" for="create-mode">Mode ruangan baru</label><select class="field-input create-mode" id="create-mode"><option value="official"' + (roomModeDraft === 'official' ? ' selected' : '') + '>Official · 4 pemain</option><option value="casual"' + (roomModeDraft === 'casual' ? ' selected' : '') + '>Non-official · 3–8 pemain</option></select><p class="creation-note">Mode dipilih sekali saat room dibuat. Tidak berubah saat teman masuk.</p><button class="button primary full" type="submit" data-needs-connection>Buat ruangan baru ↗</button><div class="form-divider">atau sudah punya kode?</div><label class="field" for="room-input">Kode ruangan</label><div class="join-inputs"><input class="field-input code" id="room-input" value="' + esc(urlRoom) + '" maxlength="4" placeholder="ABCD" autocomplete="off" aria-label="Kode ruangan"><button class="button secondary" type="button" data-action="join" data-needs-connection>Gabung →</button></div><p class="fine-print">Single, pair, triple, atau kombinasi 5 kartu.<br>Bot melengkapi jumlah minimum pemain.</p></form></div><div class="feature-strip"><div class="feature"><span class="feature-icon">↻</span><div><h3>Giliran benar-benar berputar</h3><p>Lawan bantingan sebelumnya. Semua lawan lewat? Pemenang meja buka bebas.</p></div></div><div class="feature"><span class="feature-icon">♟</span><div><h3>Sendiri atau bareng teman</h3><p>Teman masuk ke meja yang sama lewat link dan kode ruangan.</p></div></div><div class="feature"><span class="feature-icon">2</span><div><h3>3 kecil, 2 paling besar</h3><p>Urutan yang kamu kenal: 3, 4, 5, …, K, A, 2. Simbol memecahkan seri.</p></div></div></div>';
+  return '<div class="hero"><div class="hero-copy"><div class="eyebrow">CAPSA BANTING · BIG TWO</div><h1>Giliranmu.<br>Banting kartumu.<br><em>Habiskan duluan.</em></h1><p>Lawan kartu dengan yang lebih tinggi, atau lewat dan tunggu kesempatan. Main bergiliran bareng teman atau bot.</p><div class="hero-meta"><span><i></i>3 TERENDAH</span><span><i></i>2 TERTINGGI</span><span><i></i>3–8 PEMAIN</span></div><div class="card-fan" aria-hidden="true">' + [1,15,29,43,39].map(id => cardHTML(E.card(id),true)).join('') + '</div></div><form class="join-card" id="entry-form"><div class="eyebrow">MEJAMU MENUNGGU</div><h2>Siapa habis duluan?</h2><p class="sub">Buat ruangan atau ikut giliran di meja teman.</p><label class="field" for="name-input">Nama panggilan</label><input class="field-input" id="name-input" value="' + esc(window.MejaRoom.name(storage.get('mejakita.capsa.name',''))) + '" maxlength="20" placeholder="Kamu mau dipanggil siapa?" required autocomplete="nickname"><label class="field" for="create-mode">Mode ruangan baru</label><select class="field-input create-mode" id="create-mode"><option value="official"' + (roomModeDraft === 'official' ? ' selected' : '') + '>Official · 4 pemain</option><option value="casual"' + (roomModeDraft === 'casual' ? ' selected' : '') + '>Non-official · 3–8 pemain</option></select><p class="creation-note">Mode dipilih sekali saat room dibuat. Tidak berubah saat teman masuk.</p><button class="button primary full" type="submit" data-needs-connection>Buat ruangan baru ↗</button><div class="form-divider">atau sudah punya kode?</div><label class="field" for="room-input">Kode ruangan</label><div class="join-inputs"><input class="field-input code" id="room-input" value="' + esc(urlRoom) + '" maxlength="4" placeholder="ABCD" autocomplete="off" aria-label="Kode ruangan"><button class="button secondary" type="button" data-action="join" data-needs-connection>Gabung →</button></div><p class="fine-print">Single, pair, triple, atau kombinasi 5 kartu.<br>Bot melengkapi jumlah minimum pemain.</p></form></div><div class="feature-strip"><div class="feature"><span class="feature-icon">↻</span><div><h3>Giliran benar-benar berputar</h3><p>Lawan bantingan sebelumnya. Semua lawan lewat? Pemenang meja buka bebas.</p></div></div><div class="feature"><span class="feature-icon">♟</span><div><h3>Sendiri atau bareng teman</h3><p>Teman masuk ke meja yang sama lewat link dan kode ruangan.</p></div></div><div class="feature"><span class="feature-icon">2</span><div><h3>3 kecil, 2 paling besar</h3><p>Urutan yang kamu kenal: 3, 4, 5, …, K, A, 2. Simbol memecahkan seri.</p></div></div></div>';
 }
 function renderLobby() {
   const host = S.you >= 0 && S.you === S.hostSeat, casual = S.settings.mode === 'casual';
@@ -240,7 +238,7 @@ function renderMoneyRecap() {
   const m = S.money;
   const rows = m.rows.map(p => '<tr><td><b>' + esc(p.name) + '</b><small>' + (p.bot ? 'Bot' : 'Pemain') + '</small></td><td class="' + tone(p.points) + '">' + signed(p.points) + '</td><td class="' + tone(p.net) + '">' + signedMoney(p.net) + '</td></tr>').join('');
   const transfers = m.final && !m.simulation && m.transfers.length ? '<div class="money-transfers"><h3>Saran pembayaran akhir</h3>' + m.transfers.map(t => '<div><span>' + esc(t.fromName) + ' <i>→</i> ' + esc(t.toName) + '</span><b>' + idr(t.amount) + '</b></div>').join('') + '<p>Gunakan jika saldo antar pemain belum diselesaikan. Aplikasi mencatat saldo; pembayaran dilakukan di luar game.</p></div>' : '<p class="money-status-note">' + (m.simulation ? 'Saldo meja dengan bot adalah simulasi. Tidak ada saran pembayaran ke atau dari bot.' : m.final ? 'Semua saldo sudah nol. Tidak ada pembayaran.' : 'Saran pembayaran muncul setelah pertandingan selesai. Ronde yang masih berjalan belum masuk saldo.') + '</p>';
-  const rounds = S.history.length ? '<details class="round-money-details"><summary>Rincian ' + S.history.length + ' ronde selesai</summary>' + S.history.map(h => '<div class="money-round"><b>Ronde ' + h.round + ' · ' + esc(S.players[h.winner].name) + ' menang</b><div class="money-table-wrap"><table class="money-table"><thead><tr><th>Pemain</th><th>Awal / sisa</th><th>Poin</th><th>Rupiah</th></tr></thead><tbody>' + S.players.map((p,i) => '<tr><td>' + esc(p.name) + '</td><td>' + h.dealt[i] + ' / ' + h.remaining[i] + '</td><td>' + signed(h.delta[i]) + '</td><td class="' + tone(h.moneyDelta[i]) + '">' + signedMoney(h.moneyDelta[i]) + '</td></tr>').join('') + '</tbody></table></div></div>').join('') + '</details>' : '';
+  const rounds = S.history.length ? '<details class="round-money-details"><summary>Rincian ' + S.history.length + ' ronde selesai</summary>' + S.history.map(h => '<div class="money-round"><b>Ronde ' + h.round + ' · ' + esc(h.people?.[h.winner]?.name || h.names?.[h.winner] || S.players[h.winner]?.name || 'Pemain') + ' menang</b><div class="money-table-wrap"><table class="money-table"><thead><tr><th>Pemain</th><th>Awal / sisa</th><th>Poin</th><th>Rupiah</th></tr></thead><tbody>' + (h.people || S.players).map((p,i) => '<tr><td>' + esc(p.name) + '</td><td>' + h.dealt[i] + ' / ' + h.remaining[i] + '</td><td>' + signed(h.delta[i]) + '</td><td class="' + tone(h.moneyDelta[i]) + '">' + signedMoney(h.moneyDelta[i]) + '</td></tr>').join('') + '</tbody></table></div></div>').join('') + '</details>' : '';
   $('money-recap-content').innerHTML = '<h2>' + (m.final ? 'Rekap akhir meja.' : 'Setiap poin tercatat.') + '</h2><p class="money-recap-sub">Room ' + S.code + ' · ' + modeName() + ' · 1 poin = ' + idr(m.rate) + ' · ' + m.rounds + '/' + S.settings.rounds + ' ronde selesai</p>' + (m.practice ? '<p class="practice-note">Mode latihan · nilai 1 poin Rp0.</p>' : m.simulation ? '<p class="practice-note">Simulasi saldo dengan bot · nilai 1 poin tetap ' + idr(m.rate) + '.</p>' : '') + '<div class="money-table-wrap"><table class="money-table"><thead><tr><th>Pemain</th><th>Total poin</th><th>Saldo rupiah</th></tr></thead><tbody>' + rows + '<tr class="money-total"><td>Total meja</td><td>' + signed(m.rows.reduce((sum,p) => sum + p.points,0)) + '</td><td>' + idr(m.total) + '</td></tr></tbody></table></div><div class="money-totals"><span>Total menerima <b>' + idr(m.totalReceive) + '</b></span><span>Total membayar <b>' + idr(m.totalPay) + '</b></span></div><p class="money-status-note">1 kartu tersisa = 1 poin. Pemenang menerima total poin dari semua lawan. Hanya ronde selesai yang dihitung.</p>' + transfers + rounds;
 }
 function openMoneyRecap() { if (!S) return; renderMoneyRecap(); if (!$('money-dialog').open) $('money-dialog').showModal(); }
@@ -249,7 +247,7 @@ function downloadMoneyCSV() {
   const status = S.money.simulation ? 'Simulasi dengan bot - hanya ronde selesai' : S.money.final ? 'Final' : 'Sementara - hanya ronde selesai';
   const rows = [['Jenis','Room','Pertandingan','Ronde','Pemain','Bot','Kartu awal','Kartu sisa','Poin','Rp per poin','Rupiah','Dari','Ke','Jumlah transfer','Status']];
   S.money.rows.forEach(p => rows.push(['saldo',S.code,S.matchId,'',p.name,p.bot ? 'Ya' : 'Tidak','','',p.points,S.money.rate,p.net,'','','',status]));
-  S.history.forEach(h => S.players.forEach((p,i) => rows.push(['ronde',S.code,S.matchId,h.round,p.name,p.bot ? 'Ya' : 'Tidak',h.dealt[i],h.remaining[i],h.delta[i],h.pointValue,h.moneyDelta[i],'','','','Selesai'])));
+  S.history.forEach(h => (h.people || S.players).forEach((p,i) => rows.push(['ronde',S.code,h.matchId ?? S.matchId,h.round,p.name,p.bot ? 'Ya' : 'Tidak',h.dealt[i],h.remaining[i],h.delta[i],h.pointValue,h.moneyDelta[i],'','','','Selesai'])));
   if (S.money.final && !S.money.simulation) S.money.transfers.forEach(t => rows.push(['pembayaran',S.code,S.matchId,'','','','','','','','',t.fromName,t.toName,t.amount,'Saran pembayaran akhir']));
   const cell = value => {
     let text = String(value ?? '');
@@ -312,7 +310,7 @@ function render() {
   $('cheatsheet-straight').textContent = linearStraight ? 'JQKA2 → 10JQKA → … → 34567. A2345 dan 23456 tidak sah; tidak ada putaran.' : 'JQKA2, A2345, dan 23456 memakai puncak 2; bandingkan simbol 2. Lalu 10JQKA → … → 34567.';
   if (S) {
     $('action-log').innerHTML = S.events.length ? S.events.slice().reverse().map(e => '<div class="action-line"><b>' + esc(S.players[e.seat].name) + '</b> ' + (e.type === 'pass' ? 'lewat.' : 'membanting ' + e.evaluation.label + '.<small>' + e.cards.map(E.cardName).join(' · ') + '</small>') + (e.automatic === 'timeout' ? '<small class="timeout-note">' + Math.ceil(S.turnLimit / 1000) + ' detik habis · ' + (e.type === 'pass' ? 'lewat otomatis' : 'kartu terkecil otomatis') + '</small>' : '') + (e.reset ? '<small class="positive">Semua lawan lewat. ' + esc(S.players[e.leader].name) + ' buka meja baru.</small>' : '') + '</div>').join('') : '<p class="action-empty">Bantingan dan giliran setiap pemain dicatat di sini.</p>';
-    $('round-history').innerHTML = S.history.length ? S.history.slice(-5).reverse().map(h => '<div class="history-line"><span>Ronde ' + h.round + ' · ' + esc(S.players[h.winner].name) + '</span>' + (S.you >= 0 ? '<b class="' + tone(h.delta[S.you]) + '">' + signed(h.delta[S.you]) + '</b>' : '') + '</div>').join('') : '<p class="history-empty">Belum ada ronde selesai.</p>';
+    $('round-history').innerHTML = S.history.length ? S.history.slice(-5).reverse().map(h => '<div class="history-line"><span>Ronde ' + h.round + ' · ' + esc(h.people?.[h.winner]?.name || h.names?.[h.winner] || S.players[h.winner]?.name || 'Pemain') + '</span>' + (S.you >= 0 ? '<b class="' + tone(historyDelta(h)) + '">' + signed(historyDelta(h)) + '</b>' : '') + '</div>').join('') : '<p class="history-empty">Belum ada ronde selesai.</p>';
   }
   updateTurnClock();
   if (moneyFocus && $('point-value') && !$('point-value').disabled) {
@@ -394,7 +392,7 @@ $('rules-button').addEventListener('click',() => $('rules-dialog').showModal());
 $('refresh-client').addEventListener('click',() => location.reload());
 document.addEventListener('visibilitychange',() => { if (!document.hidden) checkForClientUpdate(); });
 $('money-button').addEventListener('click',openMoneyRecap);
-$('leave-confirm').addEventListener('click',() => { $('leave-dialog').close(); if (connected) send({ type:'leave' }); else leaveLocal(); });
+$('leave-confirm').addEventListener('click',() => { $('leave-dialog').close(); send({ type:'leave' }); });
 $('easy-confirm').addEventListener('click',() => {
   $('easy-dialog').close();
   if (easyPrompt === 'enable' && S && S.you === S.hostSeat) {
@@ -414,7 +412,7 @@ $('undo-confirm').addEventListener('click',() => {
   undoTarget = null; render();
 });
 function renderSound() { $('sound-button').textContent = sound ? '♪' : '♩'; $('sound-button').title = sound ? 'Suara aktif' : 'Suara mati'; $('sound-button').setAttribute('aria-label',sound ? 'Matikan suara' : 'Aktifkan suara'); }
-$('sound-button').addEventListener('click',() => { sound = !sound; storage.set('mejakita.capsa.sound',sound); warmAudio(); renderSound(); });
+$('sound-button').addEventListener('click',() => { sound = !sound; window.MejaRoom.setPrefs({sound}); storage.set('mejakita.capsa.sound',sound); warmAudio(); renderSound(); });
 document.querySelector('.brand').addEventListener('click',event => { if (S) { event.preventDefault(); $('leave-dialog').showModal(); } });
 document.addEventListener('keydown',event => {
   if (['INPUT','TEXTAREA','SELECT'].includes(event.target.tagName) || document.querySelector('dialog[open]')) return;
@@ -427,3 +425,7 @@ setInterval(checkForClientUpdate,60000);
 const pageVersion = document.querySelector('meta[name="capsa-build"]')?.content;
 updateAvailable = !!pageVersion && pageVersion !== CLIENT_VERSION;
 renderUpdateNotice();
+
+document.addEventListener('meja-preferences',e=>{sound=e.detail.sound;renderSound();});
+
+function historyDelta(row){const id=S.players[S.you]?.id;const index=row.people?row.people.findIndex(p=>p.id===id):S.you;return index>=0?row.delta[index]||0:0;}

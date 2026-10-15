@@ -31,7 +31,7 @@ The owner prefers access through the Cloudflare link, using only the required lo
    npm start
    ```
 
-   Use HOST=0.0.0.0 only when direct LAN access is also intended. Change PORT if occupied and use that same origin port below. DATA_DIR is optional; its default is private var/ in the checkout.
+   Use HOST=0.0.0.0 only when direct LAN access is also intended. Change PORT if occupied and use that same origin port below. DATA_DIR is optional; its default is private var/ in the checkout. Preserve that directory for all six games; see SOCIAL-SESSIONS.md for migration and private recovery files when a Quick Tunnel hostname changes.
 
 4. Read http://127.0.0.1:3000/health and confirm the intended build and all six games. Do not create rooms on somebody else's active host for a status check.
 5. In terminal/session B, create an empty checkout-local config, separate from any personal/company Cloudflare configuration:
@@ -56,7 +56,7 @@ Record origin path/port, build, commit, process/session IDs, literal public URL 
 1. Inspect actual processes/listeners and local/public /health. Reuse an existing healthy tunnel pointing to the approved origin.
 2. Prepare source in a separate checkout/folder. Preserve current uncommitted source rather than assuming Git HEAD is the running version. Review the patch and dependency lock; snapshot/hash the source being updated.
 3. Preview only on a separate loopback port and DATA_DIR. Close/stop just the preview when finished. Do not reload the players' browser tabs.
-4. Report Running version and Pending to deploy version. Before live deployment, get fresh explicit approval for that build and restart: Capsa/Mahjong/Catur/Domino/Blackjack RAM rooms and scores will be lost, all game connections briefly drop, and Poker's private saved sessions must be kept. A push to GitHub alone is not approval.
+4. Report Running version and Pending to deploy version. Before live deployment, get fresh explicit approval for that build and restart: all game connections briefly drop; the first upgrade from a pre-persistence build loses its five RAM games. This build saves six-game rooms and restores unfinished rounds paused. Keep the entire private DATA_DIR including legacy Poker saves, and verify successful saves before claiming recovery. A push to GitHub alone is not approval.
 5. After approval, recheck the source base and intended files. Make a private source backup. Stop only the verified hub process gracefully, wait for exit/port release, and back up the final Poker runtime after shutdown. Apply only source files; preserve .git, var/, custom DATA_DIR and existing credentials. Install dependencies only if their inputs changed.
 6. Restart the approved source on the same origin/port in a retained session. Keep cloudflared running so the URL can stay the same. Confirm local and public /health show the new build, then inspect landing/entry WebSocket status without playing a match. Save a screenshot/status evidence. Only now label Running version as updated.
 7. Record the resulting commit/build and runtime state privately. Refresh clients and create new RAM rooms. Rollback/restoration of an active host is another interrupting change; get approval before it unless the current authorization explicitly includes that recovery.

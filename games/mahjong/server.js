@@ -4,9 +4,10 @@ const { WebSocketServer } = require('ws');
 const { randomInt, randomBytes } = require('node:crypto');
 const E = require('./engine');
 const {tableSettings}=require('../shared/table-settings');
-const BUILD = '2026-10-15-ui-polish-1', CLIENT_VERSION = 7;
+const BUILD = '2026-10-15-guide-sidebar-1', CLIENT_VERSION = 8;
 
 function createMahjongServer() {
+let hub=null,closing=false;
 const PUBLIC = path.join(__dirname, 'public');
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css', '.png': 'image/png', '.svg': 'image/svg+xml', '.ico': 'image/x-icon' };
 const BOT_NAMES = ['Mei', 'Raka', 'Sinta', 'Bima'];
@@ -18,7 +19,7 @@ const rooms = new Map();
 
 function makeCode() { const a = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; for (let len = 4; len <= 8; len++) for (let tries = 0; tries < 200; tries++) { let c = ''; for (let i = 0; i < len; i++) c += a[randomInt(a.length)]; if (!rooms.has(c)) return c; } return 'R' + Date.now().toString(36).toUpperCase(); }
 function token() { return randomBytes(24).toString('hex'); }
-function send(ws, obj) { if (ws && ws.readyState === 1) ws.send(JSON.stringify(obj)); }
+function send(ws, obj) { if (ws && ws.readyState === 1) ws.send(JSON.stringify(hub?hub.enrich(ws,obj):obj)); }
 function cleanName(n) { return String(n || '').replace(/[<>&"]/g, '').trim().slice(0, 16) || 'Pemain'; }
 function hasClaimChoice(o) { return !!(o && (o.win || o.pung || o.kong || (o.chows && o.chows.length))); }
 
@@ -44,25 +45,28 @@ class Room {
     if (p.ws && p.ws !== ws && p.ws.readyState === 1) { p.ws.roomPlayer = null; send(p.ws,{type:'replaced'});try { p.ws.close(); } catch (e) { } }
     p.ws = ws; p.connected = true; return p;
   }
-  disconnect(p) {
+  disconnect(p,explicit=false) {
     p.connected = false; p.ws = null; this.lastActivity = Date.now();
-    if (p.spectator) { this.spectators = this.spectators.filter(x => x !== p); this.addChat(null, `${p.name} berhenti menonton.`); if (this.state === 'lobby') this.broadcastLobby(); else this.broadcastState(); return; }
+    if (p.spectator) { if(!p.hasAccount)this.spectators = this.spectators.filter(x => x !== p); this.addChat(null, `${p.name} berhenti menonton.`); if (this.state === 'lobby') this.broadcastLobby(); else this.broadcastState(); return; }
     if (this.state === 'lobby') {
-      this.players = this.players.filter(x => x !== p); this.players.forEach((x, i) => x.seat = i); this.broadcastLobby();
+      if(explicit){this.players = this.players.filter(x => x !== p); this.players.forEach((x, i) => x.seat = i);} this.broadcastLobby();
     } else {
+      if(explicit){p.bot=true;p.connected=true;p.token=null;this.addChat(null,p.name+' keluar; bot melanjutkan kursi.');}
       this.broadcastState();
       const G = this.G; if (G && !G.over) {
         if (G.pending && G.pending.waiting.has(p.seat)) this.humanClaim(p.seat, { claim: 'pass' });
-        else if (G.current === p.seat && G.phase === 'discard') this.scheduleOfflineAct(p.seat);
+        else if (G.current === p.seat && G.phase === 'discard') {if(explicit){const gen=G.gen;this.timers.offline=setTimeout(()=>{if(!this.recovering&&!G.over&&G.gen===gen)this.botAct(p.seat,!!p.drawn);},3000);}else this.scheduleOfflineAct(p.seat);}
       }
     }
   }
   broadcastLobby() {
+    hub?.changed(this);
     const base = { type: 'lobby', v: CLIENT_VERSION, build: BUILD, code: this.code, hostSeat: this.hostSeat(), settings: this.settings,ledger:this.ledger, players: this.players.map(p => ({ seat: p.seat, name: p.name, score:p.score,connected: p.connected, bot: p.bot })), spectators: this.spectators.map(s => s.name), chat: this.chat.slice(-50) };
     for (const p of this.everyone()) send(p.ws, { ...base, spectator: !!p.spectator });
   }
   start(seat, settings) {
     if (this.state !== 'lobby') return; if (seat !== this.hostSeat()) return;
+    if(this.players.some(p=>!p.bot&&!p.connected)){send(this.players[seat]?.ws,{type:'error',msg:'Tunggu semua pemain terhubung.'});return;}
     if(this.updateSettings(seat, settings, false)===false)return;
     let k = 0; while (this.players.length < 4) { let n; do { n = BOT_NAMES[k++ % BOT_NAMES.length]; } while (this.players.some(p => p.name.toLowerCase() === n.toLowerCase()) && k < 20); this.players.push({ seat: this.players.length, name: n, bot: true, connected: true, hand: [], melds: [], discards: [], drawn: null, score: 0 }); }
     this.state = 'playing'; this.newMatch();
@@ -78,8 +82,8 @@ class Room {
     this.lastActivity = Date.now();
     if (notify) this.broadcastLobby();return true;
   }
-  newMatch() {
-    this.ledger=[];for (const p of this.players) p.score = 0;
+  newMatch(keepScore=false) {
+    if(!keepScore){this.ledger=[];for (const p of this.players) p.score = 0;}
     this.G = { dealer: 0, hand: 1, maxHands: this.settings.rounds, wall: [], current: 0, phase: 'idle', last: null, pending: null, over: false, result: null, log: '', gen: 0, final: false, turnDeadline: null };
     const first = this.players[Math.floor(Math.random() * 4)];
     this.startHand(first);
@@ -89,13 +93,13 @@ class Room {
   addChat(p, text, emoji) {
     const m = { from: p ? p.name : null, seat: p && !p.spectator ? p.seat : -1, text, emoji: !!emoji, ts: Date.now() };
     this.chat.push(m); if (this.chat.length > 100) this.chat.shift();
-    for (const q of this.everyone()) send(q.ws, { type: 'chat', msg: m });
+    hub?.changed(this);for (const q of this.everyone()) send(q.ws, { type: 'chat', msg: m });
   }
   bump() { this.G.gen++; clearTimeout(this.timers.offline); clearTimeout(this.timers.turn); this.G.turnDeadline = null; }
   // Giliran manusia: pasang batas waktu berpikir; kalau habis, bot bertindak untuknya.
   armTurn(p) {
     const P = this.players[p]; this.G.turnDeadline = null;
-    if (!P.connected) this.scheduleOfflineAct(p); // satu-satunya otomatisasi: pemain yang putus koneksi
+    if (!this.recovering&&!P.connected) this.scheduleOfflineAct(p); // satu-satunya otomatisasi: pemain yang putus koneksi
   }
 
   // ---------- Jalannya ronde ----------
@@ -113,7 +117,7 @@ class Room {
     this.startTurn(G.dealer);
   }
   async startTurn(p) {
-    const G = this.G; if (G.over) return;
+    const G = this.G; if (G.over||this.recovering||closing) return;
     if (G.wall.length === 0) return this.endHand(null);
     const P = this.players[p]; const t = G.wall.shift(); P.hand.push(t); P.drawn = t; G.current = p; G.phase = 'discard'; G.pending = null; this.bump();
     this.log(`${P.name} mengambil ubin.`);
@@ -126,7 +130,7 @@ class Room {
     this.timers.offline = setTimeout(() => { const P = this.players[p]; if (G.gen === gen && !G.over && G.current === p && G.phase === 'discard' && !P.connected) this.botAct(p, !!P.drawn); }, OFFLINE_ACT_MS);
   }
   async botAct(p, canWin) {
-    const G = this.G; if (G.over) return; const P = this.players[p];
+    const G = this.G; if (G.over||this.recovering||closing) return; const P = this.players[p];
     if (canWin && P.drawn) { const w = E.findWin(P.hand, P.melds); if (w) return this.endHand(p, P.drawn, true, w); }
     const k = E.botKong(P.hand, P.melds); if (k) return this.doKong(p, k.kind, k.arg);
     return this.discardTile(p, E.botChooseDiscardLevel(P.hand, P.melds, this.settings.botLevel, this.botContext(p)));
@@ -141,12 +145,16 @@ class Room {
     const G = this.G; const P = this.players[p]; let tiles;
     if (kind === 'conc') { tiles = P.hand.filter(t => E.idxOf(t) === arg); if (tiles.length !== 4) return; P.hand = P.hand.filter(t => E.idxOf(t) !== arg); P.melds.push({ type: 'kong', tiles, open: false }); }
     else { const m = P.melds[arg]; if (!m || m.type !== 'pung') return; const i = E.idxOf(m.tiles[0]); const k = P.hand.findIndex(t => E.idxOf(t) === i); if (k < 0) return; m.tiles.push(P.hand.splice(k, 1)[0]); m.type = 'kong'; tiles = m.tiles; }
-    P.drawn = null; G.phase = 'kong'; this.bump(); this.log(`${P.name} Kong ${E.tileName(tiles[0])}!`); this.broadcastState(); await sleep(600);
-    if (!G.wall.length) return this.endHand(null);
-    const r = G.wall.pop(); P.hand.push(r); P.drawn = r; G.phase = 'discard'; this.bump();
-    if (!P.bot) { this.armTurn(p); this.broadcastState(); return; }
-    this.broadcastState();
-    await sleep(3000); return this.botAct(p, true);
+    P.drawn = null; G.phase = 'kong'; this.bump(); this.log(`${P.name} Kong ${E.tileName(tiles[0])}!`); this.broadcastState();
+    const gen=G.gen;await sleep(600);if(G.gen!==gen||G.over||closing||this.recovering)return;
+    return this.finishKong(p);
+  }
+  async finishKong(p) {
+    const G=this.G,P=this.players[p];if(G.over||closing||this.recovering)return;
+    if(!G.wall.length)return this.endHand(null);
+    const tile=G.wall.pop();P.hand.push(tile);P.drawn=tile;G.phase='discard';this.bump();
+    if(!P.bot){this.armTurn(p);this.broadcastState();return;}
+    this.broadcastState();const gen=G.gen;await sleep(3000);if(G.gen!==gen||closing||this.recovering)return;return this.botAct(p,true);
   }
   async discardTile(p, t) {
     const G = this.G; const P = this.players[p]; const k = P.hand.indexOf(t); if (k < 0) return;
@@ -159,6 +167,10 @@ class Room {
     await sleep(!P.bot && P.connected ? Math.max(500, UNDO_MS / SPEED) : 500); // beri jeda 2 detik agar pemain bisa membatalkan
     if (G.gen !== gen) return; // dibatalkan atau keadaan berubah
     if (G.undo && G.undo.seat === p) G.undo = null;
+    return this.offerClaims();
+  }
+  offerClaims() {
+    const G=this.G;if(G.over||!G.last||closing||this.recovering)return;const p=G.last.from,t=G.last.tile,claimAutoPass=this.settings.autoPass;
     const claims = []; const opts = {}; const waiting = new Set();
     for (let q = 0; q < 4; q++) {
       if (q === p) continue; const Q = this.players[q]; const o = E.computeOptions(Q.hand, Q.melds, t, q === (p + 1) % 4);
@@ -203,8 +215,9 @@ class Room {
     return { error: 'Kombinasi itu bukan Pung, Kong, atau Chow.' };
   }
   async resolveClaims(claims) {
-    const G = this.G; if (G.over) return; G.pending = null; G.undo = null; this.bump(); const from = G.last.from; const order = q => (q - from + 4) % 4;
-    if(claims.some(c=>this.players[c.p].bot)){const gen=G.gen;await sleep(3000);if(G.gen!==gen||G.over)return;}
+    const G = this.G; if (G.over||closing||this.recovering) return; G.resolvingClaims=claims;G.pending = null; G.undo = null; this.bump(); const from = G.last.from; const order = q => (q - from + 4) % 4;
+    if(claims.some(c=>this.players[c.p].bot)){const gen=G.gen;this.broadcastState();await sleep(3000);if(G.gen!==gen||G.over||closing||this.recovering)return;}
+    G.resolvingClaims=null;
     const wins = claims.filter(c => c.type === 'win').sort((a, b) => order(a.p) - order(b.p));
     if (wins.length) { const w = wins[0]; const P = this.players[w.p]; P.hand.push(G.last.tile); this.players[from].discards.pop(); return this.endHand(w.p, G.last.tile, false, w.win, from); }
     const pk = claims.find(c => c.type === 'kong') || claims.find(c => c.type === 'pung');
@@ -218,10 +231,10 @@ class Room {
     if (cl.type === 'chow') { for (const j of cl.combo) { const k = P.hand.findIndex(x => E.idxOf(x) === j); taken.push(P.hand.splice(k, 1)[0]); } }
     else { const n = cl.type === 'kong' ? 3 : 2; for (let k = 0; k < n; k++) { const idx = P.hand.findIndex(x => E.idxOf(x) === i); taken.push(P.hand.splice(idx, 1)[0]); } }
     const tiles = [...taken, t].sort(E.byIdx); P.melds.push({ type: cl.type, tiles, open: true, from: G.last.from });
-    G.current = cl.p; G.phase = 'discard'; P.drawn = null; this.bump();
+    G.current = cl.p; G.phase = cl.type==='kong'?'kong':'discard'; P.drawn = null; this.bump();
     const label = cl.type === 'chow' ? 'Chow' : cl.type === 'pung' ? 'Pung' : 'Kong';
-    this.log(`${P.name} ${label} ${E.tileName(t)} dari ${this.players[G.last.from].name}!`); this.broadcastState(); await sleep(650);
-    if (cl.type === 'kong') { if (!G.wall.length) return this.endHand(null); const r = G.wall.pop(); P.hand.push(r); P.drawn = r; this.bump(); if (!P.bot) { this.armTurn(cl.p); this.broadcastState(); return; } this.broadcastState(); await sleep(3000); return this.botAct(cl.p, true); }
+    this.log(`${P.name} ${label} ${E.tileName(t)} dari ${this.players[G.last.from].name}!`); this.broadcastState(); const gen=G.gen;await sleep(650);if(G.gen!==gen||G.over||closing||this.recovering)return;
+    if (cl.type === 'kong') return this.finishKong(cl.p);
     if (!P.bot) { this.armTurn(cl.p); this.broadcastState(); return; }
     await sleep(3000);return this.botAct(cl.p, false);
   }
@@ -253,7 +266,7 @@ class Room {
     const nextDealer = this.players[(G.dealer + 1) % 4]; // giliran dealer berpindah ke pemain berikutnya, lalu kursi diacak
     G.hand++; this.startHand(nextDealer);
   }
-  again(seat) { const G = this.G; if (!G || !G.over) return; if (seat !== this.hostSeat()) return; clearTimeout(this.timers.next); this.newMatch(); }
+  again(seat) { const G = this.G; if (!G || !G.over) return; if (seat !== this.hostSeat()) return; clearTimeout(this.timers.next); this.newMatch(true); }
 
   // ---------- Aksi dari klien ----------
   onAction(seat, msg) {
@@ -309,7 +322,7 @@ class Room {
       result: G.result
     };
   }
-  broadcastState() { for (const p of this.players) if (!p.bot && p.connected) send(p.ws, this.personal(p.seat)); for (const s of this.spectators) if (s.connected) send(s.ws, this.personal(-1)); }
+  broadcastState() { if(closing)return;hub?.changed(this);for (const p of this.players) if (!p.bot && p.connected) send(p.ws, this.personal(p.seat)); for (const s of this.spectators) if (s.connected) send(s.ws, this.personal(-1)); }
 }
 
 // ---------- HTTP statis ----------
@@ -339,6 +352,7 @@ wss.on('connection', ws => {
     if (++ws.count > 45) return;
     let msg; try { msg = JSON.parse(raw); } catch (e) { return; }
     if (!msg || typeof msg !== 'object') return;
+    if(hub?.handle(ws,msg))return;
     const rp = ws.roomPlayer;
     if (rp && ['create','join','rejoin'].includes(msg.type)) return send(ws,{ type:'error',msg:'Keluar dari room ini sebelum pindah.' });
     if (['create','join','rejoin'].includes(msg.type) && msg.v !== CLIENT_VERSION) return send(ws,{ type:'error',msg:'Mahjong sudah diperbarui. Muat ulang halaman untuk menggunakan warna set dan mode lewat terbaru.',fatal:true });
@@ -350,7 +364,7 @@ wss.on('connection', ws => {
     }
     if (msg.type === 'join') {
       const room = rooms.get(String(msg.code || '').toUpperCase().trim()); if (!room) return send(ws, { type: 'error', msg: 'Kode ruangan tidak ditemukan.' });
-      if (room.spectators.length >= 24 && (room.state !== 'lobby' || room.players.length >= 4)) return send(ws,{ type:'error',msg:'Kursi penonton penuh.' });
+      if (room.spectators.filter(p=>p.connected&&!p.bot).length >= 24 && (room.state !== 'lobby' || room.players.length >= 4)) return send(ws,{ type:'error',msg:'Kursi penonton penuh.' });
       const r = room.addHuman(ws, cleanName(msg.name)); if (r.error) return send(ws, { type: 'error', msg: r.error });
       const who = r.player || r.spectator; ws.roomPlayer = { room, player: who };
       send(ws, { type: 'joined', code: room.code, token: who.token, seat: r.player ? r.player.seat : -1, spectator: !r.player });
@@ -359,8 +373,8 @@ wss.on('connection', ws => {
       return;
     }
     if (msg.type === 'rejoin') {
-      const room = rooms.get(String(msg.code || '').toUpperCase()); if (!room) return send(ws, { type: 'error', msg: 'Ruangan sudah tidak ada.', fatal: true });
-      const p = room.rejoin(ws, msg.token); if (!p) return send(ws, { type: 'error', msg: 'Sesi tidak dikenal.', fatal: true });
+      const room = rooms.get(String(msg.code || '').toUpperCase()); if (!room) return send(ws, { type: 'error', msg: 'Ruangan sudah tidak ada.', fatal: true, sessionUnavailable:true });
+      const p = room.rejoin(ws, msg.token); if (!p) return send(ws, { type: 'error', msg: 'Sesi tidak dikenal.', fatal: true, sessionUnavailable:true });
       ws.roomPlayer = { room, player: p }; send(ws, { type: 'joined', code: room.code, token: p.token, seat: p.spectator ? -1 : p.seat, spectator: !!p.spectator });
       send(ws, { type: 'chat_history', chat: room.chat.slice(-50) });
       if (room.state === 'lobby') room.broadcastLobby(); else room.broadcastState(); return;
@@ -368,7 +382,7 @@ wss.on('connection', ws => {
     if (!rp) return;
     const { room, player } = rp;
     if (msg.type === 'chat') { const text = String(msg.text || '').trim().slice(0, 200); if (!text) return; room.lastActivity = Date.now(); return room.addChat(player, text, !!msg.emoji); }
-    if (msg.type === 'leave') { ws.roomPlayer = null; room.disconnect(player); send(ws, { type: 'left' }); return; }
+    if (msg.type === 'leave') { ws.roomPlayer = null; room.disconnect(player,true); send(ws, { type: 'left' }); return; }
     if (player.spectator) return;
     if (msg.type === 'start') return room.start(player.seat, msg.settings);
     if (msg.type === 'settings') return room.updateSettings(player.seat, msg.settings);
@@ -385,19 +399,27 @@ const maintenance = setInterval(() => {
   for (const ws of wss.clients) { if (!ws.alive) { ws.terminate(); continue; } ws.alive = false; ws.ping(); }
   for (const [code, room] of rooms) {
     const alive = room.everyone().some(p => p.connected);
-    if (!alive && Date.now() - room.lastActivity > 10 * 60 * 1000) { Object.values(room.timers).forEach(clearTimeout); rooms.delete(code); }
+    if (!alive && Date.now() - room.lastActivity > 7 * 86400000) { Object.values(room.timers).forEach(clearTimeout); rooms.delete(code); }
   }
 }, 60 * 1000);
 
 maintenance.unref();
 async function close() {
-  clearInterval(maintenance);
+  closing=true;clearInterval(maintenance);
   for (const room of rooms.values()) {if(room.G){room.G.over=true;room.G.gen++;}Object.values(room.timers).forEach(clearTimeout);}
   for (const ws of wss.clients) { ws.roomPlayer = null; ws.terminate(); }
   await new Promise(resolve => wss.close(resolve));
   await new Promise(resolve => server.close(resolve));
 }
-return { server,wss,rooms,close };
+return { server,wss,rooms,close,
+  setRoomService(value){hub=value;},capacity:()=>4,
+  restoreRoom(saved){const room=Object.assign(new Room(saved.code),saved);room.timers={};if(room.G){room.G.gen++;room.G.undo=null;room.G.turnDeadline=null;}return room;},
+  setSpectator(p,value){p.spectator=value;if(value)p.seat=-1;},
+  admit(room,p,index){p.seat=index;p.hand=[];p.melds=[];p.discards=[];p.drawn=null;p.score??=0;},
+  broadcastRoom(room){if(room.state==='lobby')room.broadcastLobby();else room.broadcastState();},
+  resumeRoom(room){const G=room.G;if(!G||G.over)return;G.gen++;if(G.phase==='kong')return room.finishKong(G.current);if(G.phase==='claim'){if(G.pending)return room.broadcastState();return G.resolvingClaims?room.resolveClaims(G.resolvingClaims):room.offerClaims();}if(G.phase==='discard'){const p=room.players[G.current];if(p.bot){const gen=G.gen;room.timers.recovery=setTimeout(()=>{if(G.gen===gen&&!G.over&&!room.recovering)room.botAct(p.seat,!!p.drawn);},3000);}else room.armTurn(p.seat);}},
+  nextRound(room){if(room.G.result.final)room.again(room.hostSeat());else room.next(room.hostSeat());}
+};
 }
 if (require.main === module) {
   const app = createMahjongServer(); const port = Number(process.env.PORT || 3000);

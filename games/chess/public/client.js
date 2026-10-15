@@ -1,24 +1,24 @@
 'use strict';
 const $ = id => document.getElementById(id), P = window.ChessPieces;
 const safe = { get(key,backup = null) { try { return JSON.parse(sessionStorage.getItem('mejakita.catur.' + key)) ?? backup; } catch { return backup; } }, set(key,value) { try { if (value === null) sessionStorage.removeItem('mejakita.catur.' + key); else sessionStorage.setItem('mejakita.catur.' + key,JSON.stringify(value)); } catch {} } };
-let saved = safe.get('seat'), S = null, ws, connected = false, replaced = false, selected = null, flipped = false, pending = false, promotionMove = null, confirmAction = null, toastTimer;
+let saved = safe.get('seat') || window.MejaRoom.saved('catur'), S = null, ws, connected = false, replaced = false, selected = null, flipped = false, pending = false, promotionMove = null, confirmAction = null, toastTimer;
 let enteredName = '', enteredCode = new URLSearchParams(location.search).get('room') || '', practice = false, chatDraft = '';
-try { enteredName = localStorage.getItem('mejakita.catur.name') || ''; } catch {}
+try { enteredName = window.MejaRoom.name(localStorage.getItem('mejakita.catur.name') || ''); } catch {}
 const esc = value => String(value ?? '').replace(/[&<>"']/g,c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
 const colorName = color => color === 'w' ? 'Putih' : 'Hitam';
 const me = () => S?.players.find(p => p.id === S.you);
 const mine = () => connected && S?.phase === 'playing' && S.ready && !S.spectator && S.turn === S.yourColor && !pending;
 function toast(text) { $('toast').textContent = text; $('toast').classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => $('toast').classList.remove('show'),4000); }
-function send(msg) { if (ws?.readyState !== 1) { toast('Koneksi belum siap. Tunggu sebentar.'); return false; } ws.send(JSON.stringify(msg)); return true; }
+function send(msg) { if(!window.MejaRoom.outgoing(msg))return false; if (ws?.readyState !== 1) { toast('Koneksi belum siap. Tunggu sebentar.'); return false; } ws.send(JSON.stringify(msg)); return true; }
 function connect() {
   ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/catur/ws');
   ws.onopen = () => {
     connected = true; render();
-    const room = new URLSearchParams(location.search).get('room');
-    if (saved && (!room || room.toUpperCase() === saved.code)) send({ type:'resume', code:saved.code, token:saved.token });
+    window.MejaRoom.connected(saved,send,target => { enteredCode=target; render(); });
   };
   ws.onmessage = event => {
     let msg; try { msg = JSON.parse(event.data); } catch { return; }
+    if(window.MejaRoom.receive(msg,send))return;
     if (msg.type === 'joined') { saved = { code:msg.code, token:msg.token, id:msg.id }; safe.set('seat',saved); history.replaceState(null,'','/catur/?room=' + msg.code); }
     if (msg.type === 'state') {
       if (!S || S.ply !== msg.ply || S.matchId !== msg.matchId || S.phase !== msg.phase) { selected = null; promotionMove = null; if ($('promotion').open) $('promotion').close(); }
@@ -29,7 +29,7 @@ function connect() {
     if (msg.type === 'left') leaveLocal();
     if (msg.type === 'replaced') { replaced = true; saved = null; safe.set('seat',null); S = null; toast('Sesi dibuka di tab lain.'); render(); }
   };
-  ws.onclose = () => { connected = false; pending = false; if ($('promotion').open) $('promotion').close(); render(); if (!replaced) setTimeout(connect,1800); };
+  ws.onclose = () => { window.MejaRoom.disconnected(); connected = false; pending = false; if ($('promotion').open) $('promotion').close(); render(); if (!replaced) setTimeout(connect,1800); };
   ws.onerror = () => ws.close();
 }
 function leaveLocal() { S = null; selected = null; saved = null; pending = false; promotionMove = null; chatDraft = ''; safe.set('seat',null); history.replaceState(null,'','/catur/'); for (const id of ['promotion','confirm-dialog']) if ($(id).open) $(id).close(); render(); }

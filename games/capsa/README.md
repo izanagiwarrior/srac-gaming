@@ -101,3 +101,7 @@ Build ini: `2026-10-13-easy-room-1`. Untuk update berikutnya, samakan `BUILD_VER
 ## Hub patch 2026-10-14-six-games-1
 
 Creator **Faiz T** tampil pada card hub dan bar dalam permainan. Panel kanan disusun chat → cheat sheet → rekap poin/rupiah → log, lalu catatan ronde dan pengaturan bot. Label bot Easy (sebelumnya Bego), Normal, Hard; kebijakan dan jeda 3 detik tidak berubah. Poin/rupiah dan seluruh aturan Capsa mengikuti build aturan sebelumnya, termasuk pembuka berisi 3♦, mode room, Easy Mode/undo, timer 60 detik, rekap, dan CSV.
+
+## Sesi bersama pada hub
+
+Hub build `2026-10-15-social-save-2` menambahkan save privat/pemulihan dijeda, nama bersama, kunci room, antrean penonton dan rotasi antar ronde, saldo akun yang tetap tercatat, panel lipat, serta suara/volume/pengurangan animasi. Lihat [panduan sesi](../../docs/SOCIAL-SESSIONS.md), termasuk migrasi pertama dari game RAM dan batas pemeriksaan. Keterangan RAM/restart pada riwayat build lama tidak berlaku sebagai jaminan perilaku build ini.

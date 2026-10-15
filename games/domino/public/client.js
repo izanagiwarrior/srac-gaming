@@ -2,21 +2,21 @@
 const $ = id => document.getElementById(id), T = window.DominoTiles;
 const safe = { get(key,fallback = null) { try { return JSON.parse(sessionStorage.getItem('mejakita.domino.' + key)) ?? fallback; } catch { return fallback; } }, set(key,value) { try { if (value === null) sessionStorage.removeItem('mejakita.domino.' + key); else sessionStorage.setItem('mejakita.domino.' + key,JSON.stringify(value)); } catch {} } };
 const esc = value => String(value ?? '').replace(/[&<>"']/g,c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
-let saved = safe.get('seat'), S = null, ws, connected = false, replaced = false, pending = false, selected = null, toastTimer;
+let saved = safe.get('seat') || window.MejaRoom.saved('domino'), S = null, ws, connected = false, replaced = false, pending = false, selected = null, toastTimer;
 let enteredName = '', enteredCode = new URLSearchParams(location.search).get('room') || '', seats = 4, fillBots = true, chatDraft = '';
-try { enteredName = localStorage.getItem('mejakita.domino.name') || ''; } catch {}
+try { enteredName = window.MejaRoom.name(localStorage.getItem('mejakita.domino.name') || ''); } catch {}
 const mine = () => connected && S?.phase === 'playing' && S.ready && S.turnId === S.you && !S.spectator && !pending;
 function toast(text) { $('toast').textContent = text; $('toast').classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => $('toast').classList.remove('show'),4500); }
-function send(msg) { if (ws?.readyState !== 1) { toast('Koneksi belum siap. Tunggu sebentar.'); return false; } ws.send(JSON.stringify(msg)); return true; }
+function send(msg) { if(!window.MejaRoom.outgoing(msg))return false; if (ws?.readyState !== 1) { toast('Koneksi belum siap. Tunggu sebentar.'); return false; } ws.send(JSON.stringify(msg)); return true; }
 function connect() {
   ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/domino/ws');
   ws.onopen = () => {
     connected = true; render();
-    const room = new URLSearchParams(location.search).get('room');
-    if (saved && (!room || room.toUpperCase() === saved.code)) send({ type:'resume',code:saved.code,token:saved.token });
+    window.MejaRoom.connected(saved,send,target => { enteredCode=target; render(); });
   };
   ws.onmessage = event => {
     let msg; try { msg = JSON.parse(event.data); } catch { return; }
+    if(window.MejaRoom.receive(msg,send))return;
     if (msg.type === 'joined') { saved = { code:msg.code,token:msg.token,id:msg.id }; safe.set('seat',saved); history.replaceState(null,'','/domino/?room=' + msg.code); }
     if (msg.type === 'state') {
       if (!S || S.matchId !== msg.matchId || S.revision !== msg.revision || S.phase !== msg.phase) selected = null;
@@ -26,7 +26,7 @@ function connect() {
     if (msg.type === 'left') leaveLocal();
     if (msg.type === 'replaced') { replaced = true; S = null; saved = null; safe.set('seat',null); pending = false; render(); toast('Sesi dibuka di tab lain.'); }
   };
-  ws.onclose = () => { connected = false; pending = false; render(); if (!replaced) setTimeout(connect,1800); };
+  ws.onclose = () => { window.MejaRoom.disconnected(); connected = false; pending = false; render(); if (!replaced) setTimeout(connect,1800); };
   ws.onerror = () => ws.close();
 }
 function leaveLocal() { S = null; saved = null; selected = null; pending = false; chatDraft = ''; safe.set('seat',null); history.replaceState(null,'','/domino/'); if ($('leave-dialog').open) $('leave-dialog').close(); render(); }

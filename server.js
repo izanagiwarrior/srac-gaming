@@ -10,11 +10,12 @@ const { createChessServer } = require('./games/chess/server');
 const { createDominoServer } = require('./games/domino/server');
 const { createBlackjackServer } = require('./games/blackjack/server');
 
-const VERSION = '2026-10-15-ui-polish-1';
+const VERSION = '2026-10-15-guide-sidebar-1';
+const {installRoomService}=require('./games/shared/room-service');
 
-function createHub() {
+function createHub(options = {}) {
   let closing = false;
-  const runtimeDir = process.env.DATA_DIR || path.join(__dirname,'var');
+  const runtimeDir = options.dataDir || process.env.DATA_DIR || path.join(__dirname,'var');
   const sharedAddresses = () => {
     if (process.env.NODE_ENV === 'production') return [];
     if (['127.0.0.1','::1'].includes(server.address()?.address || process.env.HOST)) return [];
@@ -26,16 +27,19 @@ function createHub() {
   const games = new Map([
     ['capsa',createCapsa()],
     ['mahjong',createMahjongServer()],
-    ['poker',createPokerServer({ dataDir:path.join(runtimeDir,'poker'), getAddresses:sharedAddresses })],
+    ['poker',createPokerServer({ dataDir:path.join(runtimeDir,'poker'), getAddresses:sharedAddresses,managed:true })],
     ['catur',createChessServer({ getAddresses:sharedAddresses })],
     ['domino',createDominoServer({ getAddresses:sharedAddresses })],
     ['blackjack',createBlackjackServer({ getAddresses:sharedAddresses })]
   ]);
+  const services = new Map([...games].map(([slug,app])=>[slug,installRoomService(app,{slug,dataDir:path.join(runtimeDir,'rooms')})]));
   const assets = new Map([
     ['/', ['public/index.html','text/html; charset=utf-8']],
     ['/index.html', ['public/index.html','text/html; charset=utf-8']],
     ['/hub.css', ['public/hub.css','text/css; charset=utf-8']],
     ['/hub.js', ['public/hub.js','application/javascript; charset=utf-8']],
+    ['/room-client.js',['public/room-client.js','application/javascript; charset=utf-8']],
+    ['/room-ui.css',['public/room-ui.css','text/css; charset=utf-8']],
     ['/hub-game.css', ['public/hub-game.css','text/css; charset=utf-8']],
     ['/hub-game.js', ['public/hub-game.js','application/javascript; charset=utf-8']],
     ['/game-tools.js', ['public/game-tools.js','application/javascript; charset=utf-8']],
@@ -58,6 +62,7 @@ function createHub() {
       res.writeHead(200,{ 'Content-Type':'application/json', 'Cache-Control':'no-store' });
       return res.end(req.method === 'HEAD' ? undefined : JSON.stringify({ ok:true, version:VERSION, games:[...games.keys()] }));
     }
+    if(url.pathname==='/api/lobby'&&['GET','HEAD'].includes(req.method)){res.writeHead(200,{'Content-Type':'application/json','Cache-Control':'no-store'});return res.end(req.method==='HEAD'?undefined:JSON.stringify({version:VERSION,rooms:[...services.values()].flatMap(s=>s.summary()).slice(0,200)}));}
     const game = route(url);
     if (game) {
       if (game.bare) { res.writeHead(308,{ Location:'/' + game.slug + '/' + url.search }); return res.end(); }
@@ -92,14 +97,15 @@ function createHub() {
   async function close() {
     if (closing) return;
     closing = true;
+    for(const service of services.values())service.close();
     await Promise.all([...games.values()].map(game => game.close()));
     server.closeIdleConnections();
     await new Promise(resolve => server.close(resolve));
   }
-  return { server,games,close,version:VERSION };
+  return { server,games,services,close,version:VERSION };
 }
 if (require.main === module) {
-  const app = createHub(), port = Number(process.env.PORT || 3000), host = process.env.HOST || '0.0.0.0';
+  const app = createHub(), port = Number(process.env.PORT || 3000), host = process.env.HOST || '127.0.0.1';
   app.server.on('error',error => { console.error('Meja Kita:',error.message); app.close().finally(() => process.exit(1)); });
   app.server.listen(port,host,() => console.log('Meja Kita ' + VERSION + '\nLocal: http://localhost:' + port));
   let shutdown = false;

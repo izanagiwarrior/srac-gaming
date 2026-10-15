@@ -4,7 +4,11 @@ Satu landing page untuk **Capsa Banting, Mahjong, Poker Texas Hold’em, Catur, 
 
 Repository: [izanagiwarrior/srac-gaming](https://github.com/izanagiwarrior/srac-gaming).
 
-Build: `2026-10-15-ui-polish-1`.
+Build: `2026-10-15-guide-sidebar-1` · package 1.4.2.
+
+Terbaru: panduan Mahjong bisa dilewati di setiap langkah; panel sidebar memakai satu tombol Buka/Lipat dan tetap mengikuti pilihanmu setelah pembaruan tampilan.
+
+Fitur: lobby bersama, nama sekali untuk enam game, kunci room, save/pemulihan sesi, penonton/antrean/rotasi, panel lipat dan aksi HP, suara/volume serta pengurangan animasi. Saat masih ada sesi tersimpan, popup memberi pilihan lanjut atau keluar dulu sebelum pindah room; koneksi yang terputus tetap bisa menyambung ulang. [Panduan sesi bersama](docs/SOCIAL-SESSIONS.md).
 
 ## Jalankan lokal
 
@@ -25,7 +29,7 @@ Panduan memakai path relatif dan tidak menyimpan hostname/PID/token sesi penggun
 
 ## Hosting online (opsional)
 
-Untuk bermain di kantor, cukup jalankan secara lokal. Pengguna membatalkan rencana deployment online. Petunjuk Render berikut disimpan sebagai referensi; paket gratis dapat tetap meminta kartu untuk verifikasi akun.
+Alur pilihan pemilik adalah Node origin loopback melalui Cloudflare Quick Tunnel setelah diminta. Laptop tetap diperlukan. Petunjuk Render berikut hanya referensi alternatif; jangan membuat/deploy service tanpa permintaan. Paket gratis dapat tetap meminta kartu untuk verifikasi akun.
 
 ### Deploy di Render
 
@@ -95,11 +99,9 @@ Meja 1–7 pemain melawan dealer otomatis, enam deck baru diacak setiap ronde. H
 
 ## Penyimpanan dan restart
 
-Capsa, Mahjong, Catur, Domino, dan Blackjack menyimpan room di RAM. Poker menyimpan sesi pada `var/poker/sessions.json` atau direktori privat `DATA_DIR` jika diatur. Folder runtime tidak disajikan melalui HTTP dan tidak di-commit.
+Seluruh enam game disimpan di direktori privat `DATA_DIR/rooms/` (default `var/rooms/`). Sesi belum selesai dipulihkan dalam keadaan jeda: pemain kembali ke kursinya, lalu host menekan **Lanjutkan sesi**. Unduh file pemulihan kursimu bila ingin kembali dari link Cloudflare baru. Simpan file itu sendiri; teman cukup diberi link undangan.
 
-**Pada Render Free, filesystem bersifat sementara.** Restart, deploy, atau tidur dapat menghapus sesi RAM dan file Poker. Repo ini tidak mengklaim penyimpanan permanen di Render Free. Bila sesi harus bertahan, tambahkan penyimpanan eksternal sebelum mengandalkannya. Unduh rekap yang diperlukan sebelum restart.
-
-Render Free memiliki batas penggunaan dan tidur setelah tidak ada trafik. Jangan melakukan deployment saat orang sedang bermain; auto-deploy sengaja dinonaktifkan. Pembayaran tidak diproses aplikasi.
+Upgrade pertama dari build UI-polish tetap mengakhiri lima game yang sebelumnya hanya di RAM. Save Poker lama diimpor tanpa dihapus. Pertahankan seluruh `DATA_DIR`, termasuk `poker/` dan `rooms/`, pada update. Detail migrasi, batas retensi tujuh hari, rotasi akun dan batas pemeriksaan ada di [SOCIAL-SESSIONS.md](docs/SOCIAL-SESSIONS.md).
 
 ## Struktur
 
@@ -121,4 +123,6 @@ Tidak menyertakan sesi pemain, token, data kantor, credential, atau node_modules
 
 ## Pemeriksaan
 
-Build `2026-10-15-ui-polish-1` mencakup pemeriksaan UI enam game pada lebar 320, 390, 768, 1024 dan 1440 CSS pixel serta interaksi practice dengan nilai rupiah 0. Sebelas tes regresi komponen/sesi tersedia: `npm run test:ui`. Jalankan tes hanya ketika pengguna meminta verifikasi, sesuai AGENTS.md. Cakupan, perbaikan dan batas pemeriksaan ada di [UI-QUALITY.md](docs/UI-QUALITY.md). Tidak ada klaim bahwa seluruh cabang permainan sudah bebas bug.
+Build UI-polish sebelumnya (`2026-10-15-ui-polish-1`) mencakup pemeriksaan UI enam game pada lebar 320, 390, 768, 1024 dan 1440 CSS pixel serta interaksi practice dengan nilai rupiah 0. Sebelas tes regresi komponen/sesi tersedia: `npm run test:ui`. Jalankan tes hanya ketika pengguna meminta verifikasi, sesuai AGENTS.md. Cakupan, perbaikan dan batas pemeriksaan ada di [UI-QUALITY.md](docs/UI-QUALITY.md). Tidak ada klaim bahwa seluruh cabang permainan sudah bebas bug.
+
+Patch social-save ditinjau lewat source, sintaks dan pratinjau authoring terpisah; pertandingan/pemulihan crash dan pengujian otomatis fitur baru belum dijalankan. Tes hanya dijalankan bila diminta pengguna.

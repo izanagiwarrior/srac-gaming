@@ -100,3 +100,11 @@ Perubahan disiapkan pada source dan port preview terpisah. Tidak ada pemasangan 
 ## Rilis UI 2026-10-15-ui-polish-1
 
 Protokol v7 memberi pesan saat kursi dipindahkan ke tab baru. Tab lama berhenti reconnect otomatis dan tidak menghapus credential tab baru. Muat ulang klien lama setelah deployment yang disetujui. Sidebar lobby dibersihkan saat masuk meja agar ID input tidak ganda; tangan membungkus ke beberapa baris pada layar sempit. Shutdown menghentikan ronde yang tertunda. Verifikasi komponen dan sesi: `npm run test:ui`; cakupan lengkap ada di docs/UI-QUALITY.md pada root hub.
+
+## Sesi bersama pada hub
+
+Hub build `2026-10-15-social-save-2` menambahkan save privat/pemulihan dijeda, nama bersama, kunci room, antrean penonton dan rotasi antar ronde, saldo akun yang tetap tercatat, panel lipat, serta suara/volume/pengurangan animasi. Lihat [panduan sesi](../../docs/SOCIAL-SESSIONS.md), termasuk migrasi pertama dari game RAM dan batas pemeriksaan. Keterangan RAM/restart pada riwayat build lama tidak berlaku sebagai jaminan perilaku build ini.
+
+## Panduan dan panel (1.4.2)
+
+Tombol **Lewati panduan** tersedia pada seluruh sepuluh langkah, tetap terlihat saat isi panduan digulir. Panduan dapat dibuka lagi dari tombol aturan. Contekan Mahjong memakai satu tombol Buka/Lipat di judul sidebar, tanpa kontrol detail kedua di dalamnya. Semua panel sidebar mengikuti kontrol bersama dan menyimpan pilihan lipat setelah tampilan diperbarui.

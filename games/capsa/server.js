@@ -7,14 +7,15 @@ const os = require('node:os');
 const { WebSocketServer } = require('ws');
 const E = require('./engine');
 const Money = require('./money');
-const BUILD_VERSION = '2026-10-13-easy-room-1';
+const {snapshotRoom}=require('../shared/room-service');
+const BUILD_VERSION = '2026-10-15-guide-sidebar-1';
 
 function createApp(options = {}) {
   const rooms = new Map(), timers = new Set();
   const botDelay = options.botDelay ?? 3000, offlineDelay = options.offlineDelay ?? 8000;
   const turnLimit = options.turnLimit ?? 60000;
   const undoLimit = 2;
-  let closing = false;
+  let closing = false, hub = null;
   const addresses = process.env.NODE_ENV === 'production' ? [] : [...new Set(Object.values(os.networkInterfaces()).flat().filter(n => n && n.family === 'IPv4' && !n.internal && !n.address.startsWith('169.254.')).map(n => n.address))];
   const files = new Map([
     ['/', ['public/index.html', 'text/html; charset=utf-8']], ['/index.html', ['public/index.html', 'text/html; charset=utf-8']],
@@ -40,8 +41,8 @@ function createApp(options = {}) {
     try { return new URL(info.origin).host === info.req.headers.host; } catch { return false; }
   } });
   const cleanName = value => String(value || '').replace(/[\u0000-\u001f<>]/g, '').trim().slice(0,20) || 'Pemain';
-  const send = (ws, data) => { if (ws && ws.readyState === 1) ws.send(JSON.stringify(data)); };
-  const fail = (ws, message, fatal = false) => send(ws, { type:'error', message, fatal });
+  const send = (ws, data) => { if (ws && ws.readyState === 1) ws.send(JSON.stringify(hub ? hub.enrich(ws,data) : data)); };
+  const fail = (ws, message, fatal = false, sessionUnavailable = false) => send(ws, { type:'error', message, fatal, sessionUnavailable });
   function later(room, delay, action) {
     const timer = setTimeout(() => { timers.delete(timer); room.timers.delete(timer); if (!closing) action(); }, delay);
     timers.add(timer); room.timers.add(timer); return timer;
@@ -64,7 +65,7 @@ function createApp(options = {}) {
       you, hostSeat:hostIndex(room), spectator:you < 0,
       serverNow:Date.now(), turnDeadline:room.turnDeadline, turnLimit, botDelay, revision:room.revision,
       capacity:room.settings.mode === 'casual' ? 8 : 4,
-      players:room.players.map((p, i) => ({ seat:i, name:p.name, bot:p.bot, connected:p.connected, score:p.score, net:p.score * room.settings.pointValue, initialCount:g ? g.initialCounts[i] : 0, handCount:g ? g.hands[i].length : 0, passed:g ? g.passed.includes(i) : false, autoOffline:!!p.autoOffline })),
+      players:room.players.map((p, i) => ({ id:p.id,seat:i, name:p.name, bot:p.bot, connected:p.connected, score:p.score, net:p.score * room.settings.pointValue, initialCount:g ? g.initialCounts[i] : 0, handCount:g ? g.hands[i].length : 0, passed:g ? g.passed.includes(i) : false, autoOffline:!!p.autoOffline })),
       spectators:room.spectators.filter(p => p.connected).length,
       hand:you >= 0 && room.phase === 'playing' ? g.hands[you] : [],
       turn:g ? g.turn : null, table:g ? g.table : null, lastTable:g ? g.lastTable : null,
@@ -73,10 +74,10 @@ function createApp(options = {}) {
       result:room.result, chat:room.chat.slice(-45), history:room.history.slice(-12),
       undo:{ limit:undoLimit, used:room.undoUses[you] || 0, remaining:Math.max(0,undoLimit - (room.undoUses[you] || 0)), available:canUndo(room,you), targetActionNo:room.undoPoints[you]?.game.actionNo ?? null },
       lastUndo:room.lastUndo,
-      money:Money.recap(room.players,room.history,room.settings,room.phase,room.practice)
+      money:Money.recap([...room.players,...room.spectators.filter(p=>p.hasAccount)],room.history,room.settings,room.phase,room.practice || room.spectators.some(p=>p.hasAccount&&p.bot))
     };
   }
-  function broadcast(room) { for (const p of [...room.players, ...room.spectators]) if (p.connected && !p.bot) send(p.ws, snapshot(room, p)); }
+  function broadcast(room) { hub?.changed(room); for (const p of [...room.players, ...room.spectators]) if (p.connected && !p.bot) send(p.ws, snapshot(room, p)); }
   function say(room, p, text) {
     room.chat.push({ id:crypto.randomUUID(), name:p ? p.name : null, text, time:Date.now() });
     if (room.chat.length > 70) room.chat.shift(); room.active = Date.now();
@@ -121,12 +122,12 @@ function createApp(options = {}) {
     room.players.forEach((p, i) => { p.score += room.result.delta[i]; });
     room.previousWinner = room.game.winner;
     room.phase = room.round >= room.settings.rounds ? 'finished' : 'result';
-    room.history.push({ round:room.round, winner:room.game.winner, delta:room.result.delta, moneyDelta:room.result.moneyDelta, pointValue:room.settings.pointValue, dealt:room.game.initialCounts, remaining:room.game.hands.map(hand => hand.length) });
+    room.history.push({ round:room.round, matchId:room.matchId, people:room.players.map(p=>({id:p.id,name:p.name,bot:p.bot})), names:room.players.map(p=>p.name), winner:room.game.winner, delta:room.result.delta, moneyDelta:room.result.moneyDelta, pointValue:room.settings.pointValue, dealt:room.game.initialCounts, remaining:room.game.hands.map(hand => hand.length) });
     say(room, null, room.players[room.game.winner].name + ' habis kartu dan menang ronde ' + room.round + '!');
     broadcast(room);
   }
   function scheduleTurn(room) {
-    if (room.phase !== 'playing') return;
+    if (room.recovering || room.phase !== 'playing') return;
     const seat = room.game.turn, p = room.players[seat], sequence = room.game.actionNo;
     const key = room.matchId + ':' + room.round + ':' + room.revision + ':' + sequence;
     const stillCurrent = () => room.phase === 'playing' && room.turnKey === key && room.game.turn === seat && room.game.actionNo === sequence;
@@ -213,7 +214,7 @@ function createApp(options = {}) {
     p.ws = ws; p.connected = true; p.autoOffline = false;
     if (p.offlineTimer) { clearTimer(room, p.offlineTimer); p.offlineTimer = null; }
     ws.room = room; ws.entity = p;
-    if (previous && previous !== ws) { previous.room = null; previous.entity = null; previous.close(1000, 'Session moved'); }
+    if (previous && previous !== ws) { previous.room = null; previous.entity = null; send(previous,{type:'replaced'}); previous.close(1000, 'Session moved'); }
     send(ws, { type:'joined', code:room.code, token:p.token }); scheduleTurn(room); broadcast(room);
   }
   function detach(ws, explicit) {
@@ -221,7 +222,7 @@ function createApp(options = {}) {
     if (closing || !room || !p || p.ws !== ws) return;
     p.connected = false; p.ws = null; room.active = Date.now();
     const seat = room.players.indexOf(p);
-    if (seat < 0 && explicit) room.spectators = room.spectators.filter(x => x !== p);
+    if (seat < 0 && explicit) {if(!p.hasAccount)room.spectators = room.spectators.filter(x => x !== p);}
     else if (seat >= 0 && explicit && room.phase === 'lobby') room.players.splice(seat,1);
     else if (seat >= 0 && explicit) { p.bot = true; p.token = null; p.autoOffline = true; }
     if (seat >= 0 && !explicit && room.phase === 'playing') p.offlineTimer = later(room, offlineDelay, () => { p.autoOffline = true; scheduleTurn(room); broadcast(room); });
@@ -236,6 +237,7 @@ function createApp(options = {}) {
       if (++ws.count > 45) return;
       let msg; try { msg = JSON.parse(raw.toString()); } catch { return; }
       if (!msg || typeof msg !== 'object') return;
+      if (hub?.handle(ws,msg)) return;
       let room = ws.room, p = ws.entity;
       if (['create','join','rejoin'].includes(msg.type)) {
         if (room) return fail(ws, 'Keluar dari ruangan ini sebelum pindah.');
@@ -248,15 +250,15 @@ function createApp(options = {}) {
           rooms.set(code,room);
         } else {
           room = rooms.get(String(msg.code || '').toUpperCase().trim());
-          if (!room) return fail(ws, 'Ruangan tidak ditemukan. Cek kode atau buat ruangan baru.', msg.type === 'rejoin');
+          if (!room) return fail(ws, 'Ruangan tidak ditemukan. Cek kode atau buat ruangan baru.', msg.type === 'rejoin', msg.type === 'rejoin');
         }
         if (msg.type === 'rejoin') {
           p = [...room.players, ...room.spectators].find(x => x.token && x.token === msg.token);
-          if (!p) return fail(ws, 'Sesi sudah berakhir. Silakan gabung kembali.', true);
+          if (!p) return fail(ws, 'Sesi sudah berakhir. Silakan gabung kembali.', true, true);
           attach(ws,room,p); return;
         }
         const spectator = room.phase !== 'lobby' || room.players.length >= (room.settings.mode === 'casual' ? 8 : 4);
-        if (spectator && room.spectators.length >= 24) return fail(ws, 'Kursi penonton penuh.');
+        if (spectator && room.spectators.filter(p=>p.connected&&!p.bot).length >= 24) return fail(ws, 'Kursi penonton penuh.');
         p = { name:cleanName(msg.name), token:crypto.randomUUID(), ws:null, connected:false, bot:false, score:0, autoOffline:false };
         (spectator ? room.spectators : room.players).push(p);
         if (!room.hostToken && !spectator) room.hostToken = p.token;
@@ -331,8 +333,7 @@ function createApp(options = {}) {
         if (you !== host) return fail(ws,'Hanya host yang dapat melanjutkan.');
         if (msg.type === 'next' && room.phase === 'result') { beginRound(room); return; }
         if (msg.type === 'again' && room.phase === 'finished') {
-          room.round = 0; room.matchId++; room.history = []; room.previousWinner = null;
-          room.players.forEach(x => { x.score = 0; });
+          room.round = 0; room.matchId++; room.previousWinner = null;
           room.practice = room.players.some(player => player.bot);
           beginRound(room); return;
         }
@@ -343,14 +344,20 @@ function createApp(options = {}) {
   });
   const maintenance = setInterval(() => {
     for (const ws of wss.clients) { if (!ws.alive) { ws.terminate(); continue; } ws.alive = false; ws.ping(); }
-    for (const [code, room] of rooms) if (![...room.players,...room.spectators].some(p => p.connected && !p.bot) && Date.now() - room.active > 600000) { clearRoomTimers(room); rooms.delete(code); }
+    for (const [code, room] of rooms) if (![...room.players,...room.spectators].some(p => p.connected && !p.bot) && Date.now() - room.active > 7 * 86400000) { clearRoomTimers(room); rooms.delete(code); }
   },30000); maintenance.unref();
   function close() {
     closing = true; clearInterval(maintenance); for (const timer of timers) clearTimeout(timer);
     for (const ws of wss.clients) ws.terminate();
     return new Promise(resolve => wss.close(() => server.close(resolve)));
   }
-  return { server,wss,rooms,close };
+  return { server,wss,rooms,close,
+    setRoomService(value){hub=value;},capacity:r=>r.settings.mode==='casual'?8:4,
+    restoreRoom(saved){return {...saved,timers:new Set(),turnTimer:null,deadlineTimer:null,turnKey:null,turnStartedAt:null,turnDeadline:null};},
+    setSpectator(p,value){p.spectator=value;},admit(room,p){p.score??=0;p.autoOffline=false;},
+    broadcastRoom:broadcast,resumeRoom(room){room.players.forEach(p=>p.autoOffline=!p.connected);scheduleTurn(room);},
+    nextRound(room){if(room.phase==='finished'){room.round=0;room.matchId++;room.previousWinner=null;}beginRound(room);}
+  };
 }
 if (require.main === module) {
   const app = createApp(), port = Number(process.env.PORT || 3002), host = process.env.HOST || '0.0.0.0';

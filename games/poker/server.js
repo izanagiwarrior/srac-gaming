@@ -42,50 +42,52 @@ function settlement(players, rate) {
   }
   return payments;
 }
-function createPokerServer({dataDir = path.join(__dirname,'data'), botDelay = 3000, offlineDelay = 15000, minCycles = 3, timers = true, getAddresses = null} = {}) {
-  const rooms = new Map();
+function createPokerServer({dataDir = path.join(__dirname,'data'), botDelay = 3000, offlineDelay = 15000, minCycles = 3, timers = true, getAddresses = null, managed = false} = {}) {
+  const rooms = new Map();let hub=null;
   const stateFile = dataDir && path.join(dataDir,'sessions.json');
   function persist() {
-    if (!stateFile) return;
+    if (!stateFile || managed) return;
     fs.mkdirSync(dataDir,{recursive:true});
     const snapshots = [...rooms.values()].map(r => r.snapshot());
     fs.writeFileSync(stateFile+'.tmp',JSON.stringify({format:1,rooms:snapshots}),{mode:0o600});
     fs.renameSync(stateFile+'.tmp',stateFile);
   }
-  function send(ws,data) { if (ws && ws.readyState===1) ws.send(JSON.stringify(data)); }
+  function send(ws,data) { if (ws && ws.readyState===1) ws.send(JSON.stringify(hub?hub.enrich(ws,data):data)); }
   class Room {
     constructor(code, saved) {
       this.code=code; this.players=[]; this.settings={...DEFAULTS}; this.phase='lobby'; this.hostId=null;
+      this.spectators=[];this.social={locked:false,queue:[],yielding:[]};
       this.game=null; this.history=[]; this.ledger=[]; this.chat=[]; this.createdAt=Date.now(); this.endedAt=null;
       this.revision=0; this.actionTimer=null; this.hostTimer=null;
       if (saved) {
-        Object.assign(this,saved); this.settings={...DEFAULTS,...this.settings}; this.players=saved.players.map(p=>({...p,ws:null,connected:false}));
+        Object.assign(this,saved); this.settings={...DEFAULTS,...this.settings}; this.players=saved.players.map(p=>({...p,ws:null,connected:!!p.bot}));this.spectators=(saved.spectators||[]).map(p=>({...p,ws:null,connected:false}));
         this.game=saved.game ? Game.restore(this.players,this.settings,saved.game,randomInt) : null;
       }
     }
     snapshot() {
       return {code:this.code, settings:this.settings, phase:this.phase, hostId:this.hostId,
-        players:this.players.map(({ws,...p})=>({...p,connected:false})), game:this.game?.serialize() || null,
+        spectators:this.spectators.map(({ws,...p})=>({...p,connected:false})),social:this.social,players:this.players.map(({ws,...p})=>({...p,connected:!!p.bot})), game:this.game?.serialize() || null,
         history:this.history,ledger:this.ledger,chat:this.chat,createdAt:this.createdAt,endedAt:this.endedAt,revision:this.revision};
     }
     host() { return this.players.find(p=>p.id===this.hostId); }
     requireHost(p) { if (p.id!==this.hostId) throw new Error('Only the host can do this.'); }
     add(ws,name) {
-      if (this.phase!=='lobby') throw new Error('This table has started. Reconnect to your existing seat to return.');
-      if (this.players.length+this.settings.bots>=this.settings.maxPlayers) throw new Error('This room is full.');
+      const spectator=this.phase!=='lobby'||this.players.length+this.settings.bots>=this.settings.maxPlayers;
+      if(spectator&&this.spectators.filter(p=>!p.bot&&p.connected).length>=24)throw new Error('Kursi penonton penuh.');
+      if (this.players.length+this.settings.bots>=this.settings.maxPlayers&&!spectator) throw new Error('This room is full.');
       if (this.players.some(p=>p.name.toLowerCase()===name.toLowerCase())) throw new Error('That name is already at the table. Please choose another.');
-      const p={id:uid().slice(0,12),token:uid(),name,ws,connected:true,bot:false,stack:0,totalBuyIn:0,buyIns:0,
+      const p={id:uid().slice(0,12),token:uid(),name,ws,connected:true,bot:false,spectator,stack:0,totalBuyIn:0,buyIns:0,
         sittingOut:false,rebuyPending:false,rebuyDeclined:false,handsPlayed:0,dealerRounds:0};
-      this.players.push(p); if (!this.hostId) this.hostId=p.id; this.attach(ws,p); this.changed();
+      (spectator?this.spectators:this.players).push(p); if (!this.hostId&&!spectator) this.hostId=p.id; this.attach(ws,p); this.changed();
     }
     attach(ws,p) {
       const old=p.ws; if (old && old!==ws) {old.player=null;old.room=null;send(old,{type:'replaced'});old.close();}
       p.ws=ws;p.connected=true;ws.room=this;ws.player=p;
-      if (!this.host()?.connected) this.hostId=p.id;
+      if (!p.spectator&&!this.host()?.connected) this.hostId=p.id;
       send(ws,{type:'joined',code:this.code,token:p.token,id:p.id});
     }
     resume(ws,token) {
-      const p=this.players.find(p=>!p.bot&&p.token===token); if (!p) throw new Error('Seat could not be restored. Check your saved room on the original browser.');
+      const p=[...this.players,...this.spectators].find(p=>!p.bot&&p.token===token); if (!p) throw Object.assign(new Error('Seat could not be restored. Check your saved room on the original browser.'),{sessionUnavailable:true});
       this.attach(ws,p);p.sittingOut=p.stack===0&&p.rebuyDeclined;this.changed();
     }
     disconnect(p) {
@@ -107,7 +109,8 @@ function createPokerServer({dataDir = path.join(__dirname,'data'), botDelay = 30
     }
     view(viewer) {
       const g=this.game; const idx=this.players.indexOf(viewer);
-      return {type:'state',code:this.code,you:viewer.id,hostId:this.hostId,phase:this.phase,settings:this.settings,revision:this.revision,
+      return {type:'state',code:this.code,you:viewer.id,spectator:!!viewer.spectator,hostId:this.hostId,phase:this.phase,settings:this.settings,revision:this.revision,
+        accounts:[...this.players,...this.spectators.filter(p=>p.hasAccount)].map(p=>({id:p.id,name:p.name,bot:p.bot,stack:p.stack,totalBuyIn:p.totalBuyIn,buyIns:p.buyIns,handsPlayed:p.handsPlayed,dealerRounds:p.dealerRounds,contributed:this.players.includes(p)?p.contributed||0:0,outside:!this.players.includes(p)})),
         players:this.players.map((p,i)=>({id:p.id,name:p.name,connected:p.connected,bot:p.bot,stack:p.stack,totalBuyIn:p.totalBuyIn,buyIns:p.buyIns,
           sittingOut:p.sittingOut,rebuyPending:p.rebuyPending,rebuyDeclined:p.rebuyDeclined,handsPlayed:p.handsPlayed,dealerRounds:p.dealerRounds,
           inHand:!!p.inHand,folded:!!p.folded,bet:p.bet||0,contributed:p.contributed||0,lastAction:p.lastAction||'',
@@ -115,12 +118,12 @@ function createPokerServer({dataDir = path.join(__dirname,'data'), botDelay = 30
         game:g ? {handNo:g.handNo,dealer:g.dealer,smallBlind:g.smallBlind,bigBlind:g.bigBlind,board:g.board,over:g.over,
           phase:g.phase,turn:g.turn,currentBet:g.currentBet,pot:g.over?0:g.pot(),options:g.options(idx),version:g.version,
           result:g.result,log:g.log} : null,
-        simulation:this.players.some(p=>p.bot)||this.settings.bots>0,chat:this.chat.slice(-70),endGate:this.endGate(),history:this.history.slice(-20),ledger:this.ledger,
-        payments:this.phase==='ended' && this.settings.chipValue>0 && !this.players.some(p=>p.bot) ? settlement(this.players,this.settings.chipValue):[],endedAt:this.endedAt};
+        simulation:[...this.players,...this.spectators].some(p=>p.bot)||this.settings.bots>0,chat:this.chat.slice(-70),endGate:this.endGate(),history:this.history.slice(-20),ledger:this.ledger,
+        payments:this.phase==='ended' && this.settings.chipValue>0 && !this.players.some(p=>p.bot) ? settlement([...this.players,...this.spectators.filter(p=>p.hasAccount)],this.settings.chipValue):[],endedAt:this.endedAt};
     }
     changed() {
-      this.revision++;persist();
-      for (const p of this.players) if (!p.bot) send(p.ws,this.view(p));
+      this.revision++;persist();hub?.changed(this);
+      for (const p of [...this.players,...this.spectators]) if (!p.bot) send(p.ws,this.view(p));
       this.schedule();
     }
     book(p,kind) {
@@ -143,6 +146,7 @@ function createPokerServer({dataDir = path.join(__dirname,'data'), botDelay = 30
       if (msg.type==='chat') {
         const text=String(msg.text||'').replace(/[\u0000-\u001f]/g,'').trim().slice(0,200);
         if(text){this.chat.push({name:p.name,text});this.chat=this.chat.slice(-70);}
+      } else if(p.spectator&&msg.type!=='leave') {throw new Error('Penonton tidak dapat bermain.');
       } else if (msg.type==='settings') {
         this.requireHost(p);if(this.phase!=='lobby')throw new Error('Table settings are locked once play starts.');
         const next=settingsFor(msg.settings);if(this.players.length+next.bots>next.maxPlayers)throw new Error('Not enough seats for these players and bots.');
@@ -185,7 +189,7 @@ function createPokerServer({dataDir = path.join(__dirname,'data'), botDelay = 30
         if(!this.endGate().allowed)throw new Error(`Finish the hand, resolve rebuys, and complete ${minCycles} dealer rotations per funded player first.`);
         this.phase='ended';this.endedAt=Date.now();
       } else if(msg.type==='leave') {
-        if(this.phase==='lobby') {
+        if(p.spectator){this.spectators=this.spectators.filter(q=>q!==p||q.hasAccount);p.connected=false;}else if(this.phase==='lobby') {
           this.players=this.players.filter(q=>q!==p);if(this.hostId===p.id)this.hostId=this.players.find(q=>q.connected)?.id||this.players[0]?.id||null;
         } else {p.connected=false;p.sittingOut=true;p.ws=null;const next=this.players.find(q=>!q.bot&&q.connected);if(this.hostId===p.id&&next)this.hostId=next.id;}
         p.ws=null;msg._ws.room=null;msg._ws.player=null;send(msg._ws,{type:'left'});
@@ -193,7 +197,7 @@ function createPokerServer({dataDir = path.join(__dirname,'data'), botDelay = 30
       this.changed();
     }
     schedule() {
-      clearTimeout(this.actionTimer);if(!timers||this.phase!=='playing'||this.game?.over)return;
+      clearTimeout(this.actionTimer);if(!timers||this.recovering||this.phase!=='playing'||this.game?.over)return;
       const p=this.players[this.game.turn];if(!p||(!p.bot&&p.connected))return;
       const version=this.game.version;
       this.actionTimer=setTimeout(()=>{
@@ -255,27 +259,36 @@ function createPokerServer({dataDir = path.join(__dirname,'data'), botDelay = 30
       let requestId;
       try {
         const msg=JSON.parse(raw.toString());requestId=msg?.requestId;if(!msg||typeof msg!=='object')throw new Error('Invalid request.');
+        if(hub?.handle(ws,msg))return;
         if(['create','join','resume'].includes(msg.type)){
           if(ws.player)throw new Error('Leave your current room first.');
           if(msg.type==='create'){
             if(rooms.size>=200)throw new Error('The server has reached its room limit. Archive old sessions before restarting.');
             const name=cleanName(msg.name),r=new Room(newCode());r.settings=settingsFor(msg.settings);rooms.set(r.code,r);r.add(ws,name);
           }else{
-            const code=String(msg.code||'').toUpperCase().trim();const r=rooms.get(code);if(!r)throw new Error('Room not found. Check the code and make sure you are using the same server.');
+            const code=String(msg.code||'').toUpperCase().trim();const r=rooms.get(code);if(!r)throw Object.assign(new Error('Room not found. Check the code and make sure you are using the same server.'),{sessionUnavailable:msg.type==='resume'});
             if(msg.type==='resume')r.resume(ws,msg.token);else r.add(ws,cleanName(msg.name));
           }
         }else{
           if(!ws.room||!ws.player)throw new Error('Join a room first.');msg._ws=ws;ws.room.command(ws.player,msg);
         }
         if(requestId!==undefined)send(ws,{type:'ack',requestId});
-      }catch(err){send(ws,{type:'error',message:err.message,requestId});}
+      }catch(err){send(ws,{type:'error',message:err.message,requestId,sessionUnavailable:!!err.sessionUnavailable});}
     });
     ws.on('close',()=>{if(ws.room&&ws.player&&ws.player.ws===ws)ws.room.disconnect(ws.player);});
     ws.on('error',()=>{});
   });
   const heartbeat=setInterval(()=>{for(const ws of wss.clients){if(!ws.alive){ws.terminate();continue;}ws.alive=false;ws.ping();}},30000);heartbeat.unref();
   async function close() {clearInterval(heartbeat);for(const r of rooms.values()){clearTimeout(r.actionTimer);clearTimeout(r.hostTimer);}for(const ws of wss.clients){ws.room=null;ws.player=null;ws.terminate();}await new Promise(resolve=>wss.close(resolve));await new Promise(resolve=>server.close(resolve));}
-  return {server,wss,rooms,close,addresses};
+  return {server,wss,rooms,close,addresses,
+    setRoomService(value){hub=value;},capacity:r=>r.settings.maxPlayers,
+    exportRoom:r=>r.snapshot(),restoreRoom:saved=>new Room(saved.code,saved),setSpectator(p,value){p.spectator=value;},
+    admit(r,p){p.spectator=false;p.hole=[];p.folded=false;p.inHand=false;p.contributed=0;p.bet=0;p.handsPlayed??=0;p.dealerRounds??=0;p.rebuyPending=false;p.rebuyDeclined=false;p.sittingOut=false;if(!p.totalBuyIn){p.stack=0;p.totalBuyIn=0;p.buyIns=0;r.book(p,'Initial buy-in');}},
+    checkNext(r,projected){if(r.players.some(p=>p.rebuyPending))throw Error('Selesaikan permintaan rebuy dahulu.');if(projected.filter(p=>(!p.totalBuyIn?r.settings.buyIn:p.stack)>0&&!p.sittingOut&&(p.bot||p.connected)).length<2)throw Error('Perlu dua pemain aktif dengan chip. Selesaikan rebuy atau antre pemain baru.');},
+    onRotation(r){if(!r.players.some(p=>p.id===r.hostId&&!p.bot))r.hostId=r.players.find(p=>!p.bot&&p.connected)?.id;},
+    broadcastRoom(r){r.changed();},resumeRoom:r=>r.schedule(),
+    nextRound(r){if(r.phase==='ended'){r.phase='playing';r.endedAt=null;}r.game.start();r.afterAction(false);r.changed();}
+  };
 }
 if(require.main===module){
   const app=createPokerServer();const port=Number(process.env.PORT||3001);

@@ -33,3 +33,7 @@ Easy memilih batu/ujung legal acak; Normal cenderung membuang titik besar; Hard 
 ## Titik dibanding jumlah batu
 
 Pemain yang menghabiskan batu menang. Saat meja buntu, aturan meja ini membandingkan jumlah titik di batu tersisa, bukan jumlah batunya. Dua batu dengan total 4 titik dapat mengalahkan satu batu dengan 6 titik. Penghitungan titik lazim pada [Gaple](https://www.pagat.com/domino/line/gaple.html), tetapi Gaple memiliki variasi; pilihan pembuka, stok, seri bersama dan distribusi pool di hub ini adalah aturan meja yang dijelaskan di atas, bukan klaim bahwa semuanya satu aturan resmi universal.
+
+## Sesi bersama pada hub
+
+Hub build `2026-10-15-social-save-2` menambahkan save privat/pemulihan dijeda, nama bersama, kunci room, antrean penonton dan rotasi antar ronde, saldo akun yang tetap tercatat, panel lipat, serta suara/volume/pengurangan animasi. Lihat [panduan sesi](../../docs/SOCIAL-SESSIONS.md), termasuk migrasi pertama dari game RAM dan batas pemeriksaan. Keterangan RAM/restart pada riwayat build lama tidak berlaku sebagai jaminan perilaku build ini.

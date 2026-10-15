@@ -5,10 +5,11 @@ const path = require('node:path');
 const { randomInt, randomUUID } = require('node:crypto');
 const { WebSocketServer } = require('ws');
 const { tableSettings,record }=require('../shared/table-settings');
+const {snapshotRoom}=require('../shared/room-service');
 
 function createDominoServer({ getAddresses = () => [] } = {}) {
   const rooms = new Map();
-  let closing = false;
+  let closing = false, hub = null;
   const files = new Map([
     ['/', ['public/index.html','text/html; charset=utf-8']],
     ['/client.js', ['public/client.js','application/javascript; charset=utf-8']],
@@ -27,7 +28,7 @@ function createDominoServer({ getAddresses = () => [] } = {}) {
       res.end(req.method === 'HEAD' ? undefined : data);
     });
   });
-  const send = (ws,data) => { if (ws?.readyState === 1) ws.send(JSON.stringify(data)); };
+  const send = (ws,data) => { if (ws?.readyState === 1) ws.send(JSON.stringify(hub ? hub.enrich(ws,data) : data)); };
   const nameFor = value => String(value || '').replace(/[\u0000-\u001f\u007f<>"\\]/g,'').trim().slice(0,24) || 'Pemain';
   const pips = tiles => tiles.reduce((sum,t) => sum + t.a + t.b,0);
   const allEntities = room => [...room.players,...room.spectators];
@@ -69,6 +70,7 @@ function createDominoServer({ getAddresses = () => [] } = {}) {
   }
   function broadcast(room) {
     if (closing) return;
+    hub?.changed(room);
     for (const entity of allEntities(room)) if (entity.connected && !entity.bot) send(entity.ws,publicState(room,entity));
   }
   function finish(room,reason,winners) {
@@ -117,7 +119,7 @@ function createDominoServer({ getAddresses = () => [] } = {}) {
   function armBot(room) {
     clearTimeout(room.botTimer); room.botTimer = null;
     const player = room.players[room.turn];
-    if (closing || room.phase !== 'playing' || !ready(room) || !player?.bot) return;
+    if (closing || room.recovering || room.phase !== 'playing' || !ready(room) || !player?.bot) return;
     const match = room.matchId, revision = room.revision;
     room.botTimer = setTimeout(() => {
       room.botTimer = null;
@@ -170,7 +172,7 @@ function createDominoServer({ getAddresses = () => [] } = {}) {
     const room = ws.room, entity = ws.entity; ws.room = null; ws.entity = null;
     if (!room || !entity || entity.ws !== ws) return;
     entity.ws = null; entity.connected = false; room.active = Date.now();
-    if (entity.spectator) room.spectators = room.spectators.filter(p => p !== entity);
+    if (entity.spectator) {if(!entity.hasAccount)room.spectators = room.spectators.filter(p => p !== entity);}
     else if (explicit) {
       if (room.phase === 'lobby') room.players = room.players.filter(p => p !== entity);
       else { entity.bot = true; entity.connected = true; entity.token = null; room.rematch.add(entity.id); }
@@ -195,6 +197,7 @@ function createDominoServer({ getAddresses = () => [] } = {}) {
       try {
         const msg = JSON.parse(raw.toString());
         if (!msg || typeof msg !== 'object') throw new Error('Pesan tidak valid.');
+        if (hub?.handle(ws,msg)) return;
         if (['create','join','resume'].includes(msg.type)) {
           if (ws.entity) throw new Error('Keluar dari room sekarang sebelum pindah.');
           if (msg.type === 'create') {
@@ -206,14 +209,14 @@ function createDominoServer({ getAddresses = () => [] } = {}) {
             rooms.set(room.code,room); event(room,`${entity.name} membuka meja Gaple ${room.seats} pemain.`); attach(ws,room,entity); return;
           }
           const room = rooms.get(String(msg.code || '').trim().toUpperCase());
-          if (!room) { send(ws,{ type:'error',message:'Room tidak ditemukan. Cek kode atau buat room baru.',fatal:msg.type === 'resume' }); return; }
+          if (!room) { send(ws,{ type:'error',message:'Room tidak ditemukan. Cek kode atau buat room baru.',sessionUnavailable:msg.type === 'resume',fatal:msg.type === 'resume' }); return; }
           if (msg.type === 'resume') {
             const entity = allEntities(room).find(p => p.token && p.token === msg.token);
-            if (!entity) { send(ws,{ type:'error',message:'Sesi sudah berakhir. Gabung lagi dengan kode room.',fatal:true }); return; }
+            if (!entity) { send(ws,{ type:'error',message:'Sesi sudah berakhir. Gabung lagi dengan kode room.',fatal:true,sessionUnavailable:true }); return; }
             attach(ws,room,entity); return;
           }
           const spectator = room.phase !== 'lobby' || room.players.length >= room.seats;
-          if (spectator && room.spectators.length >= 16) throw new Error('Kursi penonton penuh.');
+          if (spectator && room.spectators.filter(p=>p.connected&&!p.bot).length >= 16) throw new Error('Kursi penonton penuh.');
           const entity = person(msg.name,false,spectator);
           (spectator ? room.spectators : room.players).push(entity);
           event(room,`${entity.name} ${spectator ? 'menonton' : 'bergabung'}.`); attach(ws,room,entity); return;
@@ -252,7 +255,7 @@ function createDominoServer({ getAddresses = () => [] } = {}) {
   });
   const maintenance = setInterval(() => {
     for (const ws of wss.clients) { if (!ws.alive) { ws.terminate(); continue; } ws.alive = false; ws.ping(); }
-    for (const [code,room] of rooms) if (!allEntities(room).some(p => !p.bot && p.connected) && Date.now() - room.active > 3600000) { clearTimeout(room.botTimer); rooms.delete(code); }
+    for (const [code,room] of rooms) if (!allEntities(room).some(p => !p.bot && p.connected) && Date.now() - room.active > 7 * 86400000) { clearTimeout(room.botTimer); rooms.delete(code); }
   },30000); maintenance.unref();
   async function close() {
     closing = true; clearInterval(maintenance);
@@ -260,6 +263,11 @@ function createDominoServer({ getAddresses = () => [] } = {}) {
     for (const ws of wss.clients) { ws.room = null; ws.entity = null; ws.terminate(); }
     await new Promise(resolve => wss.close(resolve)); await new Promise(resolve => server.close(resolve));
   }
-  return { server,wss,rooms,close };
+  return { server,wss,rooms,close,
+    setRoomService(value){hub=value;},capacity:r=>r.seats,
+    restoreRoom:saved=>({...saved,botTimer:null}),setSpectator(p,value){p.spectator=value;},
+    admit(room,p){p.hand=[];p.score??=0;p.wins??=0;},
+    broadcastRoom:broadcast,resumeRoom:armBot,nextRound:start
+  };
 }
 module.exports = { createDominoServer };
