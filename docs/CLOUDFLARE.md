@@ -8,6 +8,8 @@ For current vendor behavior/install packages, use [Cloudflare Quick Tunnels](htt
 
 Read AGENTS.md. Get authorization to expose this game origin if the user has not already requested sharing it publicly. Check the desired port before starting; do not kill unrelated listeners to free it.
 
+The owner prefers access through the Cloudflare link, using only the required loopback origin by default. Starting an installed build does not authorize applying a pending patch. GitHub push and deployment each need an explicit request for that action; neither follows automatically from preparing a patch or approving the other action. A clear request already supplied by the user is authorization, so do not ask for the same permission twice.
+
 1. Install Node.js 22+ and cloudflared from the official sources/package managers. On macOS, `brew install cloudflared`; on Windows, `winget install --id Cloudflare.cloudflared --exact`; Linux users can use the official download/package instructions. Do not commit the binary.
 2. From the cloned repo, install locked dependencies:
 
