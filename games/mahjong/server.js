@@ -4,7 +4,7 @@ const { WebSocketServer } = require('ws');
 const { randomInt, randomBytes } = require('node:crypto');
 const E = require('./engine');
 const {tableSettings}=require('../shared/table-settings');
-const BUILD = '2026-10-14-six-games-1', CLIENT_VERSION = 6;
+const BUILD = '2026-10-15-ui-polish-1', CLIENT_VERSION = 7;
 
 function createMahjongServer() {
 const PUBLIC = path.join(__dirname, 'public');
@@ -41,7 +41,7 @@ class Room {
   }
   rejoin(ws, tok) {
     const p = this.players.find(x => x.token === tok) || this.spectators.find(x => x.token === tok); if (!p) return null;
-    if (p.ws && p.ws !== ws && p.ws.readyState === 1) { p.ws.roomPlayer = null; try { p.ws.close(); } catch (e) { } }
+    if (p.ws && p.ws !== ws && p.ws.readyState === 1) { p.ws.roomPlayer = null; send(p.ws,{type:'replaced'});try { p.ws.close(); } catch (e) { } }
     p.ws = ws; p.connected = true; return p;
   }
   disconnect(p) {
@@ -392,7 +392,7 @@ const maintenance = setInterval(() => {
 maintenance.unref();
 async function close() {
   clearInterval(maintenance);
-  for (const room of rooms.values()) Object.values(room.timers).forEach(clearTimeout);
+  for (const room of rooms.values()) {if(room.G){room.G.over=true;room.G.gen++;}Object.values(room.timers).forEach(clearTimeout);}
   for (const ws of wss.clients) { ws.roomPlayer = null; ws.terminate(); }
   await new Promise(resolve => wss.close(resolve));
   await new Promise(resolve => server.close(resolve));

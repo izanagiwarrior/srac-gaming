@@ -4,7 +4,7 @@
   const esc = value => String(value ?? '').replace(/[&<>"']/g,c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const idr = n => new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(n || 0);
   const SUITS = {s:'♠',h:'♥',d:'♦',c:'♣'};
-  let current = {}, draft = '', logScroll = 0, chatScroll = 0;
+  let current = {}, draft = '';
   function card(c) {
     if (!c) return '<span class="mk-card back" aria-label="Kartu tertutup">✦</span>';
     const rank = ({11:'J',12:'Q',13:'K',14:'A'}[c.r] || c.r);
@@ -30,11 +30,24 @@
     return `<section class="mk-panel"><h3>Pengaturan meja</h3><label>Nilai 1 ${data.unit || 'poin'} dalam rupiah<input data-mk-rate type="number" min="0" max="1000000" step="1" value="${s.pointValue || 0}" ${disabled}></label><label>Tingkat bot<select data-mk-level ${disabled}>${[['easy','Easy'],['normal','Normal'],['hard','Hard']].map(([value,name])=>`<option value="${value}" ${s.botLevel===value?'selected':''}>${name}</option>`).join('')}</select></label><small>0 = latihan. Otomatis tersimpan sebelum mulai; terkunci saat permainan berjalan. Semua bot jeda minimal 3 detik.</small>${data.formula ? `<p class="mk-note">${esc(data.formula)}</p>` : ''}</section>`;
   }
   function recap(data) {
-    return `<section class="mk-panel" data-mk-recap><div class="mk-heading"><h3>Rekap poin & rupiah</h3><button type="button" data-mk-csv>CSV ↓</button></div><p class="mk-note">1 ${data.unit || 'poin'} = ${idr(data.rate)} · nilai simulasi</p><div class="mk-balances">${(data.players || []).map(p=>`<div><span>${esc(p.name)}${p.bot?' · bot':''}${p.totalBuyIn!==undefined?'<small>Stack '+Number(p.stack).toLocaleString('id-ID')+' · bought '+Number(p.totalBuyIn).toLocaleString('id-ID')+'</small>':''}</span><b>${Number(p.score || 0).toLocaleString('id-ID')}<small>${idr(p.net ?? (p.score || 0)*data.rate)}</small></b></div>`).join('')}</div>${data.recapExtra || ''}</section>`;
+    return `<section class="mk-panel" data-mk-recap><div class="mk-heading"><h3>Rekap poin & rupiah</h3><button type="button" data-mk-csv>CSV ↓</button></div><p class="mk-note">1 ${data.unit || 'poin'} = ${idr(data.rate)} · nilai simulasi</p><div class="mk-balances">${(data.players || []).map(p=>`<div><span>${esc(p.name)}${p.bot&&!/(?:[·(]\s*bot\)?)$/i.test(String(p.name))?' · bot':''}${p.totalBuyIn!==undefined?'<small>Stack '+Number(p.stack).toLocaleString('id-ID')+' · bought '+Number(p.totalBuyIn).toLocaleString('id-ID')+'</small>':''}</span><b>${Number(p.score || 0).toLocaleString('id-ID')}<small>${idr(p.net ?? (p.score || 0)*data.rate)}</small></b></div>`).join('')}</div>${data.recapExtra || ''}</section>`;
   }
   function sidebar(slug,data) {
-    const active=document.activeElement,focused=active?.id==='mk-chat-input',cursor=active?.selectionStart,old=document.querySelector('.mk-chat'),top=old?.scrollTop||0,bottom=!old||old.scrollHeight-old.scrollTop-old.clientHeight<30;
-    queueMicrotask(()=>{const next=document.querySelector('.mk-chat');if(next)next.scrollTop=bottom?next.scrollHeight:top;const input=document.getElementById('mk-chat-input');if(focused&&input){input.focus({preventScroll:true});if(typeof cursor==='number')input.setSelectionRange(cursor,cursor);}});
+    const visibleSidebar=()=>[...document.querySelectorAll('.mk-sidebar')].find(el=>el.getClientRects().length);
+    const previous=visibleSidebar(),active=document.activeElement;
+    const old=previous?.querySelector('.mk-chat'),top=old?.scrollTop||0,bottom=!old||old.scrollHeight-old.scrollTop-old.clientHeight<30;
+    const scrolls={sidebar:previous?.scrollTop||0,cheat:previous?.querySelector('.mk-cheat')?.scrollTop||0,log:previous?.querySelector('.mk-log')?.scrollTop||0};
+    const focusSelector=active?.matches('#mk-chat-input')?'#mk-chat-input':active?.matches('[data-mk-rate]')?'[data-mk-rate]':active?.matches('[data-mk-level]')?'[data-mk-level]':null;
+    const focus=focusSelector?{selector:focusSelector,value:active.value,start:active.selectionStart,end:active.selectionEnd}:null;
+    queueMicrotask(()=>{
+      const next=visibleSidebar();if(!next)return;
+      next.scrollTop=scrolls.sidebar;
+      const chat=next.querySelector('.mk-chat');if(chat)chat.scrollTop=bottom?chat.scrollHeight:top;
+      const cheatPanel=next.querySelector('.mk-cheat'),log=next.querySelector('.mk-log');
+      if(cheatPanel)cheatPanel.scrollTop=scrolls.cheat;if(log)log.scrollTop=scrolls.log;
+      const input=focus&&next.querySelector(focus.selector);
+      if(input&&!input.disabled){input.value=focus.value;input.focus({preventScroll:true});if(typeof focus.start==='number')try{input.setSelectionRange(focus.start,focus.end);}catch{}}
+    });
     current={...data,slug};
     return `<aside class="mk-sidebar" aria-label="Panel meja"><section class="mk-panel"><h3>Chat meja</h3><div class="mk-chat" role="log">${(data.chat || []).map(m=>`<p>${m.name ? `<b>${esc(m.name)}</b> ` : ''}${esc(m.text)}</p>`).join('') || '<p class="mk-note">Sapa temanmu di meja.</p>'}</div><form data-mk-chat><input id="mk-chat-input" aria-label="Pesan chat" maxlength="200" placeholder="Ngobrol dulu…" value="${esc(draft)}" ${data.connected===false?'disabled':''}><button>Kirim</button></form></section><section class="mk-panel"><h3>Cheat sheet</h3><div class="mk-cheat">${data.cheat || cheat(slug)}</div></section>${data.extra || ''}${recap(data)}<section class="mk-panel"><h3>Log permainan</h3><div class="mk-log" role="log">${(data.log || []).slice(-80).reverse().map(m=>`<p>${esc(typeof m==='string'?m:m.text || m.t)}</p>`).join('') || '<p class="mk-note">Belum ada langkah.</p>'}</div></section>${data.settings ? settings(data) : ''}</aside>`;
   }

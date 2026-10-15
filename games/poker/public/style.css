@@ -19,3 +19,7 @@ dialog{width:min(700px,calc(100% - 28px));max-height:90vh;max-height:90dvh;borde
 .opponents-1{grid-template-columns:minmax(130px,220px);justify-content:center}.opponents-2{grid-template-columns:repeat(2,minmax(0,1fr))}.opponents-3{grid-template-columns:repeat(3,minmax(0,1fr))}.session-summary>.panel+.panel{margin-top:20px}
 .payment-row strong{min-width:0;overflow-wrap:anywhere}.mobile-scroll-hint{display:none}:root[data-theme=dark] .positive,:root[data-theme=dark] .payment-row b:last-child,:root[data-theme=dark] .settings-cost,:root[data-theme=dark] .welcome-copy h1 em{color:#94cfa4}:root[data-theme=dark] .negative{color:#ed9e8d}@media(max-width:600px){.mobile-scroll-hint{display:block;margin:10px 0}.community .playing-card{--cw:clamp(38px,12vw,47px)}}
 @media(max-width:360px){.summary-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.summary-stats>div:last-child{grid-column:1/-1}}
+
+.lobby-grid>.stack,.lobby-grid .panel,.lobby-guide>div{min-width:0}
+.setting-summary>div{min-width:0;overflow-wrap:anywhere}
+@media(max-width:600px){.panel-title{flex-wrap:wrap;align-items:flex-start}.lobby-guide{grid-template-columns:minmax(0,1fr)}.lobby-guide .cards{justify-content:center}.setting-summary{grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:12px}}

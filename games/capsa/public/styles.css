@@ -602,3 +602,6 @@ input::placeholder { color:#819989; }
 @media(max-width:1350px) { .update-notice { margin-left:40px; margin-right:40px; } }
 @media(max-width:1150px) { .update-notice { margin-left:28px; margin-right:28px; } }
 @media(max-width:720px) { .update-notice { margin-left:20px; margin-right:20px; flex-direction:column; align-items:stretch; gap:10px; } }
+
+@media(max-width:720px){.hero{position:relative;isolation:isolate;overflow:clip}}
+@media(max-width:450px){.site-header{flex-wrap:wrap;row-gap:12px}.site-header nav{flex:1;min-width:0;justify-content:flex-end}.brand{flex:none}}

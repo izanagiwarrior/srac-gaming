@@ -4,7 +4,7 @@ Satu landing page untuk **Capsa Banting, Mahjong, Poker Texas Hold’em, Catur, 
 
 Repository: [izanagiwarrior/srac-gaming](https://github.com/izanagiwarrior/srac-gaming).
 
-Build: `2026-10-14-six-games-1`.
+Build: `2026-10-15-ui-polish-1`.
 
 ## Jalankan lokal
 
@@ -121,6 +121,4 @@ Tidak menyertakan sesi pemain, token, data kantor, credential, atau node_modules
 
 ## Pemeriksaan
 
-Pemeriksaan sintaks 28 file JavaScript dan pratinjau landing/lobby keenam game dilakukan pada port terpisah 3010. Tidak memulai pertandingan, memasang chip, atau menekan aksi permainan. Tidak menambah atau menjalankan tes otomatis/multiplayer pada pekerjaan ini. Ready to deploy berarti source, dependency lock, entry point, route, asset, WebSocket, dan konfigurasi hosting tersedia; aturan tiap game mengikuti implementasi yang disertakan.
-
-Rujukan hosting: [Render Web Services](https://render.com/docs/web-services), [WebSockets](https://render.com/docs/websocket), [Free limitations](https://render.com/docs/free), [Auto-Deploy](https://render.com/docs/deploys).
+Build `2026-10-15-ui-polish-1` mencakup pemeriksaan UI enam game pada lebar 320, 390, 768, 1024 dan 1440 CSS pixel serta interaksi practice dengan nilai rupiah 0. Sebelas tes regresi komponen/sesi tersedia: `npm run test:ui`. Jalankan tes hanya ketika pengguna meminta verifikasi, sesuai AGENTS.md. Cakupan, perbaikan dan batas pemeriksaan ada di [UI-QUALITY.md](docs/UI-QUALITY.md). Tidak ada klaim bahwa seluruh cabang permainan sudah bebas bug.

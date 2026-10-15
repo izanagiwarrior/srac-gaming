@@ -1,5 +1,5 @@
 /* Klien Mahjong P2P */
-const CLIENT_VERSION = 6, HAND_HELP = window.MahjongHandHelp;
+const CLIENT_VERSION = 7, HAND_HELP = window.MahjongHandHelp;
 const { SUITS, WINDS, WIND_ID, DRAG, DRAG_ID, T, idxOf, fromIdx, isSuit, tileName, byIdx, counts, shanten, findWin, acceptance } = Engine;
 const $ = id => document.getElementById(id);
 const ls = { get: (k, d) => { try { const v = localStorage.getItem(k); return v === null ? d : v; } catch (e) { return d; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) { } }, del: k => { try { localStorage.removeItem(k); } catch (e) { } } };
@@ -16,13 +16,13 @@ function meldHTML(m) { const t = m.tiles; if (m.type === 'kong' && !m.open) { co
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 // ---------- Koneksi ----------
-let ws = null, S = null, lobby = null, myCode = null, myToken = null, screen = 'landing', reconnectTimer = null, pendingRejoin = false, isSpectator = false, chatLog = [];
+let ws = null, S = null, lobby = null, myCode = null, myToken = null, screen = 'landing', reconnectTimer = null, pendingRejoin = false, isSpectator = false, chatLog = [], replaced = false;
 const UI = { sound: ls.get('mejakita.mahjong.sound', '1') !== '0', bubbles: {}, wasMyTurn: false, prev: null, big: ls.get('mejakita.mahjong.big', '0') === '1', poolMode: ls.get('mejakita.mahjong.pool', 'tile'), autoSort: ls.get('mejakita.mahjong.autosort', '1') !== '0', cheatOpen: ls.get('mejakita.mahjong.cheat', '1') !== '0', sel: null, drag: null, clue: null, order: [], resultShown: null, countdown: null, pick: [], pickKey: null };
 function connect() {
   const proto = location.protocol === 'https:' ? 'wss' : 'ws'; ws = new WebSocket(`${proto}://${location.host}/mahjong/ws`);
   ws.onopen = () => { setConn(true); if (myCode && myToken) { pendingRejoin = true; sendMsg({ type: 'rejoin', code: myCode, token: myToken }); } };
   ws.onmessage = e => { let m; try { m = JSON.parse(e.data); } catch (err) { return; } onMsg(m); };
-  ws.onclose = () => { setConn(false); clearTimeout(reconnectTimer); reconnectTimer = setTimeout(connect, 1500); };
+  ws.onclose = () => { setConn(false); clearTimeout(reconnectTimer); if(replaced){$('conn').textContent='Sesi dibuka di tab lain. Tutup tab ini, atau muat ulang untuk mengambil alih.';return;}reconnectTimer = setTimeout(connect, 1500); };
   ws.onerror = () => { try { ws.close(); } catch (e) { } };
 }
 function sendMsg(o) { if (ws && ws.readyState === 1) ws.send(JSON.stringify({ ...o, v: CLIENT_VERSION })); else toast('Belum terhubung ke server. Mencoba lagi...'); }
@@ -30,6 +30,7 @@ function setConn(on) { const el = $('conn'); if (el) { el.textContent = on ? '' 
 let toastT; function toast(msg) { const t = $('toast'); t.textContent = msg; t.style.display = 'block'; clearTimeout(toastT); toastT = setTimeout(() => t.style.display = 'none', 3500); }
 
 function onMsg(m) {
+  if(m.type==='replaced'){replaced=true;clearTimeout(reconnectTimer);leaveLocal(false);toast('Sesi dibuka di tab lain. Tab ini berhenti menyambung ulang.');return;}
   if (m.type === 'error') { toast(m.msg); if (m.fatal) { leaveLocal(); } return; }
   if (m.type === 'joined') { mySeat = m.seat; isSpectator = !!m.spectator; myCode = m.code; myToken = m.token; ls.set('mejakita.mahjong.room', m.code); ls.set('mejakita.mahjong.token', m.token); pendingRejoin = false; history.replaceState(null, '', '?room=' + m.code); if (isSpectator) toast('Meja sudah penuh atau sedang berjalan, kamu masuk sebagai penonton.'); return; }
   if (m.type === 'lobby') { if (m.v !== CLIENT_VERSION && !UI.warnedLobby) { UI.warnedLobby = true; alert('Versi halaman dan server berbeda. Muat ulang halaman Mahjong. Jika masih sama, beri tahu host.'); } lobby = m; S = null; isSpectator = !!m.spectator; if (m.chat) { chatLog = m.chat; renderChat(); } show('lobby'); renderLobby(); return; }
@@ -45,7 +46,7 @@ function onMsg(m) {
   }
   if (m.type === 'left') { leaveLocal(); return; }
 }
-function leaveLocal() { stopBlink(); chatLog = []; isSpectator = false; myCode = null; myToken = null; S = null; lobby = null; ls.del('mejakita.mahjong.room'); ls.del('mejakita.mahjong.token'); history.replaceState(null, '', location.pathname); $('overlay').style.display = 'none'; show('landing'); }
+function leaveLocal(clearSaved = true) { stopBlink(); chatLog = []; isSpectator = false; myCode = null; myToken = null; S = null; lobby = null;if(clearSaved){ls.del('mejakita.mahjong.room');ls.del('mejakita.mahjong.token');}history.replaceState(null, '', location.pathname); $('overlay').style.display = 'none'; show('landing'); }
 function show(name) { screen = name; for (const s of ['landing', 'lobby', 'game']) $(s).style.display = s === name ? '' : 'none'; const box = $('chatbox'); const slot = name === 'game' ? $('chatslot') : name === 'lobby' ? $('lobbychat') : null; if (box && slot && box.parentNode !== slot) slot.appendChild(box); if (name !== 'game') stopBlink(); }
 
 // ---------- Landing ----------
@@ -239,9 +240,9 @@ function renderGame() {
   renderMahjongSidebar();
 }
 // ---------- Riwayat aksi ----------
-function renderMahjongSidebar(){const data=S || lobby;if(!data)return;const target=$(S?'mahjong-sidebar':'mahjong-lobby-sidebar');if(!target)return;const active=document.activeElement,focused=active?.id==='mk-chat-input',cursor=active?.selectionStart;const old=target.querySelector('.mk-chat'),atBottom=!old||old.scrollHeight-old.scrollTop-old.clientHeight<30,top=old?.scrollTop||0;
+function renderMahjongSidebar(){const data=S || lobby;if(!data)return;const target=$(S?'mahjong-sidebar':'mahjong-lobby-sidebar');if(!target)return;const inactive=$(S?'mahjong-lobby-sidebar':'mahjong-sidebar');if(inactive)inactive.replaceChildren();const active=document.activeElement,focused=active?.id==='mk-chat-input',cursor=active?.selectionStart;const old=target.querySelector('.mk-chat'),atBottom=!old||old.scrollHeight-old.scrollTop-old.clientHeight<30,top=old?.scrollTop||0,cheatTop=target.querySelector('.mk-cheat')?.scrollTop||0;
  target.innerHTML=MejaTools.sidebar('mahjong',{chat:chatLog.map(m=>({name:m.from,text:m.text})),log:S?.history || [],players:data.players,rate:data.settings.pointValue || 0,ledger:data.ledger || [],cheat:cheatHTML(S?S.players[rel(3)]:{name:'pemain di sebelah kiri'}),settings:S?data.settings:null,host:S?S.hostSeat===S.you&&!S.spectator:false,lobby:false,formula:'1 fan = 10 poin per pembayar. Zimo: 3 lawan membayar; Hu dari buangan: pembuang membayar 3×.',onChat:text=>{sendMsg({type:'chat',text});return true;}});
- const next=target.querySelector('.mk-chat');if(next)next.scrollTop=atBottom?next.scrollHeight:top;if(focused&&$('mk-chat-input')){$('mk-chat-input').focus({preventScroll:true});if(typeof cursor==='number')$('mk-chat-input').setSelectionRange(cursor,cursor);}
+ const next=target.querySelector('.mk-chat');if(next)next.scrollTop=atBottom?next.scrollHeight:top;const nextCheat=target.querySelector('.mk-cheat');if(nextCheat)nextCheat.scrollTop=cheatTop;if(focused&&$('mk-chat-input')){$('mk-chat-input').focus({preventScroll:true});if(typeof cursor==='number')$('mk-chat-input').setSelectionRange(cursor,cursor);}
 }
 function renderHistory(){renderMahjongSidebar();}
 // ---------- Chat ----------
@@ -331,9 +332,10 @@ function cheatHTML(left) {
 <div class="crow"><div class="tiles">${ts(T('g', 1), T('g', 1), T('g', 1), T('g', 1))}</div><span><b>Kong</b>: 4 identik, dihitung 1 set, dapat 1 ubin pengganti.</span></div>
 <div class="crow"><span><b>Menang (Hu)</b>: 4 set + 1 pasang, atau 7 pasang berbeda tanpa klaim.</span></div></div>
 <div class="cbox"><h3>Mengambil buangan</h3>
-<table class="fan"><tr><td>Hu, Pung, Kong</td><td>dari siapa saja</td></tr><tr><td>Chow</td><td>hanya dari ${esc(left.name)} (kiri)</td></tr><tr><td>Prioritas</td><td>Hu, lalu Pung/Kong, lalu Chow</td></tr><tr><td>Setelah klaim</td><td>set terbuka, giliranmu, buang 1 ubin</td></tr></table>
-<h3 style="margin-top:8px">Fan (1 fan = 10 poin per pembayar)</h3>
-<table class="fan"><tr><td>Menang dasar</td><td>1</td></tr><tr><td>Zimo / tangan tertutup</td><td>+1 tiap</td></tr><tr><td>Pung naga, angin sendiri, angin Timur</td><td>+1 tiap set</td></tr><tr><td>Semua Pung / campur satu warna</td><td>+2</td></tr><tr><td>Tujuh Pasang</td><td>+3</td></tr><tr><td>Satu warna penuh / semua huruf</td><td>+5</td></tr><tr><td>Zimo: 3 lawan bayar. Dari buangan: pembuang bayar 3x</td><td></td></tr></table></div>
+<dl class="cheat-claims"><div><dt>Hu, Pung, Kong</dt><dd>Dari siapa saja.</dd></div><div><dt>Chow</dt><dd>Hanya dari ${esc(left.name)} (kiri).</dd></div><div><dt>Prioritas</dt><dd>Hu, lalu Pung/Kong, lalu Chow.</dd></div><div><dt>Setelah klaim</dt><dd>Set terbuka, giliranmu, buang 1 ubin.</dd></div></dl></div>
+<div class="cbox"><h3>Fan &amp; poin</h3><p class="cheat-note">1 fan = 10 poin per pembayar.</p>
+<table class="fan cheat-fan" aria-label="Nilai fan"><tbody><tr><td>Menang dasar</td><td>1</td></tr><tr><td>Zimo / tangan tertutup</td><td>+1 tiap</td></tr><tr><td>Pung naga, angin sendiri, angin Timur</td><td>+1 tiap set</td></tr><tr><td>Semua Pung / campur satu warna</td><td>+2</td></tr><tr><td>Tujuh Pasang</td><td>+3</td></tr><tr><td>Satu warna penuh / semua huruf</td><td>+5</td></tr></tbody></table>
+<p class="cheat-note">Zimo: 3 lawan bayar. Dari buangan: pembuang bayar 3×.</p></div>
 </div></details>`;
 }
 

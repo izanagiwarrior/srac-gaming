@@ -12,3 +12,13 @@
 @media(min-width:951px){.app-shell.in-room{grid-template-columns:minmax(0,1fr) 350px!important}}@media(max-width:950px){.app-shell.in-room{grid-template-columns:1fr!important}}
 
 [hidden]{display:none!important}.mk-domino-visual{display:flex;align-items:center;gap:6px;margin:8px 0 14px}.mk-domino-visual svg{width:78px;max-width:30%;height:auto}
+
+/* Shared panels must remain readable when names, amounts and updates grow. */
+.hubbar{gap:12px;flex-wrap:wrap}.hubbar span{letter-spacing:.12em;text-align:right}
+.mk-layout>*,.game-layout>*,.layout>*,.lobbywrap>*,.welcome>div,.bj-welcome>div{min-width:0}
+.mk-panel{font-size:13px;line-height:1.65}.mk-panel small,.mk-note{font-size:11px}
+.mk-heading{align-items:flex-start}.mk-heading h3{min-width:0}.mk-heading button{flex:none}
+.mk-panel .mk-cards{flex-wrap:wrap}.mk-rank b{font-size:12px}.mk-rank>small{font-size:11px}
+.mk-balances>div>span{flex:1;min-width:0;overflow-wrap:anywhere}.mk-balances>div>b{min-width:0;max-width:55%;overflow-wrap:anywhere}
+.mk-piece-grid>div{min-width:0;grid-template-columns:27px minmax(0,1fr);overflow-wrap:anywhere}
+.mk-panel button:focus-visible,.mk-panel input:focus-visible,.mk-panel select:focus-visible{outline:2px solid var(--gold,#dfc58d);outline-offset:3px}

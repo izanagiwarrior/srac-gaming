@@ -90,3 +90,13 @@ Creator **Hendy W**. Panel kanan konsisten: chat → cheat sheet visual → reka
 Host memilih nilai 1 poin dalam rupiah di lobby; default 0 (latihan). Nilai dikunci sejak mulai. Fan tetap memakai logika sebelumnya: 1 fan = 10 poin per pembayar; zimo: tiga lawan membayar; Hu dari buangan: pembuang membayar 3×. Nilai rupiah = skor × rate, hasil setiap ronde dicatat dalam ledger. Main lagi memulai pertandingan baru dan mengosongkan skor/ledger pertandingan ini seperti sebelumnya; unduh rekap terlebih dahulu jika diperlukan.
 
 Fast mode default OFF dan Highlight set lengkap default ON tetap dipilih hanya di lobby dan dikunci saat mulai. Seluruh tingkat bot Easy/Normal/Hard menunggu sekurangnya 3 detik untuk aksi bot. Protokol v6 membutuhkan refresh klien lama setelah pemasangan.
+
+## Contekan pada sidebar — 2026-10-14-mahjong-cheat-layout-1
+
+Contekan cepat menggunakan satu kolom sesuai lebar sidebar, dengan contoh ubin dan tiga bagian: Bentuk set, Mengambil buangan, Fan & poin. Aturan klaim memakai daftar agar nama pemain/keterangan dapat membungkus; tabel fan mempunyai kolom nilai tetap tanpa teks yang meluber. Panel memakai bingkai bersama, tanpa kartu bersarang. Posisi scroll contekan dipertahankan ketika sidebar digambar ulang. Aturan permainan tetap; lihat perubahan protokol v7 pada rilis UI di bawah.
+
+Perubahan disiapkan pada source dan port preview terpisah. Tidak ada pemasangan otomatis ke host aktif.
+
+## Rilis UI 2026-10-15-ui-polish-1
+
+Protokol v7 memberi pesan saat kursi dipindahkan ke tab baru. Tab lama berhenti reconnect otomatis dan tidak menghapus credential tab baru. Muat ulang klien lama setelah deployment yang disetujui. Sidebar lobby dibersihkan saat masuk meja agar ID input tidak ganda; tangan membungkus ke beberapa baris pada layar sempit. Shutdown menghentikan ronde yang tertunda. Verifikasi komponen dan sesi: `npm run test:ui`; cakupan lengkap ada di docs/UI-QUALITY.md pada root hub.

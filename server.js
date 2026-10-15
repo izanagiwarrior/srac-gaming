@@ -10,7 +10,7 @@ const { createChessServer } = require('./games/chess/server');
 const { createDominoServer } = require('./games/domino/server');
 const { createBlackjackServer } = require('./games/blackjack/server');
 
-const VERSION = '2026-10-14-six-games-1';
+const VERSION = '2026-10-15-ui-polish-1';
 
 function createHub() {
   let closing = false;
