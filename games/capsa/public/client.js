@@ -1,6 +1,6 @@
 'use strict';
 const E = CapsaBanting;
-const CLIENT_VERSION = '2026-10-15-guide-sidebar-1';
+const CLIENT_VERSION = '2026-10-15-emoji-menu-1';
 const $ = id => document.getElementById(id);
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
 const storage = { get(k, d) { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } }, set(k,v) { try { localStorage.setItem(k,JSON.stringify(v)); } catch {} }, remove(k) { try { localStorage.removeItem(k); } catch {} } };
@@ -180,7 +180,8 @@ function connect() {
 function setConnection(value) {
   connected = value; $('connection').classList.toggle('online',value); $('connection').innerHTML = '<i></i>' + (value ? 'Terhubung' : 'Menyambungkan…');
   document.querySelectorAll('[data-needs-connection]').forEach(b => { b.disabled = !value || b.dataset.blocked === 'true'; });
-  $('chat-input').disabled = !value; $('chat-form').querySelector('button').disabled = !value;
+  document.querySelectorAll('[data-mk-emoji],[data-mk-emoji-toggle]').forEach(b=>b.disabled=!value);
+  $('chat-input').disabled = !value; $('chat-form').querySelector('[type="submit"]').disabled = !value;
   if (S?.phase === 'lobby') updateMoneyDraftUI();
 }
 function send(message) { if(!window.MejaRoom.outgoing(message))return false; if (ws?.readyState === WebSocket.OPEN) { ws.send(JSON.stringify(message)); return true; } toast('Koneksi sedang tersambung ulang.'); return false; }
@@ -385,7 +386,7 @@ document.addEventListener('change',event => {
 });
 $('view').addEventListener('keydown',event => { if (event.target.id === 'room-input' && event.key === 'Enter') { event.preventDefault(); enterRoom('join'); } });
 $('chat-form').addEventListener('submit',event => { event.preventDefault(); const input = $('chat-input'), text = input.value.trim(); if (text && send({ type:'chat',text })) input.value = ''; });
-document.querySelectorAll('[data-emoji]').forEach(b => b.addEventListener('click',() => send({ type:'chat',text:b.dataset.emoji })));
+$('chat-form').querySelector('[data-mk-emoji-slot]').innerHTML=MejaTools.emojiPicker({connected:false});
 document.querySelectorAll('[data-close-dialog]').forEach(b => b.addEventListener('click',() => b.closest('dialog').close()));
 document.querySelectorAll('dialog').forEach(dialog => dialog.addEventListener('click',event => { if (event.target === dialog) { const r = dialog.getBoundingClientRect(); if (event.clientX < r.left || event.clientX > r.right || event.clientY < r.top || event.clientY > r.bottom) dialog.close(); } }));
 $('rules-button').addEventListener('click',() => $('rules-dialog').showModal());

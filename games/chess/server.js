@@ -199,7 +199,7 @@ function createChessServer({ getAddresses = () => [] } = {}) {
         if (msg.type === 'leave') { detach(ws,true); send(ws,{ type:'left' }); return; }
         if (msg.type === 'chat') {
           const text = String(msg.text || '').replace(/[\u0000-\u001f]/g,'').trim().slice(0,240);
-          if (text) { room.chat.push({ id:randomUUID(), name:entity.name, text, time:Date.now() }); room.chat = room.chat.slice(-70); broadcast(room); }
+          if (text) { room.chat.push({ id:randomUUID(), name:entity.name, text, emoji:msg.emoji===true, time:Date.now() }); room.chat = room.chat.slice(-70); broadcast(room); }
           return;
         }
         if (entity.color === null || entity.left) throw new Error('Penonton tidak bisa menggerakkan bidak.');

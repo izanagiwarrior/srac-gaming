@@ -20,7 +20,7 @@
     if(sessionChoice&&!sessionChoice.action){renderSession();return;}
     if(sessionSeat)resumeSession();else renderSession();
   }
-  function sessionDisconnected(){sessionOnline=false;sessionAttached=false;resuming=false;clearTimeout(sessionWait);renderSession();}
+  function sessionDisconnected(){window.MejaTools?.clearEmotes(true);sessionOnline=false;sessionAttached=false;resuming=false;clearTimeout(sessionWait);renderSession();}
   function askSession(target=''){
     if(!sessionSeat)return;
     sessionChoice={code:sessionSeat.code,target:String(target||'').trim().toUpperCase(),action:null,phase:'prompt',error:''};
@@ -140,7 +140,9 @@
     if(meta.recovering||meta.canNext||meta.queued||meta.saveError)details.open=true;
     toolbar.classList.toggle('mk-save-error',!!meta.saveError);
   }
-  function receive(message,send){sender=send;if(sessionMessage(message))return true;if(message.type==='joined'&&message.token){ownSeat={format:1,game:slug,code:message.code,token:message.token,name:profile.name,time:Date.now()};seats=read('mejakita.saved-seats',{});seats[slug]||={};seats[slug][message.code]=ownSeat;write('mejakita.saved-seats',seats);}
+  let lastEmoteAt=0;
+  function emote(text){if(!sender||!sessionOnline||!meta?.code||sessionChoice||!window.MejaTools?.isEmote(text)||Date.now()-lastEmoteAt<900)return false;const sent=sender({type:'chat',text,emoji:true});if(sent!==false)lastEmoteAt=Date.now();return sent;}
+  function receive(message,send){sender=send;window.MejaTools?.receiveEmotes(message);if(sessionMessage(message))return true;if(message.type==='joined'&&message.token){ownSeat={format:1,game:slug,code:message.code,token:message.token,name:profile.name,time:Date.now()};seats=read('mejakita.saved-seats',{});seats[slug]||={};seats[slug][message.code]=ownSeat;write('mejakita.saved-seats',seats);}
     if(message.type==='left'){meta=null;ownSeat=null;previous=null;renderControls();return;}
     if(message.hub){const changed=JSON.stringify(meta)!==JSON.stringify(message.hub);meta=message.hub;if(changed)renderControls();}
     if(message.type==='chat'){const m=message.msg;if(previous&&m?.from&&m.from!==profile.name)tone('chat');return;}
@@ -183,5 +185,5 @@
   document.addEventListener('visibilitychange',()=>{if(document.hidden)context?.suspend().catch(()=>{});else if(unlocked&&prefs.sound)context?.resume().catch(()=>{});});
   document.addEventListener('DOMContentLoaded',()=>{mount();queueEnhance();const observer=new MutationObserver(changes=>{if(changes.some(c=>!toolbar.contains(c.target)))queueEnhance();});observer.observe(document.body,{childList:true,subtree:true});});
   applyPrefs();
-  window.MejaRoom={bank:()=>meta?.bank||[],receive,name,saved,remember,outgoing,connected:sessionConnected,disconnected:sessionDisconnected,preferences:()=>({...prefs}),setPrefs,unlock,tone,esc};
+  window.MejaRoom={emote,bank:()=>meta?.bank||[],receive,name,saved,remember,outgoing,connected:sessionConnected,disconnected:sessionDisconnected,preferences:()=>({...prefs}),setPrefs,unlock,tone,esc};
 })();

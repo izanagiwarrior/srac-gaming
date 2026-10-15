@@ -37,8 +37,11 @@ Kode ruangan 4 huruf acak sudah cukup untuk jaringan lokal: hanya orang di WiFi 
 - Area tengah menampilkan hitungan per jenis ubin (berapa lembar sudah terlihat di meja dari buangan dan set terbuka, plus penanda ubin yang ada di tanganmu), bisa diganti ke tampilan buangan per pemain.
 - Permainan di server (anti curang): klien hanya melihat tangannya sendiri. Tangan semua pemain dibuka di akhir ronde untuk dibandingkan.
 - Tanpa batas waktu di semua tahap. Bar kuning "GILIRANMU" menandai giliranmu.
-- **Fast mode · auto lewat** adalah toggle host di lobby, default OFF. Aktif: server melewatkan pemain manusia yang tidak memiliki pilihan Hu/Pung/Kong/Chow sah. Pemain yang punya pilihan tetap menjawab sendiri; mode cepat tidak memilihkan klaim atau otomatis menolak kesempatan menang. Menunggu jawaban dalam mode cepat dapat memberi petunjuk bahwa pemain tersebut punya pilihan klaim, sehingga seluruh meja melihat pilihan mode sebelum mulai.
-- Fast mode nonaktif: setiap pemain manusia yang terhubung harus memilih Klaim atau menekan Lewat sendiri, termasuk ketika tidak punya klaim sah. Ronde menunggu semua jawaban; tidak ada batas waktu. Bot dan penanganan pemain offline mengikuti perilaku sebelumnya.
+- Host memilih **Mode klaim** sebelum mulai: **Manual bebas**, **Manual terbantu** (default), atau **Fast**. Pengaturan dikunci selama pertandingan, termasuk main lagi; buat room baru untuk mengganti.
+- **Manual bebas**: semua manusia yang terhubung menjawab sendiri. Server tidak menghitung opsi klaim manusia sebelum diminta dan tidak mengirim daftar Pung/Chow/Hu yang tersedia. Pilih dua ubin untuk mencoba Pung/Chow atau tiga untuk Kong; tombol Coba klaim hanya memeriksa jumlah pilihan, bukan susunannya. Coba Hu selalu tersedia. Server mengecek kepemilikan, keunikan ID, aturan kombinasi/posisi Chow dan bentuk Hu saat dikirim. Klaim salah ditolak tanpa mengubah ubin, saldo atau jawaban menunggu; pemain masih boleh mencoba lagi atau Lewat.
+- **Manual terbantu**: semua manusia menjawab sendiri, tetapi pilihan klaim diperiksa terlebih dahulu. Tanpa pilihan sah, hanya Lewat tersedia; pemilihan ubin diberi label sah/tidak dan tombol Klaim hanya aktif jika sah.
+- **Fast**: manusia tanpa pilihan sah dilewati otomatis; yang punya pilihan menjawab sendiri. Ini bisa memberi petunjuk bahwa pemain yang masih diminta menjawab mempunyai pilihan klaim.
+- Semua mode tanpa batas waktu untuk manusia terhubung. Prioritas Hu → Pung/Kong → Chow, keputusan bot, jeda bot dan penanganan disconnect tetap. Permintaan klaim membawa ID jendela buangan; permintaan lama tidak bisa mengklaim buangan berikutnya.
 - **Highlight set di tangan** juga toggle host di lobby, default ON. Kedua mode berlaku untuk seluruh room dan dikunci server sejak Mulai permainan, termasuk ronde berikutnya dan main lagi. Meja hanya menampilkan status mode; buat room baru untuk memilih mode lain.
 - Untuk Pung/Kong/Chow, susun kombinasinya dengan mengetuk atau menyeret 2 ubin (3 untuk Kong) ke kotak klaim, lalu tekan Klaim.
 - Jika highlight aktif: toska `C` menandai ubin pada Chow yang sudah lengkap di tangan; emas `P` menandai 3/4 ubin identik untuk Pung/Kong; ungu `C/P` menandai ubin yang bisa menjadi keduanya. Chow hanya dihitung pada angka berurutan dalam jenis yang sama; angin/naga tidak diberi tanda Chow.
@@ -108,3 +111,13 @@ Hub build `2026-10-15-social-save-2` menambahkan save privat/pemulihan dijeda, n
 ## Panduan dan panel (1.4.2)
 
 Tombol **Lewati panduan** tersedia pada seluruh sepuluh langkah, tetap terlihat saat isi panduan digulir. Panduan dapat dibuka lagi dari tombol aturan. Contekan Mahjong memakai satu tombol Buka/Lipat di judul sidebar, tanpa kontrol detail kedua di dalamnya. Semua panel sidebar mengikuti kontrol bersama dan menyimpan pilihan lipat setelah tampilan diperbarui.
+
+## Emoji dan mode klaim — 1.5.0 (protokol v9)
+
+Emoji cepat 👍 😂 😭 🔥 😱 🙏 🀄 ☕ ada kembali di chat sidebar lobby maupun meja, termasuk penonton. Emoji memakai jalur chat server yang sama dengan penanda emoji sehingga bubble pemain tetap tampil; chat draft tidak dihapus oleh tombol emoji. Manual bebas tidak menampilkan saran klaim melalui Petunjuk; highlight set lengkap di tangan tetap merupakan pilihan lobby terpisah. Room lama dipulihkan dengan mode ekuivalen (autoPass true → Fast, false → Manual terbantu); mode baru tidak dipaksakan ke save lama. Muat ulang klien setelah pemasangan v9.
+
+## Emote meja bersama (1.5.1)
+
+Chat menyediakan 12 emote. Emote baru yang diterima server terlihat seluruh room sebagai efek transparan sekitar 3 detik, tanpa menutup klik kartu/papan. Kurangi animasi menampilkan emoji statis singkat. Riwayat dan reconnect tidak memutar efek lama. Lihat panduan root dan docs/GAME-CONVENTIONS.md untuk komponen bersama; alur aturan, kartu privat dan poin tidak berubah.
+
+Chat biasa juga melayang transparan di pinggir meja (1.5.2), dengan nama pengirim dan maksimal tiga pesan singkat. Isi lengkap tetap di Chat meja. Riwayat lama dan pesan sistem tidak melayang; Kurangi animasi memakai pesan statis.

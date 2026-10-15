@@ -4,7 +4,9 @@ const { WebSocketServer } = require('ws');
 const { randomInt, randomBytes } = require('node:crypto');
 const E = require('./engine');
 const {tableSettings}=require('../shared/table-settings');
-const BUILD = '2026-10-15-guide-sidebar-1', CLIENT_VERSION = 8;
+const BUILD = '2026-10-15-emoji-menu-1', CLIENT_VERSION = 9;
+const CLAIM_MODES = ['manual','assisted','fast'];
+const claimMode = settings => CLAIM_MODES.includes(settings.claimMode) ? settings.claimMode : settings.autoPass === true ? 'fast' : 'assisted';
 
 function createMahjongServer() {
 let hub=null,closing=false;
@@ -25,7 +27,7 @@ function hasClaimChoice(o) { return !!(o && (o.win || o.pung || o.kong || (o.cho
 
 class Room {
   constructor(code) {
-    this.code = code; this.players = []; this.spectators = []; this.chat = []; this.history = []; this.ledger = []; this.state = 'lobby'; this.settings = { rounds: 4, turnSeconds: 0, claimSeconds: 0, botLevel: 'normal', pointValue:0, autoPass: false, highlightSets: true }; this.G = null; this.timers = {}; this.lastActivity = Date.now();
+    this.code = code; this.players = []; this.spectators = []; this.chat = []; this.history = []; this.ledger = []; this.state = 'lobby'; this.settings = { rounds: 4, turnSeconds: 0, claimSeconds: 0, botLevel: 'normal', pointValue:0, claimMode:'assisted', autoPass: false, highlightSets: true }; this.G = null; this.timers = {}; this.lastActivity = Date.now();
   }
   humans() { return this.players.filter(p => !p.bot); }
   hostSeat() { const h = this.players.find(p => !p.bot && p.connected && p.token === this.hostToken) || this.players.find(p => !p.bot && p.connected) || this.players.find(p => !p.bot); return h ? h.seat : -1; }
@@ -54,7 +56,7 @@ class Room {
       if(explicit){p.bot=true;p.connected=true;p.token=null;this.addChat(null,p.name+' keluar; bot melanjutkan kursi.');}
       this.broadcastState();
       const G = this.G; if (G && !G.over) {
-        if (G.pending && G.pending.waiting.has(p.seat)) this.humanClaim(p.seat, { claim: 'pass' });
+        if (G.pending && G.pending.waiting.has(p.seat)) this.humanClaim(p.seat, { claim: 'pass',claimId:G.pending.id });
         else if (G.current === p.seat && G.phase === 'discard') {if(explicit){const gen=G.gen;this.timers.offline=setTimeout(()=>{if(!this.recovering&&!G.over&&G.gen===gen)this.botAct(p.seat,!!p.drawn);},3000);}else this.scheduleOfflineAct(p.seat);}
       }
     }
@@ -74,11 +76,16 @@ class Room {
   updateSettings(seat, settings, notify = true) {
     if (seat !== this.hostSeat() || !settings || typeof settings !== 'object') return false;
     if (this.state !== 'lobby'){send(this.players[seat]?.ws,{type:'error',msg:'Pengaturan dikunci sejak permainan dimulai. Buat ruangan baru untuk memilih mode lain.'});return false;}
-    try{this.settings=tableSettings(settings,this.settings);}catch(error){send(this.players[seat]?.ws,{type:'error',msg:error.message});return false;}
-    if ([4, 8, 12].includes(+settings.rounds)) this.settings.rounds = +settings.rounds;
-    if (['easy', 'normal', 'hard'].includes(settings.botLevel)) this.settings.botLevel = settings.botLevel;
-    if (typeof settings.autoPass === 'boolean') this.settings.autoPass = settings.autoPass;
-    if (typeof settings.highlightSets === 'boolean') this.settings.highlightSets = settings.highlightSets;
+    try{
+      const next=tableSettings(settings,this.settings);
+      if(settings.claimMode!==undefined&&!CLAIM_MODES.includes(settings.claimMode))throw Error('Pilih Manual bebas, Manual terbantu, atau Fast.');
+      if(settings.claimMode===undefined&&settings.autoPass!==undefined&&typeof settings.autoPass!=='boolean')throw Error('Mode lewat tidak valid.');
+      next.claimMode=settings.claimMode ?? (typeof settings.autoPass==='boolean' ? settings.autoPass?'fast':'assisted' : claimMode(this.settings));
+      next.autoPass=next.claimMode==='fast';
+      if ([4, 8, 12].includes(+settings.rounds)) next.rounds = +settings.rounds;
+      if (typeof settings.highlightSets === 'boolean') next.highlightSets = settings.highlightSets;
+      this.settings=next;
+    }catch(error){send(this.players[seat]?.ws,{type:'error',msg:error.message});return false;}
     this.lastActivity = Date.now();
     if (notify) this.broadcastLobby();return true;
   }
@@ -91,7 +98,7 @@ class Room {
   wind(i) { return (i - this.G.dealer + 4) % 4; }
   log(s) { this.G.log = s; this.history.push({ h: this.G.hand, t: s }); if (this.history.length > 200) this.history.splice(0, this.history.length - 200); }
   addChat(p, text, emoji) {
-    const m = { from: p ? p.name : null, seat: p && !p.spectator ? p.seat : -1, text, emoji: !!emoji, ts: Date.now() };
+    const m = { id:randomBytes(16).toString('hex'),from: p ? p.name : null, seat: p && !p.spectator ? p.seat : -1, text, emoji: !!emoji, ts: Date.now() };
     this.chat.push(m); if (this.chat.length > 100) this.chat.shift();
     hub?.changed(this);for (const q of this.everyone()) send(q.ws, { type: 'chat', msg: m });
   }
@@ -158,7 +165,6 @@ class Room {
   }
   async discardTile(p, t) {
     const G = this.G; const P = this.players[p]; const k = P.hand.indexOf(t); if (k < 0) return;
-    const claimAutoPass = this.settings.autoPass; // Mode dipilih di lobby dan dikunci selama permainan.
     const prevLast = G.last; const hadDrawn = P.drawn;
     P.hand.splice(k, 1); P.drawn = null; P.discards.push(t); G.last = { tile: t, from: p }; G.phase = 'claim'; G.pending = null; this.bump(); const gen = G.gen;
     this.log(`${G.autoNote || ''}${P.name} membuang ${E.tileName(t)}.`); G.autoNote = null;
@@ -170,17 +176,20 @@ class Room {
     return this.offerClaims();
   }
   offerClaims() {
-    const G=this.G;if(G.over||!G.last||closing||this.recovering)return;const p=G.last.from,t=G.last.tile,claimAutoPass=this.settings.autoPass;
+    const G=this.G;if(G.over||!G.last||closing||this.recovering)return;const p=G.last.from,t=G.last.tile,mode=claimMode(this.settings),claimAutoPass=mode==='fast';
     const claims = []; const opts = {}; const waiting = new Set();
     for (let q = 0; q < 4; q++) {
-      if (q === p) continue; const Q = this.players[q]; const o = E.computeOptions(Q.hand, Q.melds, t, q === (p + 1) % 4);
+      if (q === p) continue; const Q = this.players[q];
+      // Manual bebas does not precompute or disclose a human's available claims.
+      // Bots retain their normal rule-based decisions in all three modes.
+      const o=mode==='manual'&&!Q.bot?{manual:true}:E.computeOptions(Q.hand,Q.melds,t,q===(p+1)%4);
       if (Q.bot) { const d = E.botDecideLevel(Q.hand, Q.melds, o, t, this.settings.botLevel); if (d) claims.push({ p: q, ...d }); continue; }
       opts[q] = o;
       const hasOption = hasClaimChoice(o);
       if (Q.connected && (!claimAutoPass || hasOption)) waiting.add(q);
     }
     if (waiting.size) {
-      G.pending = { claims, opts, waiting, deadline: null, autoPass: claimAutoPass }; this.broadcastState();
+      G.pending = { id:randomBytes(12).toString('hex'),claims, opts, waiting, deadline: null, autoPass: claimAutoPass,claimMode:mode }; this.broadcastState();
       return; // menunggu semua pemain menekan Klaim atau Lewat
     }
     return this.resolveClaims(claims);
@@ -188,8 +197,9 @@ class Room {
   humanClaim(seat, msg) {
     const G = this.G; const pend = G.pending; if (!pend || !pend.waiting.has(seat)) return; const o = pend.opts[seat];
     const c = msg.claim; const P = this.players[seat];
+    if(msg.claimId!==pend.id)return send(P.ws,{type:'error',msg:'Buangan sudah berubah. Pilih klaim untuk buangan yang sedang tampil.'});
     if (!['win', 'set', 'pass'].includes(c)) return send(P.ws, { type: 'error', msg: 'Pilih Klaim, Hu, atau Lewat.' });
-    if (c === 'win') { if (!o.win) return send(P.ws, { type: 'error', msg: 'Ubin ini tidak membuat tanganmu menang.' }); pend.claims.push({ p: seat, type: 'win', win: o.win }); }
+    if (c === 'win') { const win=o.manual?E.findWin([...P.hand,G.last.tile],P.melds):o.win;if (!win) return send(P.ws, { type: 'error', msg: 'Ubin ini tidak membuat tanganmu menang. Kamu masih bisa memilih klaim lain atau Lewat.' }); pend.claims.push({ p: seat, type: 'win', win }); }
     else if (c === 'set') {
       const v = this.validateSet(seat, msg.tiles || []); if (v.error) return send(P.ws, { type: 'error', msg: v.error });
       pend.claims.push({ p: seat, ...v.claim });
@@ -202,10 +212,10 @@ class Room {
   // Cek apakah ubin pilihan pemain + ubin buangan membentuk Pung, Kong, atau Chow yang sah.
   validateSet(seat, ids) {
     const G = this.G; const P = this.players[seat]; const t = G.last.tile; const ti = E.idxOf(t);
+    if(!Array.isArray(ids)||![2,3].includes(ids.length))return {error:'Pilih 2 ubin (Pung/Chow) atau 3 ubin (Kong) dari tanganmu.'};
     const tiles = []; for (const id of ids) { const x = P.hand.find(h => h.id === id); if (!x || tiles.includes(x)) return { error: 'Ubin tidak valid.' }; tiles.push(x); }
     const idx = tiles.map(E.idxOf);
     if (tiles.length === 3) { if (idx.every(i => i === ti)) return { claim: { type: 'kong' } }; return { error: 'Kong butuh 3 ubin yang sama dengan buangan.' }; }
-    if (tiles.length !== 2) return { error: 'Pilih 2 ubin (Pung/Chow) atau 3 ubin (Kong) dari tanganmu.' };
     if (idx.every(i => i === ti)) return { claim: { type: 'pung' } };
     if (!E.isSuit(ti)) return { error: 'Ubin huruf hanya bisa Pung atau Kong.' };
     if (seat !== (G.last.from + 1) % 4) return { error: 'Chow hanya boleh dari pemain di sebelah kirimu.' };
@@ -313,6 +323,8 @@ class Room {
       options: !spec && G.pending && G.pending.waiting.has(v) ? G.pending.opts[v] : null,
       claimDeadline: G.pending ? G.pending.deadline : null,
       claimOpen: !!G.pending,
+      claimId: G.pending ? G.pending.id : null,
+      claimMode: claimMode(this.settings),
       autoPass: this.settings.autoPass,
       highlightSets: this.settings.highlightSets,
       claimAutoPass: G.pending ? G.pending.autoPass : this.settings.autoPass,
@@ -355,7 +367,7 @@ wss.on('connection', ws => {
     if(hub?.handle(ws,msg))return;
     const rp = ws.roomPlayer;
     if (rp && ['create','join','rejoin'].includes(msg.type)) return send(ws,{ type:'error',msg:'Keluar dari room ini sebelum pindah.' });
-    if (['create','join','rejoin'].includes(msg.type) && msg.v !== CLIENT_VERSION) return send(ws,{ type:'error',msg:'Mahjong sudah diperbarui. Muat ulang halaman untuk menggunakan warna set dan mode lewat terbaru.',fatal:true });
+    if (['create','join','rejoin'].includes(msg.type) && msg.v !== CLIENT_VERSION) return send(ws,{ type:'error',msg:'Mahjong sudah diperbarui. Muat ulang halaman untuk menggunakan emoji dan pilihan mode klaim terbaru.',fatal:true });
     if (msg.type === 'create') {
       if (rooms.size >= 200) return send(ws,{ type:'error',msg:'Server penuh. Coba lagi nanti.' });
       const room = new Room(makeCode()); rooms.set(room.code, room);
@@ -413,7 +425,7 @@ async function close() {
 }
 return { server,wss,rooms,close,
   setRoomService(value){hub=value;},capacity:()=>4,
-  restoreRoom(saved){const room=Object.assign(new Room(saved.code),saved);room.timers={};if(room.G){room.G.gen++;room.G.undo=null;room.G.turnDeadline=null;}return room;},
+  restoreRoom(saved){const room=Object.assign(new Room(saved.code),saved);room.settings.claimMode=claimMode(room.settings);room.settings.autoPass=room.settings.claimMode==='fast';room.timers={};if(room.G){room.G.gen++;room.G.undo=null;room.G.turnDeadline=null;if(room.G.pending&&!room.G.pending.id)room.G.pending.id=randomBytes(12).toString('hex');}return room;},
   setSpectator(p,value){p.spectator=value;if(value)p.seat=-1;},
   admit(room,p,index){p.seat=index;p.hand=[];p.melds=[];p.discards=[];p.drawn=null;p.score??=0;},
   broadcastRoom(room){if(room.state==='lobby')room.broadcastLobby();else room.broadcastState();},

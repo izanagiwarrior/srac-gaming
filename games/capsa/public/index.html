@@ -4,16 +4,16 @@
 <script src="/room-client.js"></script><link rel="stylesheet" href="/room-ui.css">
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#102a25">
-  <meta name="capsa-build" content="2026-10-15-guide-sidebar-1">
+  <meta name="capsa-build" content="2026-10-15-emoji-menu-1">
   <meta name="description" content="Capsa Banting / Big Two. Main bergiliran, lawan kombinasi lebih tinggi, dan habiskan kartu duluan. Multiplayer lewat Wi-Fi lokal.">
   <title>Capsa Banting · Capsa Club</title>
-  <link rel="stylesheet" href="/capsa/styles.css?v=2026-10-15-guide-sidebar-1"><script src="/capsa/engine.js?v=2026-10-15-guide-sidebar-1" defer></script><script src="/capsa/client.js?v=2026-10-15-guide-sidebar-1" defer></script>
+  <link rel="stylesheet" href="/capsa/styles.css?v=2026-10-15-emoji-menu-1"><script src="/capsa/engine.js?v=2026-10-15-emoji-menu-1" defer></script><script src="/capsa/client.js?v=2026-10-15-emoji-menu-1" defer></script>
 <script src="/game-tools.js"></script><link rel="stylesheet" href="/hub-game.css"><script src="/hub-game.js" defer></script></head>
 <body><nav class="hubbar" aria-label="Pilihan permainan"><a href="/" data-hub-home>← Pilih game</a><span>MEJA KITA</span></nav>
   <header class="site-header"><a class="brand" href="/capsa/" aria-label="Capsa Club beranda"><span class="brand-mark">♠</span><span>CAPSA<span class="brand-light">CLUB</span><small>BANTING · BIG TWO</small></span></a><nav aria-label="Menu utama"><span id="connection" class="connection"><i></i>Menyambungkan</span><button class="header-button" id="money-button" hidden>Rekap Rp</button><button class="header-button" id="sound-button" title="Suara aktif" aria-label="Matikan suara">♪</button><button class="header-button help-button" id="rules-button">? <span>Cara main</span></button></nav></header>
   <div id="update-notice" class="update-notice" role="status" aria-live="polite" hidden><div><b>Versi permainan terbaru tersedia.</b><p>Segarkan halaman ini untuk memakai aturan terbaru. Kursi dan skor tersambung kembali selama server hidup; timer tetap berjalan.</p></div><button type="button" class="button secondary tiny" id="refresh-client">Segarkan halaman ↻</button></div>
   <main id="app" class="app-shell"><section id="view" aria-label="Permainan Capsa Banting"></section><aside id="chat-panel" class="sidebar" hidden>
-    <section class="chat-card"><div class="panel-heading"><h2>Chat meja</h2><span id="spectator-count"></span></div><div id="messages" class="messages" role="log" aria-label="Obrolan pemain" aria-live="polite"></div><div class="reactions"><button data-emoji="👋" aria-label="Kirim sapaan">👋</button><button data-emoji="🔥" aria-label="Kirim api">🔥</button><button data-emoji="👏" aria-label="Kirim tepuk tangan">👏</button><button data-emoji="😅" aria-label="Kirim senyum">😅</button></div><form id="chat-form" class="chat-form"><label class="sr-only" for="chat-input">Pesan ke meja</label><input id="chat-input" maxlength="200" placeholder="Ngobrol dulu…" autocomplete="off"><button type="submit" aria-label="Kirim pesan">↑</button></form></section>
+    <section class="chat-card"><div class="panel-heading"><h2>Chat meja</h2><span id="spectator-count"></span></div><div id="messages" class="messages" role="log" aria-label="Obrolan pemain" aria-live="polite"></div><form id="chat-form" class="chat-form"><label class="sr-only" for="chat-input">Pesan ke meja</label><input id="chat-input" maxlength="200" placeholder="Ngobrol dulu…" autocomplete="off"><span data-mk-emoji-slot></span><button type="submit" aria-label="Kirim pesan">↑</button></form></section>
 <section class="cheatsheet-card" aria-labelledby="cheatsheet-title">
       <div class="panel-heading"><h2 id="cheatsheet-title">Cheat sheet</h2><span>TINGGI → RENDAH</span></div>
       <div class="cheatsheet-body">

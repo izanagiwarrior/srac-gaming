@@ -4,9 +4,9 @@ Satu landing page untuk **Capsa Banting, Mahjong, Poker Texas Hold’em, Catur, 
 
 Repository: [izanagiwarrior/srac-gaming](https://github.com/izanagiwarrior/srac-gaming).
 
-Build: `2026-10-15-guide-sidebar-1` · package 1.4.2.
+Build: `2026-10-15-emoji-menu-1` · package 1.5.3.
 
-Terbaru: panduan Mahjong bisa dilewati di setiap langkah; panel sidebar memakai satu tombol Buka/Lipat dan tetap mengikuti pilihanmu setelah pembaruan tampilan.
+Terbaru: dua belas emote chat tersedia di enam game, dengan efek transparan di meja yang terlihat seluruh room. Lobby Mahjong punya Manual bebas, Manual terbantu, serta Fast. Manual bebas membiarkan pemain mencoba klaim tanpa pemeriksaan awal; server menilai saat klaim dikirim. Panduan dapat dilewati dan panel sidebar tetap dapat dilipat.
 
 Fitur: lobby bersama, nama sekali untuk enam game, kunci room, save/pemulihan sesi, penonton/antrean/rotasi, panel lipat dan aksi HP, suara/volume serta pengurangan animasi. Saat masih ada sesi tersimpan, popup memberi pilihan lanjut atau keluar dulu sebelum pindah room; koneksi yang terputus tetap bisa menyambung ulang. [Panduan sesi bersama](docs/SOCIAL-SESSIONS.md).
 
@@ -60,7 +60,7 @@ WebSocket masing-masing: `/capsa/ws`, `/mahjong/ws`, `/poker/ws`, `/catur/ws`, `
 ## Fitur yang dipertahankan
 
 - **Capsa:** pembuka berisi 3♦, bot Bego/Normal/Hard, timer 60 detik, nilai rupiah otomatis, mode ruangan tetap, Easy Mode dengan saran dan undo 2× per pemain per ronde, rekap, chat, dan log.
-- **Mahjong:** server-authoritative 4 pemain, claim Hu/Pung/Kong/Chow, toggle lobby Fast mode (default OFF) dan Highlight set lengkap di tangan sendiri (default ON, Chow/Pung/keduanya). Keduanya dikunci saat permainan mulai; bot, panduan, contekan, chat, penonton, dan pembatalan buangan tersedia.
+- **Mahjong:** server-authoritative 4 pemain, claim Hu/Pung/Kong/Chow, pilihan lobby Manual bebas / Manual terbantu (default) / Fast dan Highlight set lengkap di tangan sendiri (default ON, Chow/Pung/keduanya). Keduanya dikunci saat permainan mulai; bot, panduan, contekan, chat, penonton, dan pembatalan buangan tersedia.
 - **Poker:** no-limit Hold’em, private cards, blinds, side pots, chips/IDR, buy-in dan rebuy host, panduan, rekap/CSV, practice bots, dan penyimpanan sesi lokal.
 
 - **Catur:** room berdua, bot latihan dengan jeda 3 detik, langkah sah dari server, rokade/en passant/promosi, skakmat dan remis, penonton, chat, tawaran remis, menyerah, main lagi dengan tukar warna, serta unduhan PGN. [Aturan dan batasan catur](games/chess/README.md).
@@ -126,3 +126,15 @@ Tidak menyertakan sesi pemain, token, data kantor, credential, atau node_modules
 Build UI-polish sebelumnya (`2026-10-15-ui-polish-1`) mencakup pemeriksaan UI enam game pada lebar 320, 390, 768, 1024 dan 1440 CSS pixel serta interaksi practice dengan nilai rupiah 0. Sebelas tes regresi komponen/sesi tersedia: `npm run test:ui`. Jalankan tes hanya ketika pengguna meminta verifikasi, sesuai AGENTS.md. Cakupan, perbaikan dan batas pemeriksaan ada di [UI-QUALITY.md](docs/UI-QUALITY.md). Tidak ada klaim bahwa seluruh cabang permainan sudah bebas bug.
 
 Patch social-save ditinjau lewat source, sintaks dan pratinjau authoring terpisah; pertandingan/pemulihan crash dan pengujian otomatis fitur baru belum dijalankan. Tes hanya dijalankan bila diminta pengguna.
+
+## Emote meja (1.5.1)
+
+Semua game memakai palette 12 emote yang sama di chat. Emote yang diterima server muncul di meja seluruh room (pemain dan penonton): emoji besar transparan, 12 partikel dan dua lingkaran lembut, lalu hilang sekitar 3 detik. Efek tidak menangkap klik, tidak menggeser layout, dan dibatasi maksimal tiga semburan sekaligus; pengiriman lewat tombol berjeda 900ms. Mode **Kurangi animasi** memakai satu emoji statis singkat. Riwayat, reload/reconnect, perpindahan room dan Capsa undo tidak memutar ulang emote lama.
+
+## Chat melayang (1.5.2)
+
+Pesan chat pemain dan penonton yang baru diterima juga melayang tipis di pinggir meja seluruh enam game, dengan nama pengirim. Pesan lengkap tetap tersimpan di Chat meja. Maksimal tiga pesan tampil sekitar lima detik; teks panjang dibatasi tiga baris pada tampilan melayang. Efek tidak menangkap klik kartu/papan. Kurangi animasi menampilkan satu pesan statis selama empat detik. Riwayat lama, pesan sistem, reconnect dan Capsa undo tidak memutar ulang pesan melayang. Emote tetap memakai semburan transparannya sendiri.
+
+## Menu emoji (1.5.3)
+
+Tombol senyum **Menu emoji** ada di antara input chat dan tombol Kirim di enam game. Dua belas emoji disembunyikan sampai menu dibuka. Memilih emoji langsung mengirim lewat chat native lalu menutup menu; draft teks tetap ada dan fokus kembali ke input. Klik di luar, Escape, tombol tutup, keluar room atau putus koneksi juga menutup menu. Menu menyesuaikan posisi layar dan tetap terbuka saat tampilan meja diperbarui selama koneksi aktif. Efek emote dan chat melayang tetap tersedia.

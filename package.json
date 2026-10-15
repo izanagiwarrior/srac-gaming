@@ -1,6 +1,6 @@
 {
   "name": "srac-gaming",
-  "version": "1.4.2",
+  "version": "1.5.3",
   "private": true,
   "description": "Six multiplayer games: Capsa, Mahjong, Poker, Chess, Domino and Blackjack",
   "main": "server.js",

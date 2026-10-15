@@ -306,10 +306,11 @@ input.code{text-transform:uppercase;letter-spacing:.3em;font-weight:700;font-fam
       <label class="f">Tingkat bot<select class="in" id="botlevel" onchange="updateLobbySettings()"><option value="easy">Easy (kadang asal buang, jarang klaim)</option><option value="normal" selected>Normal (efisien)</option><option value="hard">Hard (efisien + bertahan)</option></select></label>
     </div>
     <label class="f">Nilai 1 poin dalam rupiah<input class="in" id="mahjong-point-value" type="number" min="0" max="1000000" step="1" value="0" onchange="updateLobbySettings()"></label><p class="cap">0 = latihan. 1 fan = 10 poin per pembayar; rupiah = poin × nilai ini. Terkunci saat mulai.</p>
-    <label class="fast-toggle"><input type="checkbox" id="fastplay" onchange="updateLobbySettings()"><span><b>Fast mode · auto lewat</b><small id="fastplay-copy">Nonaktif: setiap pemain manusia menekan Klaim atau Lewat sendiri, termasuk ketika tidak punya klaim sah.</small></span></label>
-    <p class="cap">Fast mode lebih cepat, tetapi pemain yang masih diminta menjawab bisa tertebak punya pilihan klaim. Default OFF.</p>
+    <label class="f">Mode klaim<select class="in" id="claim-mode" onchange="updateLobbySettings()" aria-describedby="claim-mode-copy"><option value="manual">Manual bebas · coba klaim sendiri</option><option value="assisted" selected>Manual terbantu · cek pilihan klaim</option><option value="fast">Fast · otomatis lewat tanpa klaim</option></select></label>
+    <p class="cap" id="claim-mode-copy">Semua pemain menjawab sendiri. Aplikasi memeriksa pilihan klaim; tanpa klaim sah, hanya Lewat yang tersedia.</p>
+    <p class="cap">Manual bebas tidak memberi tahu apakah klaim tersedia; kesalahan ditolak tanpa kehilangan ubin. Fast lebih cepat, tetapi pemain yang diminta menjawab bisa tertebak punya pilihan. Default: Manual terbantu.</p>
     <label class="fast-toggle"><input type="checkbox" id="handhighlight" checked onchange="updateLobbySettings()"><span><b>Highlight set di tangan</b><small id="handhighlight-copy">Aktif: tandai Chow/Pung yang sudah lengkap di tangan sendiri, serta ubin yang bisa menjadi keduanya.</small></span></label>
-    <p class="cap">Host memilih kedua mode untuk seluruh meja di lobby. Terkunci setelah Mulai permainan, termasuk ronde berikutnya dan main lagi. Buat ruangan baru untuk mengganti mode. Tidak ada batas waktu.</p>
+    <p class="cap">Host memilih mode klaim dan highlight set untuk seluruh meja di lobby. Terkunci setelah Mulai permainan, termasuk ronde berikutnya dan main lagi. Buat ruangan baru untuk mengganti mode. Tidak ada batas waktu.</p>
     <button class="btn primary" id="startbtn" onclick="doStart()">Mulai permainan</button>
     <p class="cap" id="waitmsg"></p>
   </div>

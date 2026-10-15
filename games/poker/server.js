@@ -145,7 +145,7 @@ function createPokerServer({dataDir = path.join(__dirname,'data'), botDelay = 30
     command(p,msg) {
       if (msg.type==='chat') {
         const text=String(msg.text||'').replace(/[\u0000-\u001f]/g,'').trim().slice(0,200);
-        if(text){this.chat.push({name:p.name,text});this.chat=this.chat.slice(-70);}
+        if(text){this.chat.push({id:uid(),name:p.name,text,emoji:msg.emoji===true,time:Date.now()});this.chat=this.chat.slice(-70);}
       } else if(p.spectator&&msg.type!=='leave') {throw new Error('Penonton tidak dapat bermain.');
       } else if (msg.type==='settings') {
         this.requireHost(p);if(this.phase!=='lobby')throw new Error('Table settings are locked once play starts.');

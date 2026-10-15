@@ -8,7 +8,7 @@ const { WebSocketServer } = require('ws');
 const E = require('./engine');
 const Money = require('./money');
 const {snapshotRoom}=require('../shared/room-service');
-const BUILD_VERSION = '2026-10-15-guide-sidebar-1';
+const BUILD_VERSION = '2026-10-15-emoji-menu-1';
 
 function createApp(options = {}) {
   const rooms = new Map(), timers = new Set();
@@ -78,8 +78,8 @@ function createApp(options = {}) {
     };
   }
   function broadcast(room) { hub?.changed(room); for (const p of [...room.players, ...room.spectators]) if (p.connected && !p.bot) send(p.ws, snapshot(room, p)); }
-  function say(room, p, text) {
-    room.chat.push({ id:crypto.randomUUID(), name:p ? p.name : null, text, time:Date.now() });
+  function say(room, p, text, emoji=false) {
+    room.chat.push({ id:crypto.randomUUID(), name:p ? p.name : null, text, emoji:emoji===true, time:Date.now() });
     if (room.chat.length > 70) room.chat.shift(); room.active = Date.now();
   }
   // Game checkpoints never retain sockets, credentials, or connection/host state.
@@ -269,7 +269,7 @@ function createApp(options = {}) {
       if (msg.type === 'leave') { detach(ws,true); send(ws,{ type:'left' }); return; }
       if (msg.type === 'chat') {
         const text = String(msg.text || '').replace(/[\u0000-\u001f]/g,'').trim().slice(0,200);
-        if (text && (!p.lastChat || Date.now() - p.lastChat > 400)) { p.lastChat = Date.now(); say(room,p,text); broadcast(room); } return;
+        if (text && (!p.lastChat || Date.now() - p.lastChat > 400)) { p.lastChat = Date.now(); say(room,p,text,msg.emoji); broadcast(room); } return;
       }
       if (msg.type === 'seat' && you < 0) {
         const capacity = room.settings.mode === 'casual' ? 8 : 4;

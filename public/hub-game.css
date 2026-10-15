@@ -22,3 +22,52 @@
 .mk-balances>div>span{flex:1;min-width:0;overflow-wrap:anywhere}.mk-balances>div>b{min-width:0;max-width:55%;overflow-wrap:anywhere}
 .mk-piece-grid>div{min-width:0;grid-template-columns:27px minmax(0,1fr);overflow-wrap:anywhere}
 .mk-panel button:focus-visible,.mk-panel input:focus-visible,.mk-panel select:focus-visible{outline:2px solid var(--gold,#dfc58d);outline-offset:3px}
+
+.mk-emoji-bar{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-top:10px}.mk-panel .mk-emoji-bar button{min-width:36px;min-height:36px;padding:4px;font-size:20px;line-height:1;touch-action:manipulation}.mk-emoji-bar button:disabled{opacity:.45;cursor:default}.mk-emoji-bar button:focus-visible{outline:3px solid var(--gold,#dfc58d);outline-offset:2px}.mk-chat .mk-chat-emoji{font-size:23px;line-height:1.5}.mk-chat .mk-chat-emoji b{font-size:12px;margin-right:5px}@media(max-width:700px){.mk-panel .mk-emoji-bar button{min-width:44px;min-height:44px}}
+
+/* Lightweight celebrations live outside game rerenders and never intercept a move. */
+.reactions .mk-emoji-bar{width:100%;margin:0}.reactions .mk-emoji-bar button{min-height:36px;font-size:20px}
+.mk-emote-layer{position:fixed;left:0;top:0;width:0;height:0;overflow:hidden;pointer-events:none!important;user-select:none;z-index:85;contain:layout paint style;border-radius:24px}
+.mk-emote-layer *{pointer-events:none!important;box-sizing:border-box}
+.mk-emote-burst{position:absolute;inset:0;color:#eadba6}
+.mk-emote-main{position:absolute;left:50%;top:48%;font-family:"Apple Color Emoji","Segoe UI Emoji",sans-serif;font-size:clamp(96px,13vw,180px);line-height:1;opacity:.22;transform:translate(-50%,-50%);filter:drop-shadow(0 0 12px #e9c96b30);animation:mk-emote-pop 2.85s ease-out both}
+.mk-emote-sender{position:absolute;left:50%;top:calc(48% + 76px);max-width:80%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:4px 10px;border-radius:30px;background:#14271a85;color:#fff5d9;font:600 11px/1.5 system-ui,sans-serif;letter-spacing:.03em;transform:translateX(-50%);animation:mk-emote-name 2.85s ease-out both}
+.mk-emote-particle{position:absolute;inset:0;display:grid;place-items:center;font-family:"Apple Color Emoji","Segoe UI Emoji",sans-serif;font-size:clamp(28px,4vw,54px);line-height:1;opacity:0;animation:mk-emote-fly 2.6s var(--emote-delay,0ms) cubic-bezier(.14,.5,.28,1) both}
+.mk-emote-ring{position:absolute;left:50%;top:48%;width:min(45%,180px);aspect-ratio:1;border:1px solid #ffe4a3;border-radius:50%;opacity:0;animation:mk-emote-ring 2.4s var(--emote-delay,0ms) ease-out both}
+.mk-emote-still .mk-emote-main{animation:none;opacity:.2;font-size:72px}.mk-emote-still .mk-emote-sender{animation:none;opacity:.7;top:calc(48% + 45px)}
+@keyframes mk-emote-pop{0%{opacity:0;transform:translate(-50%,-50%) scale(.45) rotate(-12deg)}18%{opacity:.24;transform:translate(-50%,-50%) scale(1.08) rotate(5deg)}40%{opacity:.22;transform:translate(-50%,-50%) scale(1) rotate(0)}72%{opacity:.18}100%{opacity:0;transform:translate(-50%,-65%) scale(1.18)}}
+@keyframes mk-emote-fly{0%{opacity:0;transform:translate(0,0) scale(.35)}15%{opacity:.25}68%{opacity:.18}100%{opacity:0;transform:translate(var(--emote-x),var(--emote-y)) rotate(var(--emote-spin)) scale(1.1)}}
+@keyframes mk-emote-ring{0%{opacity:0;transform:translate(-50%,-50%) scale(.3)}18%{opacity:.16}100%{opacity:0;transform:translate(-50%,-50%) scale(3.5)}}
+@keyframes mk-emote-name{0%,100%{opacity:0}18%,72%{opacity:.75}}
+@media(max-width:700px){.reactions .mk-emoji-bar button{min-height:44px}.mk-emote-layer{border-radius:14px}.mk-emote-sender{top:calc(48% + 60px)}}
+@media(prefers-reduced-motion:reduce){.mk-emote-particle,.mk-emote-ring{display:none}.mk-emote-main{animation:none!important;opacity:.2}.mk-emote-sender{animation:none!important;opacity:.7}}
+
+/* Accepted player chat drifts at the table edges; the sidebar keeps the full message. */
+.mk-floating-chat-layer{position:fixed;left:0;top:0;width:0;height:0;overflow:hidden;pointer-events:none!important;user-select:none;z-index:86;contain:layout paint style;border-radius:20px}
+.mk-floating-chat-layer *{pointer-events:none!important;box-sizing:border-box}
+.mk-floating-chat{position:absolute;left:12px;max-width:min(240px,52%);padding:8px 11px;border:1px solid #eadba630;border-radius:12px;background:linear-gradient(120deg,#10271d99,#10271d55);color:#fff4dd;text-shadow:0 1px 3px #10241b;opacity:0;font:400 13px/1.45 system-ui,sans-serif;overflow-wrap:anywhere;animation:mk-chat-drift 4.9s ease-out both}
+.mk-floating-chat[data-slot="1"]{left:auto;right:12px}
+.mk-floating-chat b{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:600 10px/1.5 system-ui,sans-serif;letter-spacing:.03em;color:#ead9a8;margin-bottom:3px}
+.mk-floating-chat>span{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden;white-space:pre-wrap}
+.mk-floating-chat-still{animation:none;opacity:.62}
+@keyframes mk-chat-drift{0%{opacity:0;transform:translateY(12px)}12%,68%{opacity:.62}85%{opacity:.5}100%{opacity:0;transform:translateY(-32px)}}
+@media(max-width:600px){.mk-floating-chat{left:10px;max-width:min(230px,70%);padding:7px 10px;font-size:12px}.mk-floating-chat[data-slot="1"]{right:10px}}
+@media(prefers-reduced-motion:reduce){.mk-floating-chat{animation:none!important;opacity:.62}}
+
+/* One disclosure beside Send, with a body-level palette outside sidebar clipping. */
+.mk-panel form .mk-emoji-toggle,#chat-form .mk-emoji-toggle{display:grid;place-items:center;flex:0 0 40px;min-width:40px;width:40px;min-height:40px;padding:0;border:1px solid var(--line,#57745e);border-radius:8px;background:transparent;color:var(--text,#eee8d6);touch-action:manipulation}
+.mk-emoji-toggle svg{display:block;width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.mk-emoji-toggle[aria-expanded="true"]{border-color:var(--gold,#dfc58d);background:#dfc58d18}
+.mk-emoji-toggle:disabled{opacity:.4;cursor:default}
+.mk-panel form .mk-emoji-toggle:focus-visible,#chat-form .mk-emoji-toggle:focus-visible{outline:2px solid var(--gold,#dfc58d);outline-offset:2px}
+#chat-form [data-mk-emoji-slot]{display:contents}
+.mk-emoji-popover{position:fixed;z-index:110;top:12px;left:12px;width:min(280px,calc(100vw - 24px));box-sizing:border-box;padding:10px;border:1px solid var(--line,#57745e);border-radius:14px;background:var(--panel,#18352a);color:var(--text,#eee8d6);box-shadow:0 12px 36px #071b1466;overflow:auto;overscroll-behavior:contain;font:13px/1.5 system-ui,sans-serif}
+.mk-emoji-popover-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}
+.mk-emoji-popover-heading>b{font-size:12px}
+.mk-emoji-popover button{border:1px solid var(--line,#57745e);border-radius:8px;color:inherit;background:transparent;cursor:pointer;touch-action:manipulation}
+.mk-emoji-popover button:hover{background:#dfc58d18;border-color:var(--gold,#dfc58d)}
+.mk-emoji-popover button:focus-visible{outline:2px solid var(--gold,#dfc58d);outline-offset:2px}
+.mk-emoji-popover [data-mk-emoji-close]{display:grid;place-items:center;width:36px;height:36px;padding:0;font:22px/1 system-ui,sans-serif}
+.mk-emoji-popover .mk-emoji-bar{margin:0;grid-template-columns:repeat(4,minmax(0,1fr))}
+.mk-emoji-popover [data-mk-emoji]{min-width:44px;min-height:44px;padding:4px;font:22px/1 "Apple Color Emoji","Segoe UI Emoji",sans-serif}
+@media(max-width:700px){.mk-panel form .mk-emoji-toggle,#chat-form .mk-emoji-toggle{flex-basis:44px;min-width:44px;width:44px;min-height:44px}.mk-emoji-popover [data-mk-emoji-close]{width:44px;height:44px}}

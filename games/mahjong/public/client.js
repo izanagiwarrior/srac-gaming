@@ -1,5 +1,8 @@
 /* Klien Mahjong P2P */
-const CLIENT_VERSION = 8, HAND_HELP = window.MahjongHandHelp;
+const CLIENT_VERSION = 9, HAND_HELP = window.MahjongHandHelp;
+const CLAIM_MODE_NAMES={manual:'Manual bebas',assisted:'Manual terbantu',fast:'Fast'};
+const currentClaimMode=settings=>settings.claimMode || (settings.autoPass?'fast':'assisted');
+const claimModeCopy=mode=>mode==='manual'?'Semua pemain menjawab sendiri. Pilihan klaim tidak diperiksa dulu; klaim baru dinilai saat Coba klaim atau Coba Hu ditekan. Klaim salah tidak membuang ubin atau melewatkan giliran.':mode==='fast'?'Tanpa pilihan klaim yang sah, lewat otomatis. Pemain yang punya pilihan tetap menjawab sendiri.':'Semua pemain menjawab sendiri. Aplikasi memeriksa pilihan klaim; tanpa klaim sah, hanya Lewat yang tersedia.';
 const { SUITS, WINDS, WIND_ID, DRAG, DRAG_ID, T, idxOf, fromIdx, isSuit, tileName, byIdx, counts, shanten, findWin, acceptance } = Engine;
 const $ = id => document.getElementById(id);
 const ls = { get: (k, d) => { try { const v = localStorage.getItem(k); return v === null ? d : v; } catch (e) { return d; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) { } }, del: k => { try { localStorage.removeItem(k); } catch (e) { } } };
@@ -26,7 +29,7 @@ function connect() {
   ws.onerror = () => { try { ws.close(); } catch (e) { } };
 }
 function sendMsg(o) { if(!window.MejaRoom.outgoing(o))return false; if (ws && ws.readyState === 1) { ws.send(JSON.stringify({ ...o, v: CLIENT_VERSION })); return true; } toast('Belum terhubung ke server. Mencoba lagi...'); return false; }
-function setConn(on) { const el = $('conn'); if (el) { el.textContent = on ? '' : 'Terputus dari server, menyambung ulang...'; el.style.display = on ? 'none' : 'block'; } }
+function setConn(on) { const el = $('conn'); if (el) { el.textContent = on ? '' : 'Terputus dari server, menyambung ulang...'; el.style.display = on ? 'none' : 'block'; } if(S||lobby)renderMahjongSidebar(); }
 let toastT; function toast(msg) { const t = $('toast'); t.textContent = msg; t.style.display = 'block'; clearTimeout(toastT); toastT = setTimeout(() => t.style.display = 'none', 3500); }
 
 function onMsg(m) {
@@ -62,8 +65,8 @@ function renderLobby() {
   const link = `${location.origin}${location.pathname}?room=${lobby.code}`; $('invite').textContent = link;
   $('seats').innerHTML = [0, 1, 2, 3].map(i => { const p = lobby.players[i]; if (!p) return `<div class="seat empty"><span>Kursi ${i + 1}: kosong, akan diisi bot</span></div>`; const canGive = isHost && !isSpectator && p.seat !== mySeatLobby() && !p.bot && p.connected; return `<div class="seat"><span class="who"><span class="dot ${p.connected ? '' : 'off'}"></span>${esc(p.name)}${p.seat === lobby.hostSeat ? ' <span class="tag">Host</span>' : ''}${p.seat === mySeatLobby() ? ' (kamu)' : ''}${canGive ? `<button class="hostbtn" onclick="makeHost(${p.seat},'${esc(p.name).replace(/'/g, '')}')">Jadikan host</button>` : ''}</span><span class="cap">${WIND_ID[i]}</span></div>`; }).join('');
   $('rounds').value = String(lobby.settings.rounds); $('rounds').disabled = !isHost || isSpectator; $('botlevel').value = lobby.settings.botLevel || 'normal'; $('botlevel').disabled = !isHost || isSpectator;
-  $('fastplay').checked = lobby.settings.autoPass === true; $('fastplay').disabled = !isHost || isSpectator;
-  $('fastplay-copy').textContent = lobby.settings.autoPass ? 'Aktif: tanpa pilihan Hu/Pung/Kong/Chow yang sah, lewat otomatis. Pemain yang punya pilihan tetap menjawab sendiri.' : 'Nonaktif: setiap pemain manusia menekan Klaim atau Lewat sendiri, termasuk ketika tidak punya klaim sah.';
+  $('claim-mode').value=currentClaimMode(lobby.settings);$('claim-mode').disabled=!isHost||isSpectator;
+  $('claim-mode-copy').textContent=claimModeCopy(currentClaimMode(lobby.settings));
   $('handhighlight').checked = lobby.settings.highlightSets !== false; $('handhighlight').disabled = !isHost || isSpectator;
   $('handhighlight-copy').textContent = lobby.settings.highlightSets !== false ? 'Aktif: tandai Chow/Pung yang sudah lengkap di tangan sendiri, serta ubin yang bisa menjadi keduanya.' : 'Nonaktif: ubin di tangan tampil tanpa warna dan label bantuan set.';
   $('mahjong-point-value').value=lobby.settings.pointValue || 0;$('mahjong-point-value').disabled=!isHost||isSpectator;renderMahjongSidebar();
@@ -78,6 +81,7 @@ function guideMockHTML() {
   const hand = [T('d', 2), T('d', 3), T('d', 4), T('b', 4), T('b', 5), T('b', 5), T('b', 5), T('b', 6), T('c', 8), T('c', 8), T('c', 8), T('w', 2), T('g', 1)].map((t, i) => ({ ...t, id: 900 + i }));
   const drawn = { ...T('w', 4), id: 950 };
   const highlight = lobby?.settings.highlightSets !== false;
+  const manual=currentClaimMode(lobby?.settings||{})==='manual';
   const marks = highlight ? HAND_HELP.analyze([...hand, drawn]) : new Map();
   const markedTile = (t, cls = '') => { const help = marks.get(t.id); return tileHTML(t, cls + (help ? ' ' + help.className : ''), '', help); };
   const pills = ['Kamu', 'Mei', 'Raka', 'Sinta'].map((n, i) => `<div class="pill ${i === 0 ? 'turn' : ''}"><span>${n}</span><span class="w">${WIND_ID[i]}</span><b>0</b></div>`).join('');
@@ -90,7 +94,7 @@ function guideMockHTML() {
   <div class="anch">${C(2)}<div class="opps">${opp('Sinta', 'Utara', '')}${opp('Raka', 'Barat', '')}${opp('Mei', 'Selatan', `<div class="meld">${ts(T('c', 7), T('c', 8), T('c', 9))}</div>`)}</div></div>
   <div class="anch">${C(3)}<div class="pool"><div class="cnt-grid">${row(r(0))}${row(r(1))}${row(r(2))}${row([27, 28, 29, 30, 31, 32, 33])}</div></div></div>
   <div class="anch">${C(4)}<div class="turnbar mine"><span>GILIRANMU</span></div></div>
-  <div class="anch">${C(5)}<div class="claimbox"><div class="hd"><span>Contoh kotak klaim · muncul setelah lawan membuang ubin</span></div><div class="zone">${tileHTML(T('d', 8), 'last')}<span style="opacity:.6">+</span>${ts(T('d', 7), T('d', 9))}<span class="lbl">Chow 7-8-9 Lingkaran</span></div><div class="btns"><button class="act">Klaim</button><button class="act pass">Lewat</button></div></div></div>
+  <div class="anch">${C(5)}<div class="claimbox"><div class="hd"><span>Contoh kotak klaim · muncul setelah lawan membuang ubin</span></div><div class="zone">${tileHTML(T('d', 8), 'last')}<span style="opacity:.6">+</span>${ts(T('d', 7), T('d', 9))}<span class="lbl">${manual?'2 ubin dipilih · tekan Coba klaim':'Chow 7-8-9 Lingkaran'}</span></div><div class="btns"><button class="act">${manual?'Coba klaim':'Klaim'}</button><button class="act pass">Lewat</button></div></div></div>
   <div class="anch">${C(6)}<div class="hand-example-note">Contoh tangan · ${highlight ? 'warna untuk set yang sudah lengkap, tanpa buangan lawan' : 'highlight set nonaktif'}</div><div class="hand myturn">${hand.map(t => markedTile(t)).join('')}${markedTile(drawn, 'drawn')}</div>${highlight ? HAND_HELP.legend() : ''}</div>
   <div class="anch">${C(7)}<div class="tools"><button class="tool on">Urutkan otomatis</button><button class="tool">Atur manual</button><button class="tool">Petunjuk</button></div></div>
  </div>`;
@@ -100,13 +104,13 @@ const GUIDE_LEGEND = [
   ['Lawan', 'Jumlah ubin di tangan mereka dan set yang sudah mereka buka. Posisi duduk diacak tiap ronde, jadi pemain di sebelah kirimu (sumber Chow) berganti-ganti.'],
   ['Papan hitung', 'Berapa lembar tiap ubin sudah terlihat di meja (buangan + set terbuka). Garis emas = buangan terakhir. Dari sini kamu bisa menghitung ubin yang masih tersisa.'],
   ['Bar GILIRANMU', 'Muncul saat giliranmu. Kamu otomatis mengambil 1 ubin, lalu harus membuang 1. Tidak ada batas waktu, jadi pikirkan dengan tenang.'],
-  ['Kotak klaim', 'Fast mode aktif: tanpa pilihan klaim, lewat otomatis. Nonaktif: semua pemain manusia menjawab Klaim atau Lewat sendiri. Host memilih di lobby; mode dikunci saat permainan mulai. Untuk Pung/Chow pilih 2 ubin, untuk Kong pilih 3.'],
+  ['Kotak klaim', 'Manual bebas: coba 2 ubin untuk Pung/Chow atau 3 untuk Kong; klaim baru diperiksa saat Coba klaim ditekan. Manual terbantu: aplikasi memeriksa kombinasi dan pilihan yang tersedia. Fast: lewat otomatis bila tidak ada klaim sah. Semua mode dipilih host di lobby lalu dikunci.'],
   ['Tanganmu', 'Jika Highlight set aktif: toska C = Chow lengkap di tangan, emas P = Pung/Kong lengkap, ungu C/P = bisa keduanya. Tidak memakai buangan lawan. Satu ubin bisa masuk beberapa set alternatif. Ubin ambilan baru agak terpisah di kanan.'],
   ['Alat bantu', 'Urutkan otomatis atau atur sendiri susunan ubin. Petunjuk menyarankan buangan paling efisien dan memperingatkan ubin berbahaya. Contekan aturan ada di panel kanan.'],
 ];
 let guideHighlight = null;
-function buildGuide() { const highlight = lobby?.settings.highlightSets !== false; if (guideHighlight === highlight) return; guideHighlight = highlight; $('guide').innerHTML = guideMockHTML(); $('guidelegend').innerHTML = GUIDE_LEGEND.map((g, i) => `<div><span class="tag">${i + 1}</span><div><b>${g[0]}.</b> ${g[1]}</div></div>`).join(''); }
-function lobbySettings() { return { rounds: +$('rounds').value, botLevel: $('botlevel').value, pointValue:Number($('mahjong-point-value').value),autoPass: $('fastplay').checked, highlightSets: $('handhighlight').checked, turnSeconds: 0, claimSeconds: 0 }; }
+function buildGuide() { const key=String(lobby?.settings.highlightSets!==false)+':'+currentClaimMode(lobby?.settings||{}); if (guideHighlight === key) return; guideHighlight = key; $('guide').innerHTML = guideMockHTML(); $('guidelegend').innerHTML = GUIDE_LEGEND.map((g, i) => `<div><span class="tag">${i + 1}</span><div><b>${g[0]}.</b> ${g[1]}</div></div>`).join(''); }
+function lobbySettings() { return { rounds: +$('rounds').value, botLevel: $('botlevel').value, pointValue:Number($('mahjong-point-value').value),claimMode:$('claim-mode').value, highlightSets: $('handhighlight').checked, turnSeconds: 0, claimSeconds: 0 }; }
 function updateLobbySettings() { if (lobby && !isSpectator && lobby.hostSeat === mySeatLobby()) sendMsg({ type: 'settings', settings: lobbySettings() }); }
 function doStart() { sendMsg({ type: 'start', settings: lobbySettings() }); }
 function makeHost(seat, name) { if (confirm(`Jadikan ${name} sebagai host? Kamu tidak lagi bisa memulai ronde.`)) sendMsg({ type: 'host', seat }); }
@@ -118,7 +122,7 @@ const view = () => (S.spectator ? 0 : S.you);
 const me = () => S.players[view()];
 const myHand = () => me().hand || [];
 const rel = k => (view() + k) % 4; // 1 = kanan (jalan setelah kamu), 2 = atas, 3 = kiri (jalan sebelum kamu)
-function hasSetClaimOption(options) { return !!(options && (options.pung || options.kong || (options.chows && options.chows.length))); }
+function hasSetClaimOption(options) { return !!(options && (options.manual || options.pung || options.kong || (options.chows && options.chows.length))); }
 function hasClaimOption(options) { return !!(options && (options.win || hasSetClaimOption(options))); }
 function canDiscard() { return S && !S.spectator && !S.over && !S.options && S.current === S.you && S.phase === 'discard'; }
 function reconcileOrder() { const ids = myHand().map(t => t.id); UI.order = UI.order.filter(id => ids.includes(id)); for (const id of ids) if (!UI.order.includes(id)) UI.order.push(id); if (UI.sel !== null && !ids.includes(UI.sel)) UI.sel = null; }
@@ -138,11 +142,12 @@ function setSound(on) { window.MejaRoom.setPrefs({sound:on});window.MejaRoom.unl
 function setAutoSort(on) { if (!on && UI.autoSort) UI.order = displayOrder().map(t => t.id); UI.autoSort = on; UI.sel = null; ls.set('mejakita.mahjong.autosort', on ? '1' : '0'); renderGame(); }
 function sortOnce() { const d = me().drawn; UI.order = myHand().filter(t => t.id !== d).sort(byIdx).concat(myHand().filter(t => t.id === d)).map(t => t.id); UI.sel = null; renderGame(); }
 function act(a) { sendMsg({ type: 'action', ...a }); }
-function claim(c) { if (c === 'set') sendMsg({ type: 'action', action: 'claim', claim: 'set', tiles: UI.pick.slice() }); else sendMsg({ type: 'action', action: 'claim', claim: c }); UI.pick = []; }
+function claim(c) { if(!S?.options||!S.claimId)return;if (c === 'set') sendMsg({ type: 'action', action: 'claim', claim: 'set', tiles: UI.pick.slice(),claimId:S.claimId }); else sendMsg({ type: 'action', action: 'claim', claim: c,claimId:S.claimId }); }
 // Pilihan ubin untuk membentuk set dengan buangan.
 function togglePick(id) { const i = UI.pick.indexOf(id); if (i >= 0) UI.pick.splice(i, 1); else if (UI.pick.length < 3) UI.pick.push(id); renderGame(); }
 function dropPick(e) { e.preventDefault(); if (UI.drag !== null && !UI.pick.includes(UI.drag) && UI.pick.length < 3) UI.pick.push(UI.drag); UI.drag = null; renderGame(); }
 function pickSet() {
+  if(S.options?.manual){const n=UI.pick.length;return {ok:n===2||n===3,label:n===2||n===3?`${n} ubin dipilih · tekan Coba klaim`:'Pilih 2 ubin untuk Pung/Chow atau 3 untuk Kong'};}
   if (!hasSetClaimOption(S.options) || !S.last) return null; const t = S.last.tile; const ti = idxOf(t); const tiles = UI.pick.map(id => myHand().find(h => h.id === id)).filter(Boolean); const idx = tiles.map(idxOf);
   if (tiles.length === 3) return idx.every(i => i === ti) ? { ok: true, label: 'Kong ' + tileName(t) } : { ok: false, label: 'Kong butuh 3 ubin yang sama' };
   if (tiles.length !== 2) return { ok: false, label: tiles.length === 0 ? 'Pilih 2 ubin (Pung/Chow) atau 3 ubin (Kong)' : 'Pilih 1 ubin lagi' };
@@ -177,15 +182,15 @@ function renderGame() {
   const lastNew = S.last && (!prev || !prev.last || prev.last.tile.id !== S.last.tile.id || prev.hand !== S.hand);
   const prow = i => { const P = S.players[i]; return `<div class="prow"><div class="lbl">${esc(P.name)}</div><div class="tiles">${P.discards.map(t => tileHTML(t, S.last && S.last.tile.id === t.id ? 'last' + (lastNew ? ' anim-pop' : '') : '')).join('')}</div></div>`; };
   let actions = '', hint = '', claimbox = '';
-  const pkey = S.claimOpen && S.last ? S.last.tile.id + ':' + S.last.from : null; if (pkey !== UI.pickKey) { UI.pick = []; UI.pickKey = pkey; }
+  const pkey = S.options && S.claimId ? S.claimId : null; if (pkey !== UI.pickKey) { UI.pick = []; UI.pickKey = pkey; }
   if (!S.over && !spec) {
     if (S.options) {
-      const o = S.options, t = S.last.tile, canSet = hasSetClaimOption(o), ps = canSet ? pickSet() : null;
+      const o = S.options, t = S.last.tile, manual=!!o.manual, canSet = hasSetClaimOption(o), ps = canSet ? pickSet() : null;
       const zoneTiles = UI.pick.map(id => myHand().find(h => h.id === id)).filter(Boolean).map(x => tileHTML(x, 'click', `onclick="togglePick(${x.id})"`)).join('') + '<div class="slot"></div>'.repeat(Math.max(0, 2 - UI.pick.length));
       const zone = canSet ? `<div class="zone">${tileHTML(t, 'last')}<span style="opacity:.6">+</span>${zoneTiles}<span class="lbl">${ps ? esc(ps.label) : ''}</span></div>` : '';
-      claimbox = `<div class="claimbox" ${canSet ? 'ondragover="event.preventDefault()" ondrop="dropPick(event)"' : ''}><div class="hd"><span>${esc(S.players[S.last.from].name)} membuang ${tileName(t)}. ${hasClaimOption(o) ? 'Mau diambil?' : 'Belum ada klaim yang sah.'}</span></div>${zone}${!hasClaimOption(o) ? '<p class="manual-pass-copy">Mode manual: tekan Lewat untuk melanjutkan. Pemain lain juga perlu menjawab sendiri.</p>' : ''}
-       <div class="btns">${o.win ? `<button class="act win" onclick="claim('win')">Hu! Menang</button>` : ''}${canSet ? `<button class="act" onclick="claim('set')" ${ps && ps.ok ? '' : 'disabled'}>Klaim</button>` : ''}<button class="act pass" onclick="claim('pass')">Lewat</button></div></div>`;
-      hint = canSet ? 'Ketuk atau seret ubin ke kotak, lalu tekan Klaim.' : o.win ? 'Kamu bisa menekan Hu! Menang atau Lewat.' : 'Fast mode nonaktif. Tidak ada set yang dapat diklaim; tekan Lewat sendiri.';
+      claimbox = `<div class="claimbox" ${canSet ? 'ondragover="event.preventDefault()" ondrop="dropPick(event)"' : ''}><div class="hd"><span>${esc(S.players[S.last.from].name)} membuang ${tileName(t)}. ${manual?'Manual bebas: mau mencoba klaim atau lewat?':hasClaimOption(o) ? 'Mau diambil?' : 'Belum ada klaim yang sah.'}</span></div>${zone}${manual?'<p class="manual-pass-copy">Pung, Chow, Kong, atau Hu boleh dicoba. Kombinasi baru diperiksa setelah tombol ditekan. Kalau salah, pilih lagi atau Lewat.</p>':!hasClaimOption(o) ? '<p class="manual-pass-copy">Manual terbantu: tekan Lewat untuk melanjutkan. Pemain lain juga perlu menjawab sendiri.</p>' : ''}
+       <div class="btns">${o.win||manual ? `<button class="act win" onclick="claim('win')">${manual?'Coba Hu':'Hu! Menang'}</button>` : ''}${canSet ? `<button class="act" onclick="claim('set')" ${ps && ps.ok ? '' : 'disabled'}>${manual?'Coba klaim':'Klaim'}</button>` : ''}<button class="act pass" onclick="claim('pass')">Lewat</button></div></div>`;
+      hint = manual?'Ketuk 2 atau 3 ubin, lalu Coba klaim. Tidak ada pemeriksaan kombinasi sebelum dikirim.':canSet ? 'Ketuk atau seret ubin ke kotak, lalu tekan Klaim.' : o.win ? 'Kamu bisa menekan Hu! Menang atau Lewat.' : 'Manual terbantu: tidak ada set yang dapat diklaim; tekan Lewat sendiri.';
     } else if (S.claimOpen) {
       const waiting = (S.claimWaiting || []).map(i => esc(S.players[i].name)).join(', ');
       hint = (S.autoPassed ? 'Tidak ada klaim yang sah untukmu; sudah lewat otomatis. ' : '') + (waiting ? 'Menunggu ' + waiting + ' menekan Klaim atau Lewat...' : 'Menunggu keputusan pemain lain...');
@@ -235,13 +240,13 @@ function renderGame() {
   <div class="hint">${hint}</div>
   ${meArea}
  </div>`;
-  const matchModes = `<div class="match-modes" aria-label="Mode meja terkunci"><div class="mode-badges"><span class="pace-mode">Fast mode: ${S.autoPass ? 'ON' : 'OFF'}</span><span class="pace-mode">Highlight set: ${S.highlightSets ? 'ON' : 'OFF'}</span></div><small>Dipilih di lobby · terkunci</small></div>`;
+  const matchModes = `<div class="match-modes" aria-label="Mode meja terkunci"><div class="mode-badges"><span class="pace-mode">Klaim: ${CLAIM_MODE_NAMES[currentClaimMode(S)]}</span><span class="pace-mode">Highlight set: ${S.highlightSets ? 'ON' : 'OFF'}</span></div><small>Dipilih di lobby · terkunci</small></div>`;
   $('gtitle').innerHTML = `<div><h1>Mahjong</h1><div class="sub">Ruangan ${S.code} · Ronde ${S.hand} dari ${S.maxHands}, dealer ${esc(S.players[S.dealer].name)}${spec ? ' · mode penonton' : ''}</div></div><div class="game-setting-row">${matchModes}<div style="display:flex;gap:6px"><button class="iconbtn" onclick="openTutorial(false)" title="Panduan" aria-label="Panduan">?</button><button class="iconbtn" onclick="confirmLeave()" title="Keluar" aria-label="Keluar">⎋</button></div></div>`;
   renderMahjongSidebar();
 }
 // ---------- Riwayat aksi ----------
 function renderMahjongSidebar(){const data=S || lobby;if(!data)return;const target=$(S?'mahjong-sidebar':'mahjong-lobby-sidebar');if(!target)return;const inactive=$(S?'mahjong-lobby-sidebar':'mahjong-sidebar');if(inactive)inactive.replaceChildren();const active=document.activeElement,focused=active?.id==='mk-chat-input',cursor=active?.selectionStart;const old=target.querySelector('.mk-chat'),atBottom=!old||old.scrollHeight-old.scrollTop-old.clientHeight<30,top=old?.scrollTop||0,cheatTop=target.querySelector('.mk-cheat')?.scrollTop||0;
- target.innerHTML=MejaTools.sidebar('mahjong',{chat:chatLog.map(m=>({name:m.from,text:m.text})),log:S?.history || [],players:data.players,rate:data.settings.pointValue || 0,ledger:data.ledger || [],cheat:cheatHTML(S?S.players[rel(3)]:{name:'pemain di sebelah kiri'}),settings:S?data.settings:null,host:S?S.hostSeat===S.you&&!S.spectator:false,lobby:false,formula:'1 fan = 10 poin per pembayar. Zimo: 3 lawan membayar; Hu dari buangan: pembuang membayar 3×.',onChat:text=>{sendMsg({type:'chat',text});return true;}});
+ target.innerHTML=MejaTools.sidebar('mahjong',{connected:ws?.readyState===1,emojiChat:true,onEmoji:sendEmoji,chat:chatLog.map(m=>({name:m.from,text:m.text,emoji:m.emoji})),log:S?.history || [],players:data.players,rate:data.settings.pointValue || 0,ledger:data.ledger || [],cheat:cheatHTML(S?S.players[rel(3)]:{name:'pemain di sebelah kiri'}),settings:S?data.settings:null,host:S?S.hostSeat===S.you&&!S.spectator:false,lobby:false,formula:'1 fan = 10 poin per pembayar. Zimo: 3 lawan membayar; Hu dari buangan: pembuang membayar 3×.',onChat:text=>sendMsg({type:'chat',text})});
  const next=target.querySelector('.mk-chat');if(next)next.scrollTop=atBottom?next.scrollHeight:top;const nextCheat=target.querySelector('.mk-cheat');if(nextCheat)nextCheat.scrollTop=cheatTop;if(focused&&$('mk-chat-input')){$('mk-chat-input').focus({preventScroll:true});if(typeof cursor==='number')$('mk-chat-input').setSelectionRange(cursor,cursor);}
 }
 function renderHistory(){renderMahjongSidebar();}
@@ -252,7 +257,7 @@ function renderChat() {
   el.scrollTop = el.scrollHeight;renderMahjongSidebar();
 }
 function sendChat() { const inp = $('chatinput'); const text = inp.value.trim(); if (!text) return; sendMsg({ type: 'chat', text }); inp.value = ''; inp.focus(); }
-function sendEmoji(e) { sendMsg({ type: 'chat', text: e, emoji: true }); }
+function sendEmoji(e) { return sendMsg({ type: 'chat', text: e, emoji: true }); }
 // ---------- Notifikasi giliran ----------
 let audioCtx = null, blinkT = null; const baseTitle = document.title;
 function beep() { /* Shared room feedback owns the turn sound. */ }
@@ -280,6 +285,7 @@ function threats() { return S.players.filter((P, i) => i !== S.you && (P.melds.l
 const stepTxt = s => s <= 0 ? 'tenpai' : `masih ${s} langkah dari tenpai`; const numTxt = s => s <= 0 ? 'tenpai' : `${s} langkah dari tenpai`;
 function toggleClue() { if (UI.clue) { UI.clue = null; renderGame(); return; } UI.clue = computeClue(); renderGame(); }
 function computeClue() {
+  if(S?.options?.manual)return {html:'<p>Manual bebas: tentukan sendiri apakah ingin klaim atau lewat. Kombinasi baru diperiksa setelah Coba klaim atau Coba Hu ditekan.</p>'};
   const M = me(); const vis = visibleCounts(); const th = threats(); const ml = M.melds.length;
   if (hasClaimOption(S.options)) {
     const o = S.options, t = S.last.tile, i = idxOf(t); const c = counts(M.hand); const Sx = shanten(c, ml);
@@ -366,7 +372,7 @@ const STEPS = [
   { t: 'Pasang dan Pung', h: `<p><b>Pasang</b> adalah 2 ubin identik. Setiap tangan menang butuh tepat 1 pasang.</p><div class="ex">${ts(T('g', 2), T('g', 2))}${gap}${ts(T('c', 3), T('c', 3))}</div><p><b>Pung</b> adalah 3 ubin identik, boleh ubin angka maupun huruf.</p><div class="ex">${pung('b', 8)}${gap}${pung('w', 3)}</div>` },
   { t: 'Chow dan Kong', h: `<p><b>Chow</b> adalah 3 ubin berurutan dari jenis yang sama, misalnya 4-5-6 Karakter. Angin dan naga tidak bisa di-Chow, dan 8-9-1 tidak sah.</p><div class="ex">${chow('c', 4)}${gap}${chow('d', 1)}</div><p><b>Kong</b> adalah 4 ubin identik. Dihitung sebagai 1 set seperti Pung. Setelah Kong, kamu mengambil 1 ubin pengganti dari ujung dinding.</p><div class="ex">${ts(T('d', 6), T('d', 6), T('d', 6), T('d', 6))}</div>` },
   { t: 'Alur giliran', h: `<p>Setiap pemain mulai dengan 13 ubin. Dealer (Timur) jalan duluan, lalu giliran berputar ke pemain di sebelah kananmu, atas, kiri, lalu kembali ke kamu.</p><p>Di giliranmu: <span class="tag">1</span>ambil 1 ubin dari dinding, <span class="tag">2</span>cek apakah bisa menang atau Kong, <span class="tag">3</span>buang 1 ubin. Saat giliranmu, bar kuning <b>GILIRANMU</b> muncul. Tidak ada batas waktu.</p><p><b>Klik ubin di tanganmu untuk membuangnya.</b> Ubin yang baru diambil ditaruh agak terpisah di paling kanan. Salah pencet? Ada tombol <b>Batalkan buangan</b> selama 2 detik setelah membuang, selama belum ada yang mengklaim.</p><p>Susunan ubin bebas kamu atur karena lawan tidak melihatnya. Pilih <b>Atur manual</b> di bawah tangan untuk menyusun sendiri: ketuk ubin lalu ketuk ubin lain untuk memindahkannya, dan buang lewat tombol <b>Buang</b>.</p>` },
-  { t: 'Mengambil buangan lawan', h: `<p>Ubin yang dibuang lawan boleh kamu ambil kalau melengkapi set di tanganmu:</p><table class="fan"><tr><td><b>Hu</b> (menang)</td><td>dari siapa saja</td></tr><tr><td><b>Pung</b> atau <b>Kong</b></td><td>dari siapa saja</td></tr><tr><td><b>Chow</b></td><td>hanya dari pemain di sebelah kirimu</td></tr></table><p>Kalau beberapa pemain mau mengambil ubin yang sama, prioritasnya: <b>Hu, lalu Pung/Kong, lalu Chow</b>.</p><p>Set hasil klaim dibuka di meja dan tidak bisa diubah lagi. Setelah klaim, giliran langsung pindah ke kamu dan kamu harus membuang 1 ubin.</p><p class="cap">Host memilih <b>Fast mode</b> di lobby sebelum permainan dimulai. Saat aktif, kotak klaim hanya muncul jika ada pilihan sah; tanpa pilihan, server otomatis lewat. Saat nonaktif, setiap pemain manusia menekan <b>Klaim</b> atau <b>Lewat</b> sendiri. Mode dikunci selama permainan, termasuk ronde berikutnya dan main lagi; buat ruangan baru untuk mengganti mode. Untuk set, ketuk atau seret 2 ubin (3 untuk Kong) sampai labelnya sah, lalu tekan <b>Klaim</b> atau <b>Lewat</b>. Tombol <b>Hu!</b> muncul kalau buangan itu membuatmu menang.</p>` },
+  { t: 'Mengambil buangan lawan', h: `<p>Ubin yang dibuang lawan boleh kamu ambil kalau melengkapi set di tanganmu:</p><table class="fan"><tr><td><b>Hu</b> (menang)</td><td>dari siapa saja</td></tr><tr><td><b>Pung</b> atau <b>Kong</b></td><td>dari siapa saja</td></tr><tr><td><b>Chow</b></td><td>hanya dari pemain di sebelah kirimu</td></tr></table><p>Kalau beberapa pemain mau mengambil ubin yang sama, prioritasnya: <b>Hu, lalu Pung/Kong, lalu Chow</b>.</p><p>Set hasil klaim dibuka di meja dan tidak bisa diubah lagi. Setelah klaim, giliran langsung pindah ke kamu dan kamu harus membuang 1 ubin.</p><p class="cap">Host memilih <b>mode klaim</b> di lobby. <b>Manual bebas</b>: semua pemain memilih sendiri; coba 2 ubin untuk Pung/Chow atau 3 untuk Kong, lalu tekan <b>Coba klaim</b>, atau coba <b>Hu</b>. Klaim baru diperiksa saat ditekan. Kalau salah, ubin tetap di tangan dan kamu masih bisa mencoba lagi atau <b>Lewat</b>. <b>Manual terbantu</b>: semua pemain tetap menjawab, tetapi pilihan dan kombinasi diperiksa sebelum klaim. <b>Fast</b>: tanpa pilihan sah, otomatis lewat. Mode dikunci selama permainan, ronde berikutnya dan main lagi; buat ruangan baru untuk menggantinya.</p>` },
   { t: 'Menang (Hu)', h: `<p>Kamu <b>Hu</b> saat 14 ubinmu membentuk 4 set + 1 pasang. Set yang sudah diklaim ikut dihitung.</p><p><span class="tag">Zimo</span> ubin ke-14 datang dari ambilanmu sendiri. Ketiga lawan membayar.<br><span class="tag">Dari buangan</span> lawan membuang ubin yang kamu butuhkan. Si pembuang membayar 3 kali lipat sendirian.</p><p>Bentuk khusus: <b>Tujuh Pasang</b> (7 pasang berbeda, tanpa klaim) juga dianggap menang.</p><p><b>Latihan:</b> tangan ini tinggal butuh 1 ubin. Ubin mana yang membuatnya menang?</p><div class="ex" style="--tw:28px">${chow('d', 2)}${gap}${chow('b', 5)}${gap}${pung('c', 8)}${gap}${pung('w', 1)}${gap}${ts(T('d', 9))}</div><div class="quiz">${tileHTML(T('d', 9), '', `onclick="quizPick(this,true)"`)}${tileHTML(T('b', 1), '', `onclick="quizPick(this,false)"`)}${tileHTML(T('g', 1), '', `onclick="quizPick(this,false)"`)}</div><p class="cap" id="quizmsg">Klik salah satu ubin di atas.</p>` },
   { t: 'Skor', h: `<p>Setiap kemenangan dihitung dalam <b>fan</b>. 1 fan bernilai 10 poin per pembayar.</p><table class="fan"><tr><td>Menang (Hu)</td><td>1 fan</td></tr><tr><td>Zimo</td><td>+1</td></tr><tr><td>Tangan tertutup (menang tanpa klaim)</td><td>+1</td></tr><tr><td>Pung naga, angin sendiri, atau angin Timur</td><td>+1 tiap set</td></tr><tr><td>Semua Pung (tidak ada Chow)</td><td>+2</td></tr><tr><td>Campur satu warna (1 jenis angka + huruf)</td><td>+2</td></tr><tr><td>Tujuh Pasang</td><td>+3</td></tr><tr><td>Satu warna penuh / semua huruf</td><td>+5</td></tr></table><p class="cap">Zimo: 3 lawan masing-masing membayar. Dari buangan: pembuang membayar 3x sendirian. Total yang diterima pemenang sama besar.</p>` },
   { t: 'Siap main', h: `<p>Beberapa tips: buang dulu ubin huruf yang cuma 1 lembar dan ubin 1 atau 9 yang sendirian. Simpan ubin tengah (3 sampai 7). Jangan terlalu rajin klaim. Perhatikan buangan lawan, terutama yang sudah membuka 2 set.</p><p>Jika host menyalakan <b>Highlight set di tangan</b> di lobby, warna membantu mengenali set yang sudah lengkap dalam tanganmu sendiri: toska <b>C</b> untuk Chow, emas <b>P</b> untuk Pung/Kong, dan ungu <b>C/P</b> kalau ubin bisa menjadi keduanya. Bantuan ini tidak memakai buangan lawan dan tidak menandai calon klaim. Set dapat berbagi ubin yang sama, jadi tidak semua kemungkinan bisa dipakai sekaligus. Pilihan highlight dikunci selama permainan.</p><p>Kalau bingung, tekan <b>Petunjuk</b> di bawah tangan: buangan paling efisien ditandai hijau, pilihan aman ditandai biru.</p><p>Kalau koneksimu putus, buka lagi alamat yang sama di perangkat yang sama dan kamu otomatis kembali ke kursimu. Selama kamu offline, bot memainkan kursimu.</p><p>Selamat bermain!</p>` }
