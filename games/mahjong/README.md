@@ -121,3 +121,7 @@ Emoji cepat 👍 😂 😭 🔥 😱 🙏 🀄 ☕ ada kembali di chat sidebar l
 Chat menyediakan 12 emote. Emote baru yang diterima server terlihat seluruh room sebagai efek transparan sekitar 3 detik, tanpa menutup klik kartu/papan. Kurangi animasi menampilkan emoji statis singkat. Riwayat dan reconnect tidak memutar efek lama. Lihat panduan root dan docs/GAME-CONVENTIONS.md untuk komponen bersama; alur aturan, kartu privat dan poin tidak berubah.
 
 Chat biasa juga melayang transparan di pinggir meja (1.5.2), dengan nama pengirim dan maksimal tiga pesan singkat. Isi lengkap tetap di Chat meja. Riwayat lama dan pesan sistem tidak melayang; Kurangi animasi memakai pesan statis.
+
+## Quick Play
+
+Durasi lobby mencakup **Quick Play · 1 ronde**, 4, 8, atau 12 ronde. Quick Play terpisah dari Manual bebas/Manual terbantu/Fast; tidak mengubah auto-lewat. Sesi mencapai rekap final setelah satu ronde termasuk ronde seri.

@@ -43,3 +43,7 @@ Hub build `2026-10-15-social-save-2` menambahkan save privat/pemulihan dijeda, n
 Chat menyediakan 12 emote. Emote baru yang diterima server terlihat seluruh room sebagai efek transparan sekitar 3 detik, tanpa menutup klik kartu/papan. Kurangi animasi menampilkan emoji statis singkat. Riwayat dan reconnect tidak memutar efek lama. Lihat panduan root dan docs/GAME-CONVENTIONS.md untuk komponen bersama; alur aturan, kartu privat dan poin tidak berubah.
 
 Chat biasa juga melayang transparan di pinggir meja (1.5.2), dengan nama pengirim dan maksimal tiga pesan singkat. Isi lengkap tetap di Chat meja. Riwayat lama dan pesan sistem tidak melayang; Kurangi animasi memakai pesan statis.
+
+## Quick Play
+
+Lobby menyediakan **Quick Play · 1 ronde** atau Santai (ronde bebas). Setiap ronde tetap berakhir dengan rekap dan tidak lanjut otomatis. Quick Play menandai sesi selesai setelah satu ronde; memulai Quick Play baru harus eksplisit. Saldo kumulatif dan aturan penilaian titik tetap sama.

@@ -81,3 +81,19 @@ Ordinary accepted user chat also uses the shared receipt renderer: translucent e
 ## Emoji picker
 
 Use MejaTools.emojiPicker for a disclosure toggle between the chat input and Send in every game. Keep the twelve-button palette closed by default in one body-level popover so sidebar overflow cannot clip it. Selection sends one native emote, closes immediately and returns focus to the unchanged draft. Outside click, Escape, explicit close, leaving and disconnect close it; Escape must not trigger a board/card shortcut. Keep type=button for toggle/choices and an explicit type=submit for Send. Preserve expanded state/position across native rerenders, viewport changes and scrolling. Clamp the popup to the viewport, provide accessible names/aria-expanded/aria-controls, keyboard focus and 44px choice targets; no new dependencies.
+
+## Shared Dark / Light theme
+
+Load /theme.js synchronously after charset and /theme.css after native styles on every entry document. Default is explicitly dark regardless of OS/browser color preference; never reset the shared choice from a native game client. Reuse the Dark/Light group in the shared room toolbar and store only the browser preference at mejakita.theme, independent of room/session credentials. Keep selected aria-pressed, focus, touch targets, storage-failure fallback and cross-tab updates. Theme changes must not rerender/reset games or submit actions. Use --mk-* tokens for body-level popovers/shared controls, with explicit foreground and background in both themes. Preserve legible face/felt colors; do not invert the whole page or filter cards and images.
+
+## Durasi dan Quick Play
+
+Sediakan pilihan singkat di lobby sebelum host memulai: Capsa/Mahjong/Domino/Blackjack 1 ronde, Poker 1 tangan, Catur Blitz 5+0 atau 3+2. Pilihan dikunci ketika bermain; room lama tetap memakai durasi/settings yang tersimpan. Jangan mengaktifkan Fast/auto-lewat Mahjong karena Quick Play dipilih. Jangan mempersingkat jeda bot 3 detik. Durasi singkat berakhir setelah settlement, bukan dengan memotong tangan atau payout. Main lagi harus eksplisit; saldo kumulatif dan aturan antrean/rotasi tetap berlaku.
+
+Jam Catur berada di server; klien hanya menampilkan estimasi dari sampel terbaru tanpa mengirim tick atau mengubah hasil. Bekukan jam pada disconnect/recovery, simpan sisa waktu tanpa handle timer, dan pastikan timeout/move/resign hanya mencatat satu hasil.
+
+## Pembubaran ruang
+
+Semua game memakai tombol host **Bubarkan ruang** di kontrol Meja bersama, bukan salinan per game. Tampilkan kode dan akibatnya dalam dialog, fokus awal pada Batal, dan tunggu balasan server sebelum menghapus sesi browser. Host saat ini, socket pemilik sesi, kode dan roomId harus cocok pada saat eksekusi; penonton/pemain lain tidak boleh membubarkan ruang. Konfirmasi lama tidak berlaku setelah room/hak host berubah.
+
+Pembubaran menghapus room aktif, memutus ikatan seluruh socket tanpa native leave (tidak mencatat resign/fold/payout baru), menghentikan semua timer termasuk jam Blitz dan transisi klaim, dan mengirim notifikasi literal ke semua peserta/penonton. Kode yang dibubarkan dicadangkan di snapshot privat agar undangan/token lama tidak bisa hidup lagi setelah restart atau dipakai room baru. Setiap allocator native harus memeriksa service.hasCode. Resource milik factory yang tidak tercakup timer room dibersihkan melalui disposeRoom. Jika penulisan penghapusan gagal, pertahankan room dan beri error; jangan menampilkan sukses.

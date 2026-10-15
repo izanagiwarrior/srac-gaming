@@ -1,7 +1,7 @@
 'use strict';
 const $ = id => document.getElementById(id), P = window.ChessPieces;
 const safe = { get(key,backup = null) { try { return JSON.parse(sessionStorage.getItem('mejakita.catur.' + key)) ?? backup; } catch { return backup; } }, set(key,value) { try { if (value === null) sessionStorage.removeItem('mejakita.catur.' + key); else sessionStorage.setItem('mejakita.catur.' + key,JSON.stringify(value)); } catch {} } };
-let saved = safe.get('seat') || window.MejaRoom.saved('catur'), S = null, ws, connected = false, replaced = false, selected = null, flipped = false, pending = false, promotionMove = null, confirmAction = null, toastTimer;
+let saved = safe.get('seat') || window.MejaRoom.saved('catur'), S = null, ws, connected = false, replaced = false, selected = null, flipped = false, pending = false, promotionMove = null, confirmAction = null, toastTimer, clockReceivedAt = performance.now();
 let enteredName = '', enteredCode = new URLSearchParams(location.search).get('room') || '', practice = false, chatDraft = '';
 try { enteredName = window.MejaRoom.name(localStorage.getItem('mejakita.catur.name') || ''); } catch {}
 const esc = value => String(value ?? '').replace(/[&<>"']/g,c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
@@ -23,13 +23,13 @@ function connect() {
     if (msg.type === 'state') {
       if (!S || S.ply !== msg.ply || S.matchId !== msg.matchId || S.phase !== msg.phase) { selected = null; promotionMove = null; if ($('promotion').open) $('promotion').close(); }
       if (!S || S.yourColor !== msg.yourColor) flipped = msg.yourColor === 'b';
-      S = msg; pending = false; render();
+      S = msg; clockReceivedAt = performance.now(); pending = false; render();
     }
     if (msg.type === 'error') { pending = false; if (msg.fatal) leaveLocal(); else render(); toast(msg.message); }
     if (msg.type === 'left') leaveLocal();
     if (msg.type === 'replaced') { replaced = true; saved = null; safe.set('seat',null); S = null; toast('Sesi dibuka di tab lain.'); render(); }
   };
-  ws.onclose = () => { window.MejaRoom.disconnected(); connected = false; pending = false; if ($('promotion').open) $('promotion').close(); render(); if (!replaced) setTimeout(connect,1800); };
+  ws.onclose = () => { window.MejaRoom.disconnected(); if(S?.clock){S.clock.remaining={w:clockMs('w'),b:clockMs('b')};S.clock.active=null;} connected = false; pending = false; if ($('promotion').open) $('promotion').close(); render(); if (!replaced) setTimeout(connect,1800); };
   ws.onerror = () => ws.close();
 }
 function leaveLocal() { S = null; selected = null; saved = null; pending = false; promotionMove = null; chatDraft = ''; safe.set('seat',null); history.replaceState(null,'','/catur/'); for (const id of ['promotion','confirm-dialog']) if ($(id).open) $(id).close(); render(); }
@@ -53,15 +53,33 @@ function boardHTML(sample = false) {
   return `<div class="board ${sample ? 'sample-board' : ''}" role="group" aria-label="Papan catur${sample ? ' contoh' : ''}">${squares.join('')}</div>`;
 }
 function landing() {
-  return `<section class="welcome"><div><span class="eyebrow">CATUR · MEJA KITA</span><h1>Satu langkah.<br><em>Seribu kemungkinan.</em></h1><p>Panggil teman, pilih bidak, dan pikirkan langkah berikutnya. Main berdua atau pemanasan melawan bot.</p><form id="entry-form" class="panel entry-panel"><label for="name">Nama panggilan</label><input id="name" maxlength="24" autocomplete="nickname" placeholder="Kamu mau dipanggil siapa?" value="${esc(enteredName)}" required><label for="practice">Meja baru</label><select id="practice"><option value="false" ${!practice ? 'selected' : ''}>Main berdua · undang teman</option><option value="true" ${practice ? 'selected' : ''}>Latihan · lawan bot</option></select>${button('Buat room catur ↗','create','primary full',!connected || pending)}<div class="divider"><span>sudah punya room?</span></div><label for="code">Kode room</label><div class="join-row"><input id="code" value="${esc(enteredCode)}" maxlength="6" autocomplete="off" placeholder="ABCD">${button('Gabung →','join','',!connected || pending)}</div><small>Room penuh atau sedang berjalan? Kamu bisa menonton.</small></form></div><div class="welcome-board"><div class="board-caption"><span>PUTIH MULAI DULU</span><span>♔</span></div>${boardHTML(true)}<div class="sample-caption">64 petak. Giliranmu menentukan ceritanya.</div></div></section><section class="features"><div><b>01</b><h3>Bidak, lalu tujuan.</h3><p>Petak bertanda titik menunjukkan langkah yang sah.</p></div><div><b>02</b><h3>Main tanpa buru-buru.</h3><p>Tanpa timer. Bot menunggu 3 detik tiap giliran.</p></div><div><b>03</b><h3>Sampai skakmat.</h3><p>Rokade, en passant, promosi, dan remis tersedia.</p></div></section>`;
+  return `<section class="welcome"><div><span class="eyebrow">CATUR · MEJA KITA</span><h1>Satu langkah.<br><em>Seribu kemungkinan.</em></h1><p>Panggil teman, pilih bidak, dan pikirkan langkah berikutnya. Main berdua atau pemanasan melawan bot.</p><form id="entry-form" class="panel entry-panel"><label for="name">Nama panggilan</label><input id="name" maxlength="24" autocomplete="nickname" placeholder="Kamu mau dipanggil siapa?" value="${esc(enteredName)}" required><label for="practice">Meja baru</label><select id="practice"><option value="false" ${!practice ? 'selected' : ''}>Main berdua · undang teman</option><option value="true" ${practice ? 'selected' : ''}>Latihan · lawan bot</option></select>${button('Buat room catur ↗','create','primary full',!connected || pending)}<div class="divider"><span>sudah punya room?</span></div><label for="code">Kode room</label><div class="join-row"><input id="code" value="${esc(enteredCode)}" maxlength="6" autocomplete="off" placeholder="ABCD">${button('Gabung →','join','',!connected || pending)}</div><small>Room penuh atau sedang berjalan? Kamu bisa menonton.</small></form></div><div class="welcome-board"><div class="board-caption"><span>PUTIH MULAI DULU</span><span>♔</span></div>${boardHTML(true)}<div class="sample-caption">64 petak. Giliranmu menentukan ceritanya.</div></div></section><section class="features"><div><b>01</b><h3>Bidak, lalu tujuan.</h3><p>Petak bertanda titik menunjukkan langkah yang sah.</p></div><div><b>02</b><h3>Santai atau Blitz.</h3><p>Pilih tanpa jam, Blitz 5+0, atau 3+2. Bot tetap menunggu 3 detik tiap giliran.</p></div><div><b>03</b><h3>Sampai skakmat.</h3><p>Rokade, en passant, promosi, dan remis tersedia.</p></div></section>`;
 }
 function inviteURL() {
   const local = ['localhost','127.0.0.1','[::1]'].includes(location.hostname), origin = local && S.addresses?.[0] ? S.addresses[0] : location.origin;
   return origin + '/catur/?room=' + S.code;
 }
+function clockMs(color) {
+  if(!S?.clock)return 0;
+  const elapsed=S.clock.active===color&&connected?Math.max(0,performance.now()-clockReceivedAt):0;
+  return Math.max(0,S.clock.remaining[color]-elapsed);
+}
+function clockText(ms) {
+  const seconds=Math.ceil(ms/1000);
+  return String(Math.floor(seconds/60)).padStart(2,'0')+':'+String(seconds%60).padStart(2,'0');
+}
+function updateClocks() {
+  for(const node of document.querySelectorAll('[data-chess-clock]')) {
+    const color=node.dataset.chessClock,ms=clockMs(color);
+    node.textContent=clockText(ms);
+    node.dataset.active=String(!!connected&&S.clock.active===color);
+    node.dataset.low=String(ms<=30000);
+  }
+}
+setInterval(updateClocks,200);
 function playerHTML(color) {
   const player = S.players.find(p => p.color === color), active = S.phase === 'playing' && S.turn === color;
-  return `<div class="player-strip ${active ? 'active' : ''}"><span class="player-icon">${P.svg('k',color)}</span><div><strong>${player ? esc(player.name) + (player.id === S.you ? ' · kamu' : '') : 'Kursi ' + colorName(color)}</strong><small>${colorName(color)} · ${player ? player.left ? 'Sudah keluar' : player.bot ? 'Bot latihan' : player.connected ? 'Terhubung' : 'Terputus · menunggu kembali' : 'Menunggu teman'}</small></div>${active ? '<span class="turn-pill">Giliran</span>' : ''}</div>`;
+  return `<div class="player-strip ${active ? 'active' : ''}"><span class="player-icon">${P.svg('k',color)}</span><div><strong>${player ? esc(player.name) + (player.id === S.you ? ' · kamu' : '') : 'Kursi ' + colorName(color)}</strong><small>${colorName(color)} · ${player ? player.left ? 'Sudah keluar' : player.bot ? 'Bot latihan' : player.connected ? 'Terhubung' : 'Terputus · menunggu kembali' : 'Menunggu teman'}</small></div>${active ? '<span class="turn-pill">Giliran</span>' : ''}${S.clock?`<time class="chess-clock" data-chess-clock="${color}" data-active="${connected&&S.clock.active===color}" data-low="${clockMs(color)<=30000}" aria-label="Sisa waktu ${colorName(color)}" aria-live="off">${clockText(clockMs(color))}</time>`:''}</div>`;
 }
 function statusHTML() {
   if (S.result) return `<div class="status result"><span class="status-icon">${S.result.winner ? '♔' : '½'}</span><div><h2>${S.result.winner ? esc(S.result.name) + ' menang.' : 'Berakhir remis.'}</h2><p>${esc(S.result.reason)}. ${S.rematch.length ? 'Menunggu persetujuan main lagi.' : 'Satu pertandingan lagi?'}</p></div></div>`;
@@ -90,7 +108,7 @@ function roomHTML() {
   else if (S.phase === 'finished' && !S.spectator) controls = button(S.rematch.includes(S.you) ? 'Menunggu lawan…' : 'Main lagi · tukar warna ↻','rematch','primary full',!connected || !S.ready || S.rematch.includes(S.you));
   else if (S.phase === 'playing' && !S.spectator) controls = `<div class="button-row">${!S.practice ? button(S.drawOffer?.color === S.yourColor ? 'Batalkan remis' : 'Tawarkan remis',S.drawOffer?.color === S.yourColor ? 'withdraw-draw' : 'draw','ghost',!connected || !S.ready || !!S.drawOffer && S.drawOffer.color !== S.yourColor) : ''}${button('Menyerah','resign','ghost',!connected)}</div>`;
   const offer = S.drawOffer ? S.drawOffer.color === S.yourColor ? '<div class="draw-offer">Tawaran remis dikirim. Menunggu jawaban lawan.</div>' : `<div class="draw-offer"><p>${esc(S.drawOffer.name)} menawarkan remis.</p>${!S.spectator ? `<div class="button-row">${button('Terima','accept-draw','primary',!connected)}${button('Lanjut main','decline-draw','ghost',!connected)}</div>` : ''}</div>` : '';
-  return `<section class="room-heading"><div><span class="eyebrow">MEJA CATUR · ${S.spectator ? 'PENONTON' : S.practice ? 'LATIHAN' : 'MAIN BERDUA'}</span><h1>Langkah berikutnya.</h1></div><div class="button-row">${button(S.code + ' ↗','copy-link','small')}${button('Keluar','leave','small ghost',!connected)}</div></section><div class="game-layout"><section class="board-area">${statusHTML()}<section class="panel action-panel mk-lobby-settings">${controls}${offer}</section>${playerHTML(flipped ? 'w' : 'b')}${boardHTML()}${playerHTML(flipped ? 'b' : 'w')}<div class="board-tools"><span>${S.spectator ? 'Menonton' : 'Kamu memegang ' + colorName(S.yourColor)} · ${S.spectators} penonton</span>${button('Putar papan ↻','flip','small ghost')}</div>${S.history.length?capturedHTML():''}</section>${tableSidebar()}</div>`;
+  return `<section class="room-heading"><div><span class="eyebrow">MEJA CATUR · ${S.spectator ? 'PENONTON' : S.practice ? 'LATIHAN' : 'MAIN BERDUA'}</span><h1>Langkah berikutnya.</h1><p class="clock-mode-note">${esc(S.clock?.label||'Santai · tanpa jam')}${S.clock?' · jam dijeda saat pemain terputus':''}</p></div><div class="button-row">${button(S.code + ' ↗','copy-link','small')}${button('Keluar','leave','small ghost',!connected)}</div></section><div class="game-layout"><section class="board-area">${statusHTML()}<section class="panel action-panel mk-lobby-settings">${controls}${offer}</section>${playerHTML(flipped ? 'w' : 'b')}${boardHTML()}${playerHTML(flipped ? 'b' : 'w')}<div class="board-tools"><span>${S.spectator ? 'Menonton' : 'Kamu memegang ' + colorName(S.yourColor)} · ${S.spectators} penonton</span>${button('Putar papan ↻','flip','small ghost')}</div>${S.history.length?capturedHTML():''}</section>${tableSidebar()}</div>`;
 }
 function tableSidebar(){return MejaTools.sidebar('catur',{
  connected,chat:S.chat,log:S.history.map((m,i)=>(Math.floor(i/2)+1)+(i%2?'… ':'. ')+m),players:S.players,rate:S.settings.pointValue,ledger:S.ledger,

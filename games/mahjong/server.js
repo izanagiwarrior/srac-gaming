@@ -4,7 +4,7 @@ const { WebSocketServer } = require('ws');
 const { randomInt, randomBytes } = require('node:crypto');
 const E = require('./engine');
 const {tableSettings}=require('../shared/table-settings');
-const BUILD = '2026-10-15-emoji-menu-1', CLIENT_VERSION = 9;
+const BUILD = '2026-10-15-dissolve-room-1', CLIENT_VERSION = 9;
 const CLAIM_MODES = ['manual','assisted','fast'];
 const claimMode = settings => CLAIM_MODES.includes(settings.claimMode) ? settings.claimMode : settings.autoPass === true ? 'fast' : 'assisted';
 
@@ -19,7 +19,7 @@ const SPEED = parseFloat(process.env.SPEED || '1');
 const sleep = ms => new Promise(r => setTimeout(r, ms * SPEED));
 const rooms = new Map();
 
-function makeCode() { const a = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; for (let len = 4; len <= 8; len++) for (let tries = 0; tries < 200; tries++) { let c = ''; for (let i = 0; i < len; i++) c += a[randomInt(a.length)]; if (!rooms.has(c)) return c; } return 'R' + Date.now().toString(36).toUpperCase(); }
+function makeCode() { const a = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; for (let len = 4; len <= 8; len++) for (let tries = 0; tries < 200; tries++) { let c = ''; for (let i = 0; i < len; i++) c += a[randomInt(a.length)]; if (!(rooms.has(c)||hub?.hasCode(c))) return c; } throw Error('Kode room sedang penuh. Coba lagi.'); }
 function token() { return randomBytes(24).toString('hex'); }
 function send(ws, obj) { if (ws && ws.readyState === 1) ws.send(JSON.stringify(hub?hub.enrich(ws,obj):obj)); }
 function cleanName(n) { return String(n || '').replace(/[<>&"]/g, '').trim().slice(0, 16) || 'Pemain'; }
@@ -82,7 +82,7 @@ class Room {
       if(settings.claimMode===undefined&&settings.autoPass!==undefined&&typeof settings.autoPass!=='boolean')throw Error('Mode lewat tidak valid.');
       next.claimMode=settings.claimMode ?? (typeof settings.autoPass==='boolean' ? settings.autoPass?'fast':'assisted' : claimMode(this.settings));
       next.autoPass=next.claimMode==='fast';
-      if ([4, 8, 12].includes(+settings.rounds)) next.rounds = +settings.rounds;
+      if(settings.rounds!==undefined){if(![1,4,8,12].includes(Number(settings.rounds)))throw Error('Pilih Quick Play 1 ronde, 4, 8, atau 12 ronde.');next.rounds=Number(settings.rounds);}
       if (typeof settings.highlightSets === 'boolean') next.highlightSets = settings.highlightSets;
       this.settings=next;
     }catch(error){send(this.players[seat]?.ws,{type:'error',msg:error.message});return false;}

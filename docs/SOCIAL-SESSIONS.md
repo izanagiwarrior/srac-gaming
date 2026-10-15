@@ -67,3 +67,23 @@ Fresh accepted text chat from seated people and spectators floats faintly along 
 ## Compact emoji menu (1.5.3)
 
 All six games place a smile toggle between chat input and Send. The twelve emoji choices appear only after opening it; selecting closes it immediately and refocuses the preserved text draft. Outside click/Escape/close and room/disconnect cleanup also dismiss it. A single body-level popover avoids clipped sidebar scrolling and tracks the current visible toggle after native view rerenders. Server chat, IDs, message history, reactions, floating text, game rules and save format are unchanged.
+
+## Browser theme (1.6.0)
+
+The shared Dark / Light controls are always visible in the room toolbar on the landing and six games. Dark is the default, independent of device color preference. A choice uses localStorage mejakita.theme and syncs between tabs of the same origin; blocked storage still allows a temporary current-page choice. This replaces Poker's separate theme control/key without modifying its saved seats. The head script applies the choice before paint, sets native color-scheme, and updates the browser theme-color. Switching themes changes CSS only; cards, selected moves, drafts, rooms and money stay unchanged. Temporary chat/emoji feedback and the picker close on theme changes, without replaying history.
+
+## Quick Play dan jam Catur
+
+Mode singkat disimpan dalam settings room. Capsa/Mahjong memakai jumlah ronde 1; Poker/Domino/Blackjack memakai `playMode: quick`; Catur memakai `clockMode: blitz5` atau `blitz3plus2` (default `casual`). Legacy room tidak diubah menjadi Quick Play. Poker Quick Play mencapai phase ended saat satu tangan settled; tombol main lagi/rotasi harus tetap menghormati projected funding dan antrean.
+
+Clock Catur menyimpan anggaran `remaining` per warna dan increment. Export mengurangi waktu yang telah berjalan lalu menyimpan jam dalam keadaan jeda; `clockTimer` adalah transient. Recovery menunggu pemain kembali dan host melanjutkan. Tidak menghitung downtime sebagai waktu bermain dan tidak menambahkan increment untuk langkah ilegal, reconnect atau resume.
+
+## Bubarkan ruang (1.8.0)
+
+- Host terhubung dapat membubarkan ruang dari toolbar bersama di semua fase, termasuk recovery/lobby. Dua langkah: buka dialog, lalu konfirmasi untuk code + roomId yang ditampilkan. Pembubaran hanya berlaku untuk satu room/game, tidak menghentikan server atau room lain.
+- Server memeriksa host saat ini, person.ws, room object, code, roomId dan confirm:true. Field hub.roomId adalah identitas instance publik untuk mencegah konfirmasi usang, bukan credential. Token sesi tetap privat.
+- Snapshot format 1 mendapat field tambahan closedCodes dan archives (opsional bagi snapshot lama). Penghapusan room + pencadangan kode ditulis atomik terlebih dahulu. Disk error menolak pembubaran tanpa mengubah pemain/timer. Setelah berhasil, room dihapus dari Map, timer dibersihkan dan seluruh socket dilepas dari room tanpa menjalankan aturan leave. Kode di closedCodes tidak dipakai allocator baru, tidak dimuat dari daftar room lama dan ditolak sama seperti room tidak ditemukan.
+- Client menerima room-dissolved sebagai native left yang diketahui alasannya; semua UI game/overlay dan kredensial sesi room itu dibersihkan setelah konfirmasi server. WebSocket tetap tersedia untuk membuat/gabung room baru. Rejoin/resume offline mendapat sessionUnavailable + dissolved; shared handler mengembalikan ke entry juga, termasuk S Poker dan backup last-seat. Link room baru yang sudah dipilih tetap disiapkan di input, tanpa join otomatis.
+- Pembubaran membatalkan ronde/tangan aktif tanpa menambah hasil, menentukan pemenang, refund atau payout buatan. Hasil selesai tidak dihitung ulang. Snapshot privat menyimpan paling banyak 200 ringkasan pembubaran: nama/bot, nilai poin, skor/stack/buy-in/contributed terakhir dan ledger hasil yang sudah dicatat; unfinished menandai angka yang belum settled. Ringkasan tidak memuat token, deck/tangan atau snapshot yang dapat direstore, dan tidak diterbitkan lewat directory/API/UI. Unduh rekap sebelum bubar jika perlu salinan pengguna. closedCodes dipertahankan tanpa retensi 200 tersebut.
+- Simpan seluruh DATA_DIR. Menghapus data privat atau rollback ke build lama dapat menghilangkan pencadangan kode; migrasi/rollback harus menjaga daftar closedCodes, bukan memulihkan room yang sudah dibubarkan dari backup lama. Tidak mengubah legacy Poker file; snapshot shared tetap canonical sehingga legacy tidak diimpor ulang ketika snapshot kosong dari room aktif.
+- Pemeriksaan default hanya sintaks/source dan preview dialog yang dibatalkan. Jangan mengklaim pembubaran multiplayer, penolakan nonhost, restart persistence atau failure injection sudah diuji jika belum diminta.

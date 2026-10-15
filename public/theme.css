@@ -1,0 +1,79 @@
+/* Shared browser preference. Native card, tile, piece and felt colors stay legible. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --mk-surface:#19382e; --mk-control:#102a22; --mk-hover:#294e3e;
+  --mk-ink:#f5efdf; --mk-muted:#b8c8b5; --mk-border:#728771;
+  --mk-accent:#e3c386; --mk-accent-ink:#193326; --mk-focus:#edc882;
+}
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg:#edf1e9; --panel:#fffef9; --panel-deep:#e2eadd; --card:#fffef9; --card2:#e7ede1;
+  --ink:#20362b; --text:#20362b; --paper:#20362b; --muted:#536650; --line:#b6c3af;
+  --gold:#79531b; --lime:#42642b; --green:#2d6c46; --green2:#23563a; --soft:#e2eadc;
+  --btn:#263e2f; --btn-ink:#fff; --primary:#2d704b; --primary-ink:#fff;
+  --mk-surface:#fffef9; --mk-control:#edf2e7; --mk-hover:#e0e9d8;
+  --mk-ink:#20362b; --mk-muted:#536650; --mk-border:#879a7d;
+  --mk-accent:#2c6644; --mk-accent-ink:#fff; --mk-focus:#2c6848;
+}
+html[data-theme] .mk-room-tools { position:relative; }
+html[data-theme] .mk-room-tools>details>summary { min-height:40px; padding-right:140px; }
+html[data-theme] .mk-theme-switch { position:absolute; right:16px; top:12px; z-index:1; display:flex; gap:2px; padding:3px; border:1px solid var(--mk-border); border-radius:10px; background:var(--mk-control); }
+html[data-theme] .mk-theme-switch button { appearance:none; display:block; width:57px; min-height:36px; padding:5px; margin:0; border:1px solid transparent; border-radius:7px; font:600 12px/1.4 system-ui,sans-serif; letter-spacing:0; background:transparent; color:var(--mk-ink); cursor:pointer; }
+html[data-theme] .mk-theme-switch button[aria-pressed="true"] { background:var(--mk-accent); color:var(--mk-accent-ink); border-color:var(--mk-accent); }
+html[data-theme] .mk-theme-switch button:focus-visible { outline:3px solid var(--mk-focus); outline-offset:2px; }
+html[data-theme] .mk-emoji-popover { background:var(--mk-surface); color:var(--mk-ink); border-color:var(--mk-border); }
+html[data-theme] .mk-emoji-popover button { background:var(--mk-control); color:var(--mk-ink); border-color:var(--mk-border); }
+html[data-theme] .mk-emoji-popover button:hover { background:var(--mk-hover); }
+html[data-theme] :is(.mk-panel form,#chat-form) .mk-emoji-toggle { background:var(--mk-control); color:var(--mk-ink); border-color:var(--mk-border); }
+html[data-theme] :is(.mk-panel form,#chat-form) .mk-emoji-toggle[aria-expanded="true"] { background:var(--mk-hover); border-color:var(--mk-accent); }
+html[data-theme] .mk-emoji-popover button:focus-visible,html[data-theme] .mk-emoji-toggle:focus-visible { outline:3px solid var(--mk-focus); outline-offset:2px; }
+html[data-theme="light"] body { background:var(--bg); color:var(--ink); }
+html[data-theme="light"] :is(.hubbar,.mk-room-tools,.mk-directory,.mk-room-card,.mk-session-dialog,.mk-session-notice,.mk-panel) { background:var(--mk-surface); color:var(--mk-ink); border-color:var(--line); }
+html[data-theme="light"] :is(.hubbar a,.mk-session-dialog h2,.mk-session-dialog p,.mk-session-dialog .mk-session-progress) { color:var(--mk-ink); }
+html[data-theme="light"] :is(.mk-tools-hint,.mk-room-note,.mk-preferences small,.mk-preferences legend,.mk-directory-note,#mk-profile-status,.mk-room-card small,.mk-session-dialog .mk-session-explain) { color:var(--mk-muted); }
+html[data-theme="light"] :is(.mk-tools-status,.mk-session-kicker,.mk-session-dialog .mk-session-kicker) { color:var(--gold); }
+html[data-theme="light"] .mk-session-dialog .mk-session-warning { color:#5f471f; background:#f4ead5; }
+html[data-theme="light"] :is(.mk-room-tools button,.mk-directory button,.mk-join-link,.mk-session-dialog button,.mk-session-notice button) { background:var(--mk-control); color:var(--mk-ink); border-color:var(--mk-border); }
+html[data-theme="light"] :is(.mk-room-tools .mk-next,.mk-session-dialog button[data-mk-session="continue"]) { background:var(--mk-accent); color:var(--mk-accent-ink); border-color:var(--mk-accent); }
+html[data-theme="light"] :is(.mk-profile input:not([type=file]),.mk-panel input,.mk-panel select) { background:var(--mk-control); color:var(--mk-ink); border-color:var(--mk-border); }
+html[data-theme="light"] :is(.mk-room-tools,.mk-directory,.mk-session-dialog) :is(button,input,a):focus-visible { outline-color:var(--mk-focus); }
+
+/* The landing page and the four originally dark-only games share these surfaces. */
+html[data-theme="light"] :is(.game-card,.join-card,.room-card,.settings-card,.seat,.chat-card,.history-card,.actions-card,.cheatsheet-card,.bot-control-card,.money-summary,.bt-hand,.finish-last-play,.result-banner,.matchup,.rankings,.revealed-player,.modal,.panel,.player-strip,.player,.status,.bj-entry,.bj-panel,.easy-tools,.update-notice) { background:var(--panel); color:var(--ink); border-color:var(--line); }
+html[data-theme="light"] :is(.seat.empty,.segments button,.rank-pills>*,.player-strip.active,.status.mine,.status.result,.money-table th,.rule-layout>div,.rules-example,.divider span,.move-row:nth-child(odd)) { background:var(--panel-deep); color:var(--ink); }
+html[data-theme="light"] :is(.header nav>a,.hero-copy>p,.hero-notes,.art-caption i,.art-label,.game-meta,.game-card p,.game-card-bottom>span,.how-section>div>p,.steps>li>span,.steps p,.closing p,footer>span,footer>a:last-child,.welcome>div>p,.room-help,.room-help span,.sample-caption,.fine-print,.hero-meta,label.field,.sidebar-note,.chat-message.system,.cheatsheet-body h3,.cheatsheet-card .panel-heading>span,.cheatsheet-reminder,.straight-cheatsheet p,.bot-level-note,.combo-preview-help,.money-summary-body p,.money-summary-body small,.money-table td small,.money-totals span,.money-example p,.money-example small,.round-money-callout p,.deal-preview p,.multi-turn-order,.update-notice p,.action-line small,.site-footer,.event-list p:first-child) { color:var(--muted); }
+html[data-theme="light"] :is(.room-link,.money-recap-sub,.money-status-note,.practice-note) { color:var(--muted)!important; }
+html[data-theme="light"] :is(.suit-ranking>span,.turn-banner b,.turn-clock,.turn-clock-number span,.turn-clock small,.opponent .score) { color:var(--ink); }
+html[data-theme="light"] :is(.suit-ranking>span.red-suit,.red-suit,.negative,.selection-line.invalid,.validation.invalid,.money-save-status.invalid) { color:#a33432; }
+html[data-theme="light"] .positive { color:#23603b; }
+html[data-theme="light"] label { color:var(--muted); }
+html[data-theme="light"] :is(.status p,.move-row>span,.chat-list .system-note,.chat-list p) { color:var(--muted); }
+html[data-theme="light"] :is(.avatar,.avatar.bot) { background:var(--mk-hover); color:var(--mk-ink); border-color:var(--mk-border); }
+html[data-theme="light"] .timeout-note { color:#8a4a13!important; }
+html[data-theme="light"] :is(input.field-input,.money-input-wrap input,.join-card select.create-mode,.setting-select,.draft-tools select) { background:var(--mk-control); color:var(--ink); border-color:var(--mk-border); }
+html[data-theme="light"] :is(input,select,textarea) { color:var(--ink); }
+html[data-theme="light"] :is(input,textarea)::placeholder { color:#60725b; opacity:1; }
+html[data-theme="light"] :is(.button,.header-button,.combo-preview) { color:var(--ink); border-color:var(--mk-border); }
+html[data-theme="light"] :is(.button.secondary,.button:not(.primary),.combo-preview,.straight-cheatsheet,.rank-strip,.turn-banner,.turn-banner.mine,.draw-offer) { background:var(--panel-deep); color:var(--ink); }
+html[data-theme="light"] :is(.button.primary,.hero-button,.segments button.active,.rank-pills>b,.combo-ranking li:first-child:before) { background:var(--mk-accent); color:var(--mk-accent-ink); border-color:var(--mk-accent); }
+html[data-theme="light"] :is(.button.primary,.hero-button):hover:not(:disabled) { background:#214e35; color:#fff; }
+html[data-theme="light"] .button.secondary:hover:not(:disabled) { background:#d6e2ce; }
+html[data-theme="light"] :is(.modal,dialog:not(.mk-session-dialog)) { background:var(--panel); color:var(--ink); border-color:var(--mk-border); }
+html[data-theme="light"] :is(.modal p,dialog p,dialog .cap) { color:var(--muted); }
+html[data-theme="light"] .bj-entry input,html[data-theme="light"] .bj-panel :is(input,select),html[data-theme="light"][data-mk-game="catur"] :is(input,select),html[data-theme="light"][data-mk-game="domino"] :is(input,select) { background:var(--mk-control); color:var(--ink); border-color:var(--mk-border); }
+html[data-theme="light"][data-mk-game="blackjack"] button:not(.mk-fold):not([data-mk-emoji]):not([data-mk-theme]):not(.primary) { background:var(--mk-control); color:var(--ink); border-color:var(--mk-border); }
+html[data-theme="light"][data-mk-game="blackjack"] button.primary { background:var(--mk-accent); color:#fff; }
+html[data-theme="light"] :is(.game-credit,#connection.online) { color:#345f3e; }
+/* Felt remains green in Light; text on it retains its own contrasting palette. */
+html[data-theme="light"] :is(.bt-table,.table-shell,.sample-table,#game .table,.domino-table,.bj-table,.bj-sample) { --ink:#f5efdf; --text:#f5efdf; --paper:#f5efdf; --muted:#c2d2b8; --gold:#e3c386; --line:#859979; color:#f5efdf; }
+html[data-theme="light"] :is(.bt-table,.domino-table,.bj-table) :is(.table-play-label,.table-play-detail,.empty-table h2,.empty-table p,.clockwise-note,.table-foot,.chain-number,.turn-clock) { color:#d5e1c7; }
+html[data-theme="light"] .bt-table :is(.table-seat-count,.table-seat-name,.table-seat-status) { color:#f5efdf; }
+html[data-theme="light"] .chat-form { border-color:var(--mk-border); }
+html[data-theme="light"] .chat-form input { color:#20362b; }
+html[data-theme="light"] .chat-form button[type="submit"] { background:var(--mk-accent); color:#fff; }
+@media(max-width:700px) {
+  html[data-theme] .mk-theme-switch { right:10px; top:10px; }
+  html[data-theme] .mk-theme-switch button { width:53px; min-height:44px; }
+  html[data-theme] .mk-room-tools>details>summary { min-height:50px; padding-right:123px; }
+  html[data-theme="light"] :is(.hand-actions,.action-panel:has(.action-buttons),.bj-panel:has(.bj-buttons),.play-controls .control-actions,.table>.actions:has(button)) { background:var(--mk-surface); color:var(--mk-ink); }
+}

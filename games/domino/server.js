@@ -41,7 +41,7 @@ function createDominoServer({ getAddresses = () => [] } = {}) {
     const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
     for (let length = 4; length <= 6; length++) for (let attempt = 0; attempt < 200; attempt++) {
       let code = ''; for (let i = 0; i < length; i++) code += alphabet[randomInt(alphabet.length)];
-      if (!rooms.has(code)) return code;
+      if (!(rooms.has(code)||hub?.hasCode(code))) return code;
     }
     throw new Error('Kode room sedang penuh. Coba lagi.');
   }
@@ -56,7 +56,7 @@ function createDominoServer({ getAddresses = () => [] } = {}) {
   const choices = (room,player) => player.hand.flatMap(tile => sides(room,tile).map(side => ({ tile,side })));
   function publicState(room,entity) {
     const current = room.players[room.turn], canAct = room.phase === 'playing' && ready(room) && !entity.spectator && current?.id === entity.id;
-    return { type:'state', code:room.code,settings:room.settings,ledger:room.ledger,phase:room.phase, seats:room.seats, fillBots:room.fillBots, round:room.round,
+    return { type:'state', code:room.code,settings:room.settings,ledger:room.ledger,phase:room.phase,quickComplete:room.settings.playMode==='quick'&&room.phase==='finished', seats:room.seats, fillBots:room.fillBots, round:room.round,
       matchId:room.matchId, revision:room.revision, you:entity.id, spectator:entity.spectator,
       hostId:hostFor(room)?.id || null, ready:ready(room), turnId:current?.id || null,
       players:room.players.map(p => ({ id:p.id, name:p.name, bot:p.bot, connected:p.connected, count:p.hand.length, wins:p.wins,score:p.score,

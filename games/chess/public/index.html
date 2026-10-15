@@ -1,12 +1,12 @@
 <!doctype html>
-<html lang="id">
+<html lang="id" data-theme="dark">
 <head>
 <script src="/room-client.js"></script><link rel="stylesheet" href="/room-ui.css">
-  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="theme-color" content="#163b30"><title>Catur · Meja Kita</title>
+  <meta charset="utf-8"><meta name="theme-color" content="#102e25"><meta name="color-scheme" content="dark light"><script src="/theme.js"></script><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Catur · Meja Kita</title>
   <link rel="icon" href="/favicon.svg"><script src="/game-tools.js"></script><link rel="stylesheet" href="/hub-game.css"><link rel="stylesheet" href="/catur/style.css">
   <script src="/hub-game.js" defer></script><script src="/catur/pieces.js" defer></script><script src="/catur/client.js" defer></script>
-</head>
+<link rel="stylesheet" href="/theme.css"></head>
 <body>
   <nav class="hubbar" aria-label="Pilihan permainan"><a href="/" data-hub-home>← Pilih game</a><span>MEJA KITA</span></nav>
   <header class="site-header"><a class="brand" href="/catur/"><span class="brand-mark">♞</span><span>Catur <small>MEJA KITA</small></span></a><nav><span id="connection" role="status">Menyambungkan…</span><button class="button ghost small" id="rules-button">Cara main ↗</button></nav></header>
@@ -14,7 +14,7 @@
   <div id="toast" role="status" aria-live="polite"></div>
   <dialog id="promotion"><span class="eyebrow">PROMOSI PION</span><h2>Mau jadi bidak apa?</h2><p>Pilih pengganti pionmu.</p><div id="promotion-choices" class="promotion-choices"></div><button class="button ghost" data-close-dialog>Batal</button></dialog>
   <dialog id="confirm-dialog"><span class="eyebrow">SEBENTAR DULU</span><h2 id="confirm-title"></h2><p id="confirm-copy"></p><div class="button-row"><button class="button ghost" data-close-dialog>Batal</button><button class="button primary" id="confirm-action">Lanjutkan</button></div></dialog>
-  <dialog id="rules-dialog"><span class="eyebrow">64 PETAK. BANYAK KEMUNGKINAN.</span><h2>Satu langkah dulu.</h2><p>Putih mulai, lalu bergantian. Klik bidakmu dan pilih petak tujuan bertanda titik. Tujuannya membuat raja lawan skakmat.</p><div id="piece-guide" class="piece-guide"></div><h3>Langkah khusus</h3><p><b>Rokade:</b> pilih raja, lalu petak dua langkah ke arah benteng. Keduanya belum pernah bergerak, jalur kosong, dan raja tidak melewati skak.</p><p><b>En passant:</b> pion dapat mengambil pion lawan yang baru maju dua petak di sebelahnya, pada giliran berikutnya.</p><p><b>Promosi:</b> pion yang mencapai baris terakhir menjadi menteri, benteng, gajah, atau kuda.</p><p><b>Remis:</b> stalemate, materi tidak cukup, pengulangan posisi tiga kali, 50 langkah tanpa pion maju atau tangkapan, atau kesepakatan pemain.</p><p>Tanpa timer. Kalau pemain terputus, papan dijeda sampai ia kembali. Bot latihan menunggu 3 detik sebelum melangkah.</p><button class="button primary" data-close-dialog>Siap main</button></dialog>
-  <footer>CATUR · TANPA TIMER · PUTIH MELANGKAH DULU</footer>
+  <dialog id="rules-dialog"><span class="eyebrow">64 PETAK. BANYAK KEMUNGKINAN.</span><h2>Satu langkah dulu.</h2><p>Putih mulai, lalu bergantian. Klik bidakmu dan pilih petak tujuan bertanda titik. Tujuannya membuat raja lawan skakmat.</p><div id="piece-guide" class="piece-guide"></div><h3>Langkah khusus</h3><p><b>Rokade:</b> pilih raja, lalu petak dua langkah ke arah benteng. Keduanya belum pernah bergerak, jalur kosong, dan raja tidak melewati skak.</p><p><b>En passant:</b> pion dapat mengambil pion lawan yang baru maju dua petak di sebelahnya, pada giliran berikutnya.</p><p><b>Promosi:</b> pion yang mencapai baris terakhir menjadi menteri, benteng, gajah, atau kuda.</p><p><b>Remis:</b> stalemate, materi tidak cukup, pengulangan posisi tiga kali, 50 langkah tanpa pion maju atau tangkapan, atau kesepakatan pemain.</p><p>Pilih Santai tanpa jam, Blitz 5+0 (5 menit per pemain), atau Blitz 3+2 (3 menit, tambah 2 detik setiap langkah sah) di lobby. Waktu habis berarti kalah; remis jika lawan hanya punya raja atau posisi bermateri tidak cukup. Ini aturan meja santai. Kalau pemain terputus, papan dan jam dijeda sampai ia kembali; sesi recovery menunggu host melanjutkan. Bot latihan menunggu minimal 3 detik dan memakai jamnya sendiri.</p><button class="button primary" data-close-dialog>Siap main</button></dialog>
+  <footer>CATUR · SANTAI / BLITZ · PUTIH MELANGKAH DULU</footer>
 </body>
 </html>

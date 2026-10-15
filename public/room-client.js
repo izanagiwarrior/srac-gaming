@@ -7,6 +7,7 @@
   const defaults={sound:false,volume:.35,reduced:matchMedia('(prefers-reduced-motion: reduce)').matches};
   let prefs={...defaults,...read('mejakita.preferences',{})},profile=read('mejakita.profile',{name:''}),seats=read('mejakita.saved-seats',{}),meta=null,sender=null,ownSeat=null,previous=null,context=null,unlocked=false;
   let toolbar,details,body,status,tickQueued=false,lastMotion=false,folds=read('mejakita.panel-folds',{});
+  let dissolveDialog=null,dissolveChoice=null,dissolveBusy=false,dissolveWait=null;
   const initialRoom=(new URLSearchParams(location.search).get('room')||'').trim().toUpperCase();
   let sessionSeat=null,sessionOnline=false,sessionAttached=false,sessionOpened=false,sessionEntry=null,sessionChoice=null,sessionDialog=null,sessionNotice=null,resuming=false,sessionWait=null;
   const money=n=>new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(n||0);
@@ -20,7 +21,7 @@
     if(sessionChoice&&!sessionChoice.action){renderSession();return;}
     if(sessionSeat)resumeSession();else renderSession();
   }
-  function sessionDisconnected(){window.MejaTools?.clearEmotes(true);sessionOnline=false;sessionAttached=false;resuming=false;clearTimeout(sessionWait);renderSession();}
+  function sessionDisconnected(){if(dissolveBusy){dissolveBusy=false;clearTimeout(dissolveWait);dissolveFeedback('Koneksi terputus. Menunggu status room saat tersambung kembali.');}window.MejaTools?.clearEmotes(true);sessionOnline=false;sessionAttached=false;resuming=false;clearTimeout(sessionWait);renderSession();}
   function askSession(target=''){
     if(!sessionSeat)return;
     sessionChoice={code:sessionSeat.code,target:String(target||'').trim().toUpperCase(),action:null,phase:'prompt',error:''};
@@ -81,7 +82,8 @@
     if(message.type==='left'){
       const target=sessionChoice?.target||'',switched=sessionChoice?.action==='leave';
       forgetSeat(sessionSeat||ownSeat);sessionSeat=null;sessionAttached=false;resuming=false;finishChoice();
-      if(switched)returnToEntry(target,target?'Sudah keluar dari room lama. Klik Gabung untuk masuk room '+target+'.':'Sudah keluar dari sesi lama. Kamu bisa bergabung atau membuat room baru.');
+      if(message.dissolved)returnToEntry(target&&target!==message.code?target:'',message.message||'Room dibubarkan oleh host. Silakan buat atau gabung room lain.');
+      else if(switched)returnToEntry(target,target?'Sudah keluar dari room lama. Klik Gabung untuk masuk room '+target+'.':'Sudah keluar dari sesi lama. Kamu bisa bergabung atau membuat room baru.');
     }
     if(message.type==='replaced'){
       // A second tab now owns the socket. Do not send a delayed leave from this tab.
@@ -90,7 +92,7 @@
     if(message.type==='error'&&(resuming||sessionChoice?.phase==='leave')){
       resuming=false;
       if(message.sessionUnavailable){
-        const target=sessionChoice?.target||initialRoom;forgetSeat(sessionSeat);sessionSeat=null;sessionAttached=false;finishChoice();meta=null;ownSeat=null;previous=null;renderControls();returnToEntry(target,'Sesi lama sudah tidak tersedia. Masukkan kode room untuk bergabung kembali.');
+        const target=message.dissolved?(sessionChoice?.target&&sessionChoice.target!==message.code?sessionChoice.target:''):sessionChoice?.target||initialRoom;forgetSeat(sessionSeat);sessionSeat=null;sessionAttached=false;finishChoice();meta=null;ownSeat=null;previous=null;renderControls();returnToEntry(target,'Sesi lama sudah tidak tersedia. Masukkan kode room untuk bergabung kembali.');
       }else{
         // Rate limits, version errors and transient failures do not prove the seat expired.
         sessionError(message.message||message.msg||'Sesi belum bisa dibuka. Coba lagi.');return true;
@@ -104,6 +106,32 @@
     if(['resume','rejoin'].includes(message.type)){sessionSeat={code:message.code,token:message.token};resuming=true;return true;}
     if(sessionChoice&&!['leave'].includes(message.type))return false;
     return true;
+  }
+  function dissolveFeedback(text){
+    if(!dissolveDialog)return;
+    dissolveDialog.querySelector('[data-mk-dissolve-status]').textContent=text;
+    for(const button of dissolveDialog.querySelectorAll('button'))button.disabled=dissolveBusy;
+  }
+  function closeDissolve(){clearTimeout(dissolveWait);dissolveBusy=false;dissolveChoice=null;if(dissolveDialog?.open)dissolveDialog.close();}
+  function openDissolve(){
+    if(!meta?.host||!sessionOnline||!sessionAttached)return announce('Hanya host yang terhubung dapat membubarkan ruang.');
+    if(!dissolveDialog){
+      dissolveDialog=document.createElement('dialog');dissolveDialog.className='mk-session-dialog mk-dissolve-dialog';dissolveDialog.setAttribute('aria-labelledby','mk-dissolve-title');
+      dissolveDialog.innerHTML='<div class="mk-session-kicker">KONTROL HOST</div><h2 id="mk-dissolve-title">Bubarkan ruang?</h2><p data-mk-dissolve-room></p><p>Semua pemain dan penonton akan kembali ke halaman masuk. Kode dan file pemulihan room ini tidak bisa dipakai lagi.</p><p class="mk-session-warning">Ronde yang masih berjalan dibatalkan tanpa menghitung hasil baru. Unduh rekap yang kamu perlukan sebelum membubarkan ruang.</p><p data-mk-dissolve-status role="status" aria-live="polite"></p><div class="mk-session-actions"><button type="button" data-mk-dissolve="cancel" autofocus>Batal · tetap main</button><button type="button" class="mk-danger" data-mk-dissolve="confirm">Ya, bubarkan ruang</button></div>';
+      document.body.append(dissolveDialog);
+      dissolveDialog.addEventListener('keydown',e=>{if(e.key==='Escape')e.stopPropagation();});
+      dissolveDialog.addEventListener('cancel',e=>{e.stopPropagation();if(dissolveBusy)e.preventDefault();else closeDissolve();});
+      dissolveDialog.addEventListener('close',()=>{if(!dissolveBusy)dissolveChoice=null;});
+      dissolveDialog.addEventListener('click',e=>{const action=e.target.closest('[data-mk-dissolve]')?.dataset.mkDissolve;if(!action||dissolveBusy)return;
+        if(action==='cancel'){closeDissolve();body?.querySelector('[data-mk-room="dissolve"]')?.focus({preventScroll:true});return;}
+        if(!meta?.host||!sessionAttached||!sessionOnline||meta.code!==dissolveChoice?.code||meta.roomId!==dissolveChoice?.roomId){closeDissolve();announce('Room atau hak host sudah berubah. Buka kembali kontrol terbaru.');return;}
+        if(command({type:'hub-dissolve',confirm:true,...dissolveChoice})===false){dissolveFeedback('Belum terkirim. Tunggu koneksi atau aksi sebelumnya selesai, lalu coba lagi.');return;}
+        dissolveBusy=true;dissolveFeedback('Menunggu konfirmasi pembubaran dari server…');
+        dissolveWait=setTimeout(()=>{dissolveBusy=false;dissolveFeedback('Belum ada balasan. Sesi belum dihapus di perangkat ini. Tunggu koneksi atau coba lagi.');},10000);
+      });
+    }
+    dissolveChoice={code:meta.code,roomId:meta.roomId};dissolveBusy=false;dissolveDialog.querySelector('[data-mk-dissolve-room]').textContent='Room '+meta.code+' akan dibubarkan untuk semua orang.';dissolveFeedback('Tindakan ini tidak dapat dibatalkan.');
+    if(!dissolveDialog.open)dissolveDialog.showModal();
   }
   function name(fallback=''){return profile.name||fallback;}
   function remember(value){const clean=String(value||'').replace(/[\u0000-\u001f<>]/g,'').trim().slice(0,24);if(clean){profile={name:clean};write('mejakita.profile',profile);}return clean;}
@@ -122,6 +150,7 @@
       if(action==='copy'){navigator.clipboard?.writeText(location.origin+'/'+slug+'/?room='+meta.code).then(()=>announce('Link undangan tersalin.')).catch(()=>announce(location.origin+'/'+slug+'/?room='+meta.code));return;}
       if(action==='backup'){downloadRecovery();return;}
       if(action==='switch'){askSession('');return;}
+      if(action==='dissolve'){openDissolve();return;}
       if(action==='lock')command({type:'hub-lock',locked:!meta.locked});
       if(action==='queue')command({type:'hub-queue',enabled:!meta.queued});
       if(action==='yield')command({type:'hub-yield',enabled:!meta.yielding});
@@ -130,19 +159,30 @@
     });
   }
   function announce(text){if(status)status.textContent=text;}
-  function command(message){if(!sender||sender(message)===false)announce('Tunggu koneksi atau aksi sebelumnya selesai.');}
+  function command(message){if(!sender||sender(message)===false){announce('Tunggu koneksi atau aksi sebelumnya selesai.');return false;}return true;}
   function renderControls(){if(!toolbar)return;toolbar.querySelector('[data-mk-summary]').textContent=meta?'Meja '+meta.code+(meta.locked?' · terkunci':''):'Meja & preferensi';
     document.documentElement.dataset.mkRecovering=String(!!meta?.recovering);
+    if(dissolveChoice&&(!meta?.host||meta.code!==dissolveChoice.code||meta.roomId!==dissolveChoice.roomId))closeDissolve();
     if(!meta){body.replaceChildren();return;}
     const preserved=body.querySelector(':focus')?.dataset.mkRoom;
-    body.innerHTML=`${meta.recovering?`<div class="mk-recovery"><b>Sesi tersimpan berhasil dipulihkan · dijeda</b><p>Kartu, giliran dan saldo disimpan. ${meta.missing.length?'Menunggu '+esc(meta.missing.join(', '))+' kembali.':'Semua pemain sudah kembali.'}</p>${meta.host?`<button data-mk-room="resume" ${meta.missing.length?'disabled':''}>Lanjutkan sesi</button>`:'<p>Host akan melanjutkan setelah semua pemain kembali.</p>'}</div>`:''}<div class="mk-room-row"><span>${meta.spectator?'Kamu menonton':'Kamu punya kursi'} · ${meta.saveError?'⚠ Penyimpanan bermasalah, hubungi host':meta.savedAt?'Tersimpan '+new Date(meta.savedAt).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'}):'Menyiapkan save…'}</span><button data-mk-room="copy">Salin undangan ↗</button><button data-mk-room="backup">Simpan file pemulihan ↓</button><button data-mk-room="switch">Keluar / ganti room</button>${meta.host?`<button data-mk-room="lock">${meta.locked?'Buka akses room':'Kunci room'}</button>`:''}</div><p class="mk-room-note">File pemulihan bersifat pribadi untuk mengambil kembali kursimu, termasuk jika link Cloudflare berubah. Bagikan link undangan untuk teman.</p><div class="mk-room-row">${meta.spectator?`<button data-mk-room="queue">${meta.queued?'Batalkan antrean':'Antre kursi ronde berikutnya'}</button>`:`<button data-mk-room="yield">${meta.yielding?'Tetap pegang kursi':'Beri kursi ronde berikutnya'}</button>`}${meta.canNext?'<button class="mk-next" data-mk-room="next">Main lagi & rotasi ↻</button>':''}</div><p class="mk-room-note">${meta.yielding?'Kamu memberi kursi bila ada penonton yang antre. Saldo tetap tercatat. ':''}${meta.queue.length?'Antrean: '+meta.queue.map((p,i)=>`${i+1}. ${esc(p.name)}${p.you?' (kamu)':''}${!p.connected?' · offline':''}`).join(' · '):'Belum ada antrean.'} Penonton menggantikan bot atau kursi yang diberikan saat ronde selesai.</p>${meta.bank.length?`<details class="mk-retired"><summary>Saldo pemain di luar kursi (${meta.bank.length})</summary>${meta.bank.map(p=>`<p>${esc(p.name)}${p.bot?' · bot':''} <b>${p.points>0?'+':''}${p.points} · ${money(p.net)}</b></p>`).join('')}</details>`:''}`;
+    body.innerHTML=`${meta.recovering?`<div class="mk-recovery"><b>Sesi tersimpan berhasil dipulihkan · dijeda</b><p>Kartu, giliran dan saldo disimpan. ${meta.missing.length?'Menunggu '+esc(meta.missing.join(', '))+' kembali.':'Semua pemain sudah kembali.'}</p>${meta.host?`<button data-mk-room="resume" ${meta.missing.length?'disabled':''}>Lanjutkan sesi</button>`:'<p>Host akan melanjutkan setelah semua pemain kembali.</p>'}</div>`:''}<div class="mk-room-row"><span>${meta.spectator?'Kamu menonton':'Kamu punya kursi'} · ${meta.saveError?'⚠ Penyimpanan bermasalah, hubungi host':meta.savedAt?'Tersimpan '+new Date(meta.savedAt).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'}):'Menyiapkan save…'}</span><button data-mk-room="copy">Salin undangan ↗</button><button data-mk-room="backup">Simpan file pemulihan ↓</button><button data-mk-room="switch">Keluar / ganti room</button>${meta.host?`<button data-mk-room="lock">${meta.locked?'Buka akses room':'Kunci room'}</button><button type="button" class="mk-danger" data-mk-room="dissolve">Bubarkan ruang</button>`:''}</div><p class="mk-room-note">File pemulihan bersifat pribadi untuk mengambil kembali kursimu, termasuk jika link Cloudflare berubah. Bagikan link undangan untuk teman.</p><div class="mk-room-row">${meta.spectator?`<button data-mk-room="queue">${meta.queued?'Batalkan antrean':'Antre kursi ronde berikutnya'}</button>`:`<button data-mk-room="yield">${meta.yielding?'Tetap pegang kursi':'Beri kursi ronde berikutnya'}</button>`}${meta.canNext?'<button class="mk-next" data-mk-room="next">Main lagi & rotasi ↻</button>':''}</div><p class="mk-room-note">${meta.yielding?'Kamu memberi kursi bila ada penonton yang antre. Saldo tetap tercatat. ':''}${meta.queue.length?'Antrean: '+meta.queue.map((p,i)=>`${i+1}. ${esc(p.name)}${p.you?' (kamu)':''}${!p.connected?' · offline':''}`).join(' · '):'Belum ada antrean.'} Penonton menggantikan bot atau kursi yang diberikan saat ronde selesai.</p>${meta.bank.length?`<details class="mk-retired"><summary>Saldo pemain di luar kursi (${meta.bank.length})</summary>${meta.bank.map(p=>`<p>${esc(p.name)}${p.bot?' · bot':''} <b>${p.points>0?'+':''}${p.points} · ${money(p.net)}</b></p>`).join('')}</details>`:''}`;
     if(preserved)body.querySelector('[data-mk-room="'+CSS.escape(preserved)+'"]')?.focus({preventScroll:true});
     if(meta.recovering||meta.canNext||meta.queued||meta.saveError)details.open=true;
     toolbar.classList.toggle('mk-save-error',!!meta.saveError);
   }
   let lastEmoteAt=0;
   function emote(text){if(!sender||!sessionOnline||!meta?.code||sessionChoice||!window.MejaTools?.isEmote(text)||Date.now()-lastEmoteAt<900)return false;const sent=sender({type:'chat',text,emoji:true});if(sent!==false)lastEmoteAt=Date.now();return sent;}
-  function receive(message,send){sender=send;window.MejaTools?.receiveEmotes(message);if(sessionMessage(message))return true;if(message.type==='joined'&&message.token){ownSeat={format:1,game:slug,code:message.code,token:message.token,name:profile.name,time:Date.now()};seats=read('mejakita.saved-seats',{});seats[slug]||={};seats[slug][message.code]=ownSeat;write('mejakita.saved-seats',seats);}
+  function receive(message,send){sender=send;
+    if(message.type==='room-dissolved'||message.type==='error'&&message.dissolved&&message.sessionUnavailable){
+      const code=meta?.code||sessionSeat?.code||ownSeat?.code;
+      if(message.code!==code)return true;
+      closeDissolve();window.MejaTools?.clearEmotes(true);
+      for(const dialog of document.querySelectorAll('dialog[open]'))dialog.close();
+      seats=read('mejakita.saved-seats',{});if(seats[slug])delete seats[slug][message.code];write('mejakita.saved-seats',seats);
+      message.type='left';message.dissolved=true;
+    }
+    if(message.type==='error'&&message.action==='hub-dissolve'){clearTimeout(dissolveWait);dissolveBusy=false;dissolveFeedback(message.message||message.msg||'Room belum dibubarkan.');}
+    window.MejaTools?.receiveEmotes(message);if(sessionMessage(message))return true;if(message.type==='joined'&&message.token){ownSeat={format:1,game:slug,code:message.code,token:message.token,name:profile.name,time:Date.now()};seats=read('mejakita.saved-seats',{});seats[slug]||={};seats[slug][message.code]=ownSeat;write('mejakita.saved-seats',seats);}
     if(message.type==='left'){meta=null;ownSeat=null;previous=null;renderControls();return;}
     if(message.hub){const changed=JSON.stringify(meta)!==JSON.stringify(message.hub);meta=message.hub;if(changed)renderControls();}
     if(message.type==='chat'){const m=message.msg;if(previous&&m?.from&&m.from!==profile.name)tone('chat');return;}

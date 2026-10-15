@@ -159,6 +159,7 @@
   }
   document.addEventListener('visibilitychange',()=>{if(document.hidden)clearFeedback();});
   document.addEventListener('meja-preferences',()=>clearFeedback());
+  document.addEventListener('meja-theme',()=>clearFeedback());
   addEventListener('resize',()=>{queueEmotePosition();queueFloatingPosition();queueEmojiMenu();});
   addEventListener('scroll',()=>{queueEmotePosition();queueFloatingPosition();queueEmojiMenu();},{passive:true,capture:true});
   let current = {}, draft = '';
@@ -182,9 +183,14 @@
     if (slug === 'blackjack') return `<div class="mk-cards">${parseCards('As Kh').map(card).join('')}<strong>= 21</strong></div><div class="mk-rule-list"><p><b>A</b> = 1 atau 11 · <b>J/Q/K</b> = 10</p><p><b>Hit</b> ambil · <b>Stand</b> cukup</p><p><b>Double</b> gandakan taruhan chip, ambil 1 kartu</p><p><b>Split</b> pisahkan pair menjadi 2 tangan</p></div><p class="mk-note">Semua melawan dealer. Dealer stand pada 17 termasuk soft 17. Blackjack 2 kartu membayar 3:2; menang biasa 1:1; seri kembali. Split sekali; split A hanya 1 tambahan. Chip dan rupiah hanya pencatatan permainan.</p>`;
     return '';
   }
+  function durationSettings(slug,s,disabled) {
+    if(slug==='catur')return `<label>Mode main<select data-mk-clock-mode ${disabled}>${[['casual','Santai · tanpa jam'],['blitz5','Quick Play · Blitz 5+0'],['blitz3plus2','Blitz 3+2 · tambah 2 detik/langkah']].map(([value,label])=>`<option value="${value}" ${(s.clockMode||'casual')===value?'selected':''}>${label}</option>`).join('')}</select></label><p class="mk-note">Blitz: waktu per pemain, dihitung server. Jam dijeda saat pemain terputus atau sesi dipulihkan. Pilihan terkunci sejak mulai.</p>`;
+    if(['domino','blackjack'].includes(slug))return `<label>Durasi permainan<select data-mk-play-mode ${disabled}>${[['standard','Santai · ronde bebas'],['quick','Quick Play · 1 ronde']].map(([value,label])=>`<option value="${value}" ${(s.playMode||'standard')===value?'selected':''}>${label}</option>`).join('')}</select></label><p class="mk-note">${s.playMode==='quick'?'Satu ronde lalu tampil rekap selesai. Quick Play baru harus dimulai lagi secara eksplisit; saldo tetap tercatat.':'Setiap ronde selesai sebelum host/pemain memilih main lagi.'}</p>`;
+    return '';
+  }
   function settings(data) {
     const s=data.settings || {}, disabled=data.host && data.lobby ? '' : 'disabled';
-    return `<section class="mk-panel"><h3>Pengaturan meja</h3><label>Nilai 1 ${data.unit || 'poin'} dalam rupiah<input data-mk-rate type="number" min="0" max="1000000" step="1" value="${s.pointValue || 0}" ${disabled}></label><label>Tingkat bot<select data-mk-level ${disabled}>${[['easy','Easy'],['normal','Normal'],['hard','Hard']].map(([value,name])=>`<option value="${value}" ${s.botLevel===value?'selected':''}>${name}</option>`).join('')}</select></label><small>0 = latihan. Otomatis tersimpan sebelum mulai; terkunci saat permainan berjalan. Semua bot jeda minimal 3 detik.</small>${data.formula ? `<p class="mk-note">${esc(data.formula)}</p>` : ''}</section>`;
+    return `<section class="mk-panel"><h3>Pengaturan meja</h3>${durationSettings(data.slug,s,disabled)}<label>Nilai 1 ${data.unit || 'poin'} dalam rupiah<input data-mk-rate type="number" min="0" max="1000000" step="1" value="${s.pointValue || 0}" ${disabled}></label><label>Tingkat bot<select data-mk-level ${disabled}>${[['easy','Easy'],['normal','Normal'],['hard','Hard']].map(([value,name])=>`<option value="${value}" ${s.botLevel===value?'selected':''}>${name}</option>`).join('')}</select></label><small>0 = latihan. Otomatis tersimpan sebelum mulai; terkunci saat permainan berjalan. Semua bot jeda minimal 3 detik.</small>${data.formula ? `<p class="mk-note">${esc(data.formula)}</p>` : ''}</section>`;
   }
   function recap(data) {
     return `<section class="mk-panel" data-mk-recap><div class="mk-heading"><h3>Rekap poin & rupiah</h3><button type="button" data-mk-csv>CSV ↓</button></div><p class="mk-note">1 ${data.unit || 'poin'} = ${idr(data.rate)} · nilai simulasi</p><div class="mk-balances">${(data.players || []).map(p=>`<div><span>${esc(p.name)}${p.outside?' · di luar kursi':''}${p.bot&&!/(?:[·(]\s*bot\)?)$/i.test(String(p.name))?' · bot':''}${p.totalBuyIn!==undefined?'<small>Stack '+Number(p.stack).toLocaleString('id-ID')+' · bought '+Number(p.totalBuyIn).toLocaleString('id-ID')+'</small>':''}</span><b>${Number(p.score || 0).toLocaleString('id-ID')}<small>${idr(p.net ?? (p.score || 0)*data.rate)}</small></b></div>`).join('')}</div>${data.recapExtra || ''}</section>`;
@@ -195,7 +201,7 @@
     const previous=visibleSidebar(),active=document.activeElement;
     const old=previous?.querySelector('.mk-chat'),top=old?.scrollTop||0,bottom=!old||old.scrollHeight-old.scrollTop-old.clientHeight<30;
     const scrolls={sidebar:previous?.scrollTop||0,cheat:previous?.querySelector('.mk-cheat')?.scrollTop||0,log:previous?.querySelector('.mk-log')?.scrollTop||0};
-    const focusSelector=active?.matches('#mk-chat-input')?'#mk-chat-input':active?.matches('[data-mk-rate]')?'[data-mk-rate]':active?.matches('[data-mk-level]')?'[data-mk-level]':null;
+    const focusSelector=active?.matches('#mk-chat-input')?'#mk-chat-input':active?.matches('[data-mk-rate]')?'[data-mk-rate]':active?.matches('[data-mk-level]')?'[data-mk-level]':active?.matches('[data-mk-play-mode]')?'[data-mk-play-mode]':active?.matches('[data-mk-clock-mode]')?'[data-mk-clock-mode]':null;
     const focus=focusSelector?{selector:focusSelector,value:active.value,start:active.selectionStart,end:active.selectionEnd}:null;
     queueMicrotask(()=>{
       const next=visibleSidebar();if(!next)return;
@@ -208,7 +214,7 @@
       if(input&&!input.disabled){input.value=focus.value;input.focus({preventScroll:true});if(typeof focus.start==='number')try{input.setSelectionRange(focus.start,focus.end);}catch{}}
     });
     current={...data,slug};
-    return `<aside class="mk-sidebar" aria-label="Panel meja"><section class="mk-panel"><h3>Chat meja</h3><div class="mk-chat" role="log">${(data.chat || []).map(m=>`<p${m.emoji?' class="mk-chat-emoji"':''}>${m.name ? `<b>${esc(m.name)}</b> ` : ''}${esc(m.text)}</p>`).join('') || '<p class="mk-note">Sapa temanmu di meja.</p>'}</div><form data-mk-chat><input id="mk-chat-input" aria-label="Pesan chat" maxlength="200" placeholder="Ngobrol dulu…" value="${esc(draft)}" ${data.connected===false?'disabled':''}>${emojiPicker(data)}<button type="submit">Kirim</button></form></section><section class="mk-panel"><h3>Cheat sheet</h3><div class="mk-cheat">${data.cheat || cheat(slug)}</div></section>${data.extra || ''}${recap(data)}<section class="mk-panel"><h3>Log permainan</h3><div class="mk-log" role="log">${(data.log || []).slice(-80).reverse().map(m=>`<p>${esc(typeof m==='string'?m:m.text || m.t)}</p>`).join('') || '<p class="mk-note">Belum ada langkah.</p>'}</div></section>${data.settings ? settings(data) : ''}</aside>`;
+    return `<aside class="mk-sidebar" aria-label="Panel meja"><section class="mk-panel"><h3>Chat meja</h3><div class="mk-chat" role="log">${(data.chat || []).map(m=>`<p${m.emoji?' class="mk-chat-emoji"':''}>${m.name ? `<b>${esc(m.name)}</b> ` : ''}${esc(m.text)}</p>`).join('') || '<p class="mk-note">Sapa temanmu di meja.</p>'}</div><form data-mk-chat><input id="mk-chat-input" aria-label="Pesan chat" maxlength="200" placeholder="Ngobrol dulu…" value="${esc(draft)}" ${data.connected===false?'disabled':''}>${emojiPicker(data)}<button type="submit">Kirim</button></form></section><section class="mk-panel"><h3>Cheat sheet</h3><div class="mk-cheat">${data.cheat || cheat(slug)}</div></section>${data.extra || ''}${recap(data)}<section class="mk-panel"><h3>Log permainan</h3><div class="mk-log" role="log">${(data.log || []).slice(-80).reverse().map(m=>`<p>${esc(typeof m==='string'?m:m.text || m.t)}</p>`).join('') || '<p class="mk-note">Belum ada langkah.</p>'}</div></section>${data.settings ? settings({...data,slug}) : ''}</aside>`;
   }
   function exportCSV(data=current) {
     const rows=[['Game',data.slug],['IDR per '+(data.unit || 'poin'),data.rate],[],['Pemain','Poin / chip net','Rupiah simulasi','Stack chip','Bought chips','Dalam pot'],...(data.players || []).map(p=>[p.name,p.score || 0,p.net ?? (p.score || 0)*data.rate,p.stack ?? '',p.totalBuyIn ?? '',p.contributed ?? ''])];
@@ -219,7 +225,7 @@
   }
   document.addEventListener('input',event=>{if(event.target.id==='mk-chat-input')draft=event.target.value;});
   document.addEventListener('submit',event=>{if(!event.target.matches('[data-mk-chat]'))return;event.preventDefault();if(draft.trim()&&current.onChat?.(draft.trim())!==false){draft='';event.target.querySelector('input').value='';}});
-  document.addEventListener('change',event=>{if(event.target.matches('[data-mk-rate],[data-mk-level]')){const panel=event.target.closest('.mk-panel');current.onSettings?.({pointValue:Number(panel.querySelector('[data-mk-rate]').value),botLevel:panel.querySelector('[data-mk-level]').value});}});
+  document.addEventListener('change',event=>{if(event.target.matches('[data-mk-rate],[data-mk-level],[data-mk-play-mode],[data-mk-clock-mode]')){current.onSettings?.(readSettings(event.target.closest('.mk-panel')));}});
   document.addEventListener('click',event=>{
     const toggle=event.target.closest('[data-mk-emoji-toggle]');if(toggle){if(!toggle.disabled)openEmojiMenu();return;}
     if(event.target.closest('[data-mk-emoji-close]')){closeEmojiMenu('toggle');return;}
@@ -230,6 +236,6 @@
   document.addEventListener('keydown',event=>{if(event.key==='Escape'&&emojiMenu){event.preventDefault();event.stopImmediatePropagation();closeEmojiMenu('toggle');}});
   document.addEventListener('focusin',event=>{if(emojiMenu&&!emojiMenu.contains(event.target)&&!event.target.closest('[data-mk-emoji-toggle]'))closeEmojiMenu();});
   document.addEventListener('DOMContentLoaded',()=>{const slug=location.pathname.split('/')[1];const credit=document.querySelector('.hubbar>span');if(credit&&creators[slug])credit.textContent='Creator: '+creators[slug]+' · MEJA KITA';});
-  function readSettings(){const rate=document.querySelector('[data-mk-rate]'),level=document.querySelector('[data-mk-level]');return rate&&level?{pointValue:Number(rate.value),botLevel:level.value}:{};}
+  function readSettings(scope=document){const rate=scope.querySelector('[data-mk-rate]'),level=scope.querySelector('[data-mk-level]'),play=scope.querySelector('[data-mk-play-mode]'),clock=scope.querySelector('[data-mk-clock-mode]');return rate&&level?{pointValue:Number(rate.value),botLevel:level.value,...(play?{playMode:play.value}:{}),...(clock?{clockMode:clock.value}:{})}:{};}
   window.MejaTools={emojiBar,emojiPicker,isEmote,receiveEmotes,clearEmotes:clearFeedback,sidebar,settings,recap,cheat,card,esc,idr,creators,exportCSV,readSettings};
 })();

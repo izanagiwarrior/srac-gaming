@@ -12,15 +12,15 @@ function createBlackjackServer({getAddresses=()=>[]}={}){
   const all=r=>[...r.players,...r.spectators];
   const host=r=>r.players.find(p=>!p.bot&&p.connected)||r.players.find(p=>!p.bot);
   function person(name,bot=false,spectator=false){return {id:randomUUID(),token:bot?null:randomUUID(),name:clean(name),bot,spectator,connected:bot,ws:null,stack:0,totalBuyIn:0,bet:null,hands:[],handIndex:0};}
-  function code(){const chars='ABCDEFGHJKLMNPQRSTUVWXYZ';for(let i=0;i<200;i++){let s='';for(let j=0;j<4;j++)s+=chars[randomInt(chars.length)];if(!rooms.has(s))return s;}throw Error('Room penuh.');}
-  function config(input={},previous={pointValue:0,botLevel:'normal',seats:4,bots:1,buyIn:1000,minBet:10}){
+  function code(){const chars='ABCDEFGHJKLMNPQRSTUVWXYZ';for(let i=0;i<200;i++){let s='';for(let j=0;j<4;j++)s+=chars[randomInt(chars.length)];if(!(rooms.has(s)||hub?.hasCode(s)))return s;}throw Error('Room penuh.');}
+  function config(input={},previous={pointValue:0,botLevel:'normal',playMode:'standard',seats:4,bots:1,buyIn:1000,minBet:10}){
     const s=tableSettings(input,previous);
     for(const [key,min,max] of [['seats',1,7],['bots',0,6],['buyIn',20,1000000],['minBet',2,100000]]){if(input[key]!==undefined)s[key]=input[key];if(!Number.isSafeInteger(s[key])||s[key]<min||s[key]>max)throw Error('Pengaturan '+key+' tidak valid.');}
     if(s.bots>=s.seats||s.minBet>s.buyIn||s.minBet%2||s.buyIn%2)throw Error('Sisakan satu kursi manusia; chip dan taruhan minimum harus genap, minimum tidak melebihi buy-in.');return s;
   }
   function note(r,text){r.events.push({text,time:Date.now()});r.events=r.events.slice(-100);}
   function options(r,p){const h=p.hands[p.handIndex];if(r.phase!=='playing'||r.players[r.turn]?.id!==p.id||!h||h.done)return {};return {hit:true,stand:true,double:h.cards.length===2&&!h.splitAce&&p.stack>=h.bet,split:p.hands.length===1&&h.cards.length===2&&h.cards[0].r===h.cards[1].r&&p.stack>=h.bet};}
-  function view(r,p){const reveal=['dealer','finished'].includes(r.phase);return {type:'state',code:r.code,you:p.id,spectator:p.spectator,hostId:host(r)?.id,phase:r.phase,round:r.round,revision:r.revision,settings:r.settings,turnId:r.players[r.turn]?.id,
+  function view(r,p){const reveal=['dealer','finished'].includes(r.phase);return {type:'state',code:r.code,you:p.id,spectator:p.spectator,hostId:host(r)?.id,phase:r.phase,round:r.round,quickComplete:r.settings.playMode==='quick'&&r.phase==='finished',revision:r.revision,settings:r.settings,turnId:r.players[r.turn]?.id,
     players:r.players.map(q=>({id:q.id,name:q.name,bot:q.bot,connected:q.connected,stack:q.stack,totalBuyIn:q.totalBuyIn,bet:q.bet,hands:q.hands.map(h=>({...h,value:E.value(h.cards)})),handIndex:q.handIndex,score:q.stack+q.hands.reduce((n,h)=>n+(r.phase!=='finished'?h.bet:0),0)-q.totalBuyIn})),
     dealer:r.dealer.map((c,i)=>i===0||reveal?c:null),dealerValue:reveal?E.value(r.dealer):null,options:p.spectator?{}:options(r,p),chat:r.chat,events:r.events,ledger:r.ledger,house:r.house,spectators:r.spectators.filter(q=>q.connected).length,addresses:getAddresses()};}
   function broadcast(r){if(closing)return;hub?.changed(r);for(const p of all(r))if(p.connected&&!p.bot)send(p.ws,view(r,p));}

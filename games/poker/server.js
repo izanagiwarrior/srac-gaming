@@ -6,7 +6,7 @@ const os = require('node:os');
 const {randomInt, randomBytes} = require('node:crypto');
 const {WebSocketServer} = require('ws');
 const {Game, evaluate} = require('./engine');
-const DEFAULTS = {chipValue: 100, buyIn: 1000, smallBlind: 5, bigBlind: 10, maxPlayers: 6, bots: 0, allowRebuy: true, botLevel:'normal'};
+const DEFAULTS = {chipValue: 100, buyIn: 1000, smallBlind: 5, bigBlind: 10, maxPlayers: 6, bots: 0, allowRebuy: true, botLevel:'normal', playMode:'standard'};
 const BOT_NAMES = ['Mei', 'Raka', 'Sinta', 'Bima', 'Ayu', 'Dimas', 'Nina'];
 const uid = () => randomBytes(24).toString('hex');
 function cleanName(value) {
@@ -26,6 +26,8 @@ function settingsFor(input = {}) {
   if (s.bots >= s.maxPlayers) throw new Error('Leave at least one seat for a person.');
   if (input.botLevel !== undefined) s.botLevel=input.botLevel;
   if (!['easy','normal','hard'].includes(s.botLevel)) throw new Error('Choose Easy, Normal, or Hard bots.');
+  if(input.playMode!==undefined)s.playMode=input.playMode;
+  if(!['standard','quick'].includes(s.playMode))throw new Error('Choose Standard or Quick Play.');
   return s;
 }
 function settlement(players, rate) {
@@ -100,12 +102,13 @@ function createPokerServer({dataDir = path.join(__dirname,'data'), botDelay = 30
     }
     endGate() {
       // A funded player must have completed three turns as dealer. Busts may opt out.
+      const cycles=this.settings.playMode==='quick'?0:minCycles;
       const required=this.players.filter(p=>p.stack>0 || p.rebuyPending || !p.rebuyDeclined);
-      const waiting=required.filter(p=>p.dealerRounds<minCycles).map(p=>({name:p.name,rounds:p.dealerRounds}));
+      const waiting=required.filter(p=>p.dealerRounds<cycles).map(p=>({name:p.name,rounds:p.dealerRounds}));
       const pending=this.players.some(p=>p.rebuyPending);
       const earlyFinish=this.players.filter(p=>p.stack>0).length===1 && this.players.filter(p=>p.stack===0).every(p=>p.rebuyDeclined) && !pending;
       return {allowed:this.phase==='playing' && !!this.game?.over && !pending && (waiting.length===0 || earlyFinish),earlyFinish,
-        cycles:minCycles,waiting,pending,handActive:!!this.game&&!this.game.over};
+        cycles,waiting,pending,handActive:!!this.game&&!this.game.over};
     }
     view(viewer) {
       const g=this.game; const idx=this.players.indexOf(viewer);
@@ -139,7 +142,8 @@ function createPokerServer({dataDir = path.join(__dirname,'data'), botDelay = 30
         this.history.push({handNo:this.game.handNo,board:this.game.board,result:this.game.result,names:this.players.map(p=>p.name),time:Date.now()});
         // Keep the latest 200 full hand summaries; all buy-in entries are retained.
         this.history=this.history.slice(-200);
-        for (const p of this.players) if (p.bot && p.stack===0) this.book(p,'Practice rebuy');
+        if(this.settings.playMode==='quick'){this.phase='ended';this.endedAt=Date.now();}
+        else for (const p of this.players) if (p.bot && p.stack===0) this.book(p,'Practice rebuy');
       }
     }
     command(p,msg) {
@@ -233,7 +237,7 @@ function createPokerServer({dataDir = path.join(__dirname,'data'), botDelay = 30
     const saved=JSON.parse(fs.readFileSync(stateFile,'utf8'));if(saved.format!==1)throw new Error('Unsupported session file format.');
     for(const r of saved.rooms)rooms.set(r.code,new Room(r.code,r));
   }
-  function newCode() {const alphabet='ABCDEFGHJKLMNPQRSTUVWXYZ';let code;do{code=Array.from({length:4},()=>alphabet[randomInt(alphabet.length)]).join('');}while(rooms.has(code));return code;}
+  function newCode() {const alphabet='ABCDEFGHJKLMNPQRSTUVWXYZ';for(let attempt=0;attempt<200;attempt++){const code=Array.from({length:4},()=>alphabet[randomInt(alphabet.length)]).join('');if(!rooms.has(code)&&!hub?.hasCode(code))return code;}throw Error('Kode room sedang penuh. Coba lagi.');}
   function addresses() {
     if (getAddresses) return getAddresses();
     const port=server.address()?.port||3001;const urls=[];

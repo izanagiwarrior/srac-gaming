@@ -241,7 +241,7 @@ function renderGame() {
   ${meArea}
  </div>`;
   const matchModes = `<div class="match-modes" aria-label="Mode meja terkunci"><div class="mode-badges"><span class="pace-mode">Klaim: ${CLAIM_MODE_NAMES[currentClaimMode(S)]}</span><span class="pace-mode">Highlight set: ${S.highlightSets ? 'ON' : 'OFF'}</span></div><small>Dipilih di lobby · terkunci</small></div>`;
-  $('gtitle').innerHTML = `<div><h1>Mahjong</h1><div class="sub">Ruangan ${S.code} · Ronde ${S.hand} dari ${S.maxHands}, dealer ${esc(S.players[S.dealer].name)}${spec ? ' · mode penonton' : ''}</div></div><div class="game-setting-row">${matchModes}<div style="display:flex;gap:6px"><button class="iconbtn" onclick="openTutorial(false)" title="Panduan" aria-label="Panduan">?</button><button class="iconbtn" onclick="confirmLeave()" title="Keluar" aria-label="Keluar">⎋</button></div></div>`;
+  $('gtitle').innerHTML = `<div><h1>Mahjong</h1><div class="sub">Ruangan ${S.code} · ${S.maxHands===1?'Quick Play · ':''}Ronde ${S.hand} dari ${S.maxHands}, dealer ${esc(S.players[S.dealer].name)}${spec ? ' · mode penonton' : ''}</div></div><div class="game-setting-row">${matchModes}<div style="display:flex;gap:6px"><button class="iconbtn" onclick="openTutorial(false)" title="Panduan" aria-label="Panduan">?</button><button class="iconbtn" onclick="confirmLeave()" title="Keluar" aria-label="Keluar">⎋</button></div></div>`;
   renderMahjongSidebar();
 }
 // ---------- Riwayat aksi ----------

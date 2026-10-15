@@ -6,7 +6,7 @@ const { randomUUID } = require('node:crypto');
 
 // These are process resources, never recoverable game state. v8 keeps Sets and
 // shared tile references intact; each game explicitly restores its own class.
-const transient = new Set(['ws','timers','timer','turnTimer','deadlineTimer','botTimer','actionTimer','hostTimer','offlineTimer','hintCache','turnKey','turnStartedAt','turnDeadline','currentTurnCheckpoint']);
+const transient = new Set(['ws','timers','timer','turnTimer','deadlineTimer','botTimer','clockTimer','actionTimer','hostTimer','offlineTimer','hintCache','turnKey','turnStartedAt','turnDeadline','currentTurnCheckpoint']);
 function snapshotRoom(value, seen = new WeakMap()) {
   if (value === null || typeof value !== 'object') return typeof value === 'function' ? undefined : value;
   if (seen.has(value)) return seen.get(value);
@@ -22,6 +22,7 @@ function ensurePeople(room) {
   room.spectators ||= [];
   room.social ||= { locked:false, queue:[], yielding:[] };
   for(const p of everyone(room))p.id ||= randomUUID();
+  room.social.id ||= randomUUID();
   room.social.queue=room.social.queue.filter(id=>room.spectators.some(p=>keyFor(p)===id&&!p.bot));
   room.social.yielding=room.social.yielding.filter(id=>room.players.some(p=>keyFor(p)===id&&!p.bot));
 }
@@ -36,23 +37,24 @@ function settled(slug,r) {
 function active(slug,r){return (r.state||r.phase)!=='lobby'&&!settled(slug,r);}
 function installRoomService(app,{slug,dataDir}) {
   const filename=path.join(dataDir,slug+'.v8');let stopped=false,lastBuffer=null,savedAt=null,saveError=false;
+  const closedCodes=new Set();let archives=[];
   const entityFor=ws=>ws.roomPlayer?{room:ws.roomPlayer.room,person:ws.roomPlayer.player}:{room:ws.room,person:ws.entity||ws.player||ws.person};
-  function save() {
-    if(stopped)return;
+  function save({exclude=null,closed=closedCodes,history=archives}={}) {
+    if(stopped)return false;
     try {
-      const rooms=[...app.rooms.values()].map(r=>{ensurePeople(r);return app.exportRoom?app.exportRoom(r):snapshotRoom(r);});
-      const buffer=v8.serialize({format:1,game:slug,rooms});
-      if(lastBuffer?.equals(buffer))return;
+      const rooms=[...app.rooms.values()].filter(r=>r!==exclude&&!closed.has(r.code)).map(r=>{ensurePeople(r);return app.exportRoom?app.exportRoom(r):snapshotRoom(r);});
+      const buffer=v8.serialize({format:1,game:slug,rooms,closedCodes:[...closed],archives:history});
+      if(lastBuffer?.equals(buffer))return true;
       fs.mkdirSync(dataDir,{recursive:true,mode:0o700});
       const temp=filename+'.tmp';let fd;
       try {fd=fs.openSync(temp,'w',0o600);fs.fchmodSync(fd,0o600);fs.writeFileSync(fd,buffer);fs.fsyncSync(fd);}finally{if(fd!==undefined)fs.closeSync(fd);}
-      fs.renameSync(temp,filename);lastBuffer=buffer;savedAt=Date.now();saveError=false;
-    }catch(error){saveError=true;console.error('Room save failed ('+slug+'):',error.message);}
+      fs.renameSync(temp,filename);lastBuffer=buffer;savedAt=Date.now();saveError=false;return true;
+    }catch(error){saveError=true;console.error('Room save failed ('+slug+'):',error.message);return false;}
   }
   function meta(room,p) {
     ensurePeople(room);const isHost=hostFor(room)===p,spectator=!room.players.includes(p),queue=room.social.queue;
     const rate=room.settings?.pointValue??room.settings?.chipValue??0;
-    return {boundary:JSON.stringify([room.matchId,room.round,room.revision,room.phase,room.G?.hand,room.G?.gen,room.game?.handNo,room.game?.version]),version:1,code:room.code,game:slug,locked:room.social.locked,host:isHost,spectator,recovering:!!room.recovering,
+    return {boundary:JSON.stringify([room.matchId,room.round,room.revision,room.phase,room.G?.hand,room.G?.gen,room.game?.handNo,room.game?.version]),version:2,code:room.code,roomId:room.social.id,game:slug,locked:room.social.locked,host:isHost,spectator,recovering:!!room.recovering,
       missing:room.players.filter(q=>!q.bot&&!q.connected&&!q.left).map(q=>q.name),savedAt,saveError,
       queue:queue.map(id=>room.spectators.find(q=>keyFor(q)===id)).filter(Boolean).map(q=>({name:q.name,you:q===p,connected:q.connected})),
       queued:queue.includes(keyFor(p)),yielding:room.social.yielding.includes(keyFor(p)),canNext:isHost&&settled(slug,room)&&!room.recovering,
@@ -65,7 +67,34 @@ function installRoomService(app,{slug,dataDir}) {
     return {...data,hub:meta(room,person)};
   }
   function publish(room){ensurePeople(room);save();app.broadcastRoom(room);}
-  function error(ws,message){ws.send(JSON.stringify({type:'error',message,msg:message}));}
+  function error(ws,message,action){ws.send(JSON.stringify({type:'error',message,msg:message,action}));}
+  function dissolve(room,person,ws,msg) {
+    if(app.rooms.get(room.code)!==room||person.ws!==ws||!person.connected||person.bot||hostFor(room)!==person)throw Error('Hanya host yang sedang terhubung dapat membubarkan ruang.');
+    if(msg.confirm!==true||msg.code!==room.code||msg.roomId!==room.social.id)throw Error('Konfirmasi pembubaran room terbaru diperlukan.');
+    const nextClosed=new Set(closedCodes);nextClosed.add(room.code);
+    // Keep only settled/public accounting summaries, not a resumable room or private hands.
+    const archived={code:room.code,time:Date.now(),unfinished:active(slug,room),rate:room.settings?.pointValue??room.settings?.chipValue??0,
+      accounts:everyone(room).map(p=>({name:p.name,bot:!!p.bot,score:p.score,stack:p.stack,totalBuyIn:p.totalBuyIn,contributed:p.contributed})),ledger:snapshotRoom(room.ledger||(slug==='capsa'?room.history.map(({round,matchId,names,delta,moneyDelta,pointValue,remaining})=>({round,matchId,names,delta,moneyDelta,pointValue,remaining})):[]))};
+    const nextHistory=[...archives,archived].slice(-200);
+    // Persist the deletion and permanent code reservation before changing live state.
+    if(!save({exclude:room,closed:nextClosed,history:nextHistory}))throw Error('Room belum dibubarkan karena penyimpanan gagal. Coba lagi setelah penyimpanan pulih.');
+    closedCodes.add(room.code);archives=nextHistory;app.rooms.delete(room.code);
+    room.dissolved=true;room.recovering=true;
+    try{app.disposeRoom?.(room);}catch(error){console.error('Room timer cleanup ('+slug+'):',error.message);}
+    for(const key of transient)if(key==='timer'||key.endsWith('Timer')){clearTimeout(room[key]);room[key]=null;}
+    if(room.timers instanceof Set){for(const timer of room.timers)clearTimeout(timer);room.timers.clear();}
+    else if(room.timers){Object.values(room.timers).forEach(clearTimeout);room.timers={};}
+    if(room.G){room.G.gen++;room.G.over=true;room.G.pending=null;}
+    if(room.game)room.game.over=true;
+    room.phase='dissolved';if('state'in room)room.state='dissolved';room.rematch?.clear();
+    const notice=JSON.stringify({type:'room-dissolved',code:room.code,message:'Room '+room.code+' dibubarkan oleh host. Silakan buat atau gabung room lain.'});
+    // Detach without native leave: no resignation, fold, bot takeover or new payout.
+    for(const socket of app.wss.clients)if(entityFor(socket).room===room){
+      socket.room=null;socket.roomPlayer=null;socket.player=null;socket.entity=null;socket.person=null;
+      if(socket.readyState===1)try{socket.send(notice);}catch(error){console.error('Room close notice ('+slug+'):',error.message);}
+    }
+    for(const p of everyone(room)){p.ws=null;p.connected=false;p.token=null;}
+  }
   function rotate(room) {
     ensurePeople(room);
     // Same-index replacements keep dealer/turn indices valid. Only settled
@@ -88,15 +117,20 @@ function installRoomService(app,{slug,dataDir}) {
   function handle(ws,msg) {
     if(typeof msg.type!=='string')return false;
     const {room,person}=entityFor(ws);
+    if((!room||!person)&&['join','resume','rejoin'].includes(msg.type)&&closedCodes.has(String(msg.code||'').trim().toUpperCase())){
+      const resume=['resume','rejoin'].includes(msg.type);
+      ws.send(JSON.stringify({type:'error',message:'Room tidak ditemukan. Buat room baru atau cek kode.',msg:'Room tidak ditemukan. Buat room baru atau cek kode.',code:String(msg.code).trim().toUpperCase(),sessionUnavailable:resume,fatal:resume,dissolved:resume}));return true;
+    }
     if(msg.type==='join') {
       const target=app.rooms.get(String(msg.code||'').trim().toUpperCase());
       if(target&&everyone(target).length>=128){error(ws,'Batas akun room tercapai. Simpan rekap lalu buat room baru.');return true;}
       if(target?.social?.locked){error(ws,'Room dikunci. Minta host membuka akses sebelum bergabung.');return true;}
     }
-    if(!room||!person)return false;
+    if(!room||!person){if(msg.type==='hub-dissolve'){error(ws,'Gabung ke room sebagai host dahulu.',msg.type);return true;}return false;}
     ensurePeople(room);
     if(msg.type?.startsWith('hub-')) {
       try {
+        if(msg.type==='hub-dissolve'){dissolve(room,person,ws,msg);return true;}
         if(msg.type==='hub-lock'){if(hostFor(room)!==person)throw Error('Hanya host dapat mengunci room.');if(typeof msg.locked!=='boolean')throw Error('Pilihan kunci tidak valid.');room.social.locked=msg.locked;}
         else if(msg.type==='hub-queue'){
           if(room.players.includes(person))throw Error('Kamu sudah memiliki kursi.');if(typeof msg.enabled!=='boolean')throw Error('Pilihan antrean tidak valid.');
@@ -116,7 +150,7 @@ function installRoomService(app,{slug,dataDir}) {
           app.checkNext?.(room,projected);rotate(room);app.nextRound(room,person);notifyRoles(room);
         }else throw Error('Aksi room tidak dikenal.');
         publish(room);
-      }catch(e){error(ws,e.message);}return true;
+      }catch(e){error(ws,e.message,msg.type);}return true;
     }
     if(room.recovering&&!['chat','leave','resume','rejoin'].includes(msg.type)){error(ws,'Sesi dipulihkan dalam keadaan jeda. Host perlu menekan Lanjutkan sesi.');return true;}
     // Native rematch buttons defer to the shared host control when a queue
@@ -127,13 +161,16 @@ function installRoomService(app,{slug,dataDir}) {
   if(fs.existsSync(filename)) {
     const loaded=v8.deserialize(fs.readFileSync(filename));
     if(loaded.format!==1||loaded.game!==slug||!Array.isArray(loaded.rooms))throw Error('Format save '+slug+' tidak valid; file asli dipertahankan.');
+    if(loaded.closedCodes!==undefined&&(!Array.isArray(loaded.closedCodes)||loaded.closedCodes.some(c=>typeof c!=='string'||!/^[A-Z0-9]{4,16}$/.test(c))))throw Error('Daftar kode room tertutup tidak valid; file asli dipertahankan.');
+    for(const code of loaded.closedCodes||[])closedCodes.add(code);
+    archives=Array.isArray(loaded.archives)?loaded.archives.slice(-200):[];
     app.rooms.clear();
-    for(const saved of loaded.rooms){const r=app.restoreRoom(saved);ensurePeople(r);for(const p of everyone(r)){p.ws=null;p.connected=!!p.bot;}r.recovering=active(slug,r);app.rooms.set(r.code,r);}
+    for(const saved of loaded.rooms){if(closedCodes.has(saved.code))continue;const r=app.restoreRoom(saved);ensurePeople(r);for(const p of everyone(r)){p.ws=null;p.connected=!!p.bot;}r.recovering=active(slug,r);app.rooms.set(r.code,r);}
     savedAt=fs.statSync(filename).mtimeMs;
   }else for(const r of app.rooms.values()){ensurePeople(r);r.recovering=active(slug,r);}
-  const service={handle,enrich,changed:save,save,meta,roomFor:entityFor,summary(){return [...app.rooms.values()].filter(r=>!r.social?.locked&&everyone(r).some(p=>p.connected&&!p.bot)).map(r=>({game:slug,code:r.code,phase:r.recovering?'paused':settled(slug,r)?'between':r.state==='lobby'||r.phase==='lobby'?'lobby':'playing',capacity:app.capacity(r),players:r.players.filter(p=>!p.bot&&p.connected).map(p=>p.name),seats:r.players.length,spectators:r.spectators.filter(p=>!p.bot&&p.connected).length,queued:r.social?.queue.length||0}));},close(){save();stopped=true;clearInterval(interval);}};
+  const service={handle,enrich,changed:()=>save(),save,meta,hasCode:code=>closedCodes.has(code)||app.rooms.has(code),roomFor:entityFor,summary(){return [...app.rooms.values()].filter(r=>!r.social?.locked&&everyone(r).some(p=>p.connected&&!p.bot)).map(r=>({game:slug,code:r.code,phase:r.recovering?'paused':settled(slug,r)?'between':r.state==='lobby'||r.phase==='lobby'?'lobby':'playing',capacity:app.capacity(r),players:r.players.filter(p=>!p.bot&&p.connected).map(p=>p.name),seats:r.players.length,spectators:r.spectators.filter(p=>!p.bot&&p.connected).length,queued:r.social?.queue.length||0}));},close(){save();stopped=true;clearInterval(interval);}};
   app.setRoomService(service);
-  const interval=setInterval(save,5000);interval.unref();
+  const interval=setInterval(()=>save(),5000);interval.unref();
   return service;
 }
 module.exports={installRoomService,snapshotRoom};

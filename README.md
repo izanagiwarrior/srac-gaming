@@ -4,7 +4,7 @@ Satu landing page untuk **Capsa Banting, Mahjong, Poker Texas Hold’em, Catur, 
 
 Repository: [izanagiwarrior/srac-gaming](https://github.com/izanagiwarrior/srac-gaming).
 
-Build: `2026-10-15-emoji-menu-1` · package 1.5.3.
+Build: `2026-10-15-dissolve-room-1` · package 1.8.0.
 
 Terbaru: dua belas emote chat tersedia di enam game, dengan efek transparan di meja yang terlihat seluruh room. Lobby Mahjong punya Manual bebas, Manual terbantu, serta Fast. Manual bebas membiarkan pemain mencoba klaim tanpa pemeriksaan awal; server menilai saat klaim dikirim. Panduan dapat dilewati dan panel sidebar tetap dapat dilipat.
 
@@ -138,3 +138,15 @@ Pesan chat pemain dan penonton yang baru diterima juga melayang tipis di pinggir
 ## Menu emoji (1.5.3)
 
 Tombol senyum **Menu emoji** ada di antara input chat dan tombol Kirim di enam game. Dua belas emoji disembunyikan sampai menu dibuka. Memilih emoji langsung mengirim lewat chat native lalu menutup menu; draft teks tetap ada dan fokus kembali ke input. Klik di luar, Escape, tombol tutup, keluar room atau putus koneksi juga menutup menu. Menu menyesuaikan posisi layar dan tetap terbuka saat tampilan meja diperbarui selama koneksi aktif. Efek emote dan chat melayang tetap tersedia.
+
+## Tema tampilan bersama (1.6.0)
+
+Tombol **Dark / Light** ada di bar Meja & preferensi, tanpa perlu membuka panel. Default Dark berlaku pada semua perangkat, termasuk yang memakai tema sistem Light. Pilihan tersimpan per browser dan origin, dipakai landing serta enam game, dan mengikuti perubahan pada tab lain. Tema dimuat sebelum tampilan pertama agar tidak berkedip terang. Pengaturan ini hanya mengubah tampilan perangkatmu, bukan room atau pemain lain. Menu emoji, input, sidebar, panduan dan dialog memakai warna yang kontras di kedua tema; kartu/ubin/bidak dan meja hijau tetap memiliki warna yang terbaca. Pengaturan Poker lama digantikan pilihan bersama ini.
+
+## Quick Play
+
+Pilih durasi di lobby sebelum mulai. Capsa, Mahjong, Domino dan Blackjack dapat selesai dalam 1 ronde; Poker dalam 1 tangan. Catur memiliki Santai tanpa jam, Blitz 5+0 dan Blitz 3+2. Quick Play tidak mengaktifkan auto-lewat Mahjong atau mempersingkat jeda bot. Tema Dark/Light bersama tetap tersedia, dengan Dark sebagai default.
+
+## Bubarkan ruang (host)
+
+Buka **Meja & preferensi → Bubarkan ruang**. Dialog menyebut kode dan akibatnya; host harus mengonfirmasi. Pemain/penonton kembali ke halaman masuk, room hilang dari daftar, undangan lama dan file pemulihan tidak berlaku. Sesi offline dibersihkan saat mencoba menyambung lagi. Kode yang dibubarkan tidak dialokasikan ulang selama DATA_DIR dipertahankan. Ronde aktif dibatalkan tanpa membuat hasil/payout baru; unduh rekap yang diperlukan terlebih dahulu.

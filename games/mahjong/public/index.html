@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="id" data-theme="dark">
 <head>
 <script src="/room-client.js"></script><link rel="stylesheet" href="/room-ui.css">
-<meta charset="utf-8">
+<meta charset="utf-8"><meta name="theme-color" content="#102e25"><meta name="color-scheme" content="dark light"><script src="/theme.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Mahjong P2P</title>
 <style>
@@ -268,7 +268,7 @@ input.code{text-transform:uppercase;letter-spacing:.3em;font-weight:700;font-fam
 @media(max-width:640px){.top{flex-wrap:wrap;gap:10px}.game-setting-row{width:100%;justify-content:space-between}.set-legend{font-size:10px;gap:5px 9px}.set-legend>small{font-size:9px}.set-key b{font-size:8px;min-width:17px}}
 @media (prefers-reduced-motion:reduce){.turnbar.mine{animation:none}}
 </style>
-<script src="/game-tools.js"></script><link rel="stylesheet" href="/hub-game.css"><script src="/hub-game.js" defer></script></head>
+<script src="/game-tools.js"></script><link rel="stylesheet" href="/hub-game.css"><script src="/hub-game.js" defer></script><link rel="stylesheet" href="/theme.css"></head>
 <body><nav class="hubbar" aria-label="Pilihan permainan"><a href="/" data-hub-home>← Pilih game</a><span>MEJA KITA</span></nav>
 <div id="conn" class="toast" style="display:none;bottom:auto;top:calc(10px + env(safe-area-inset-top,0px))"></div>
 <div id="toast" class="toast"></div>
@@ -302,7 +302,7 @@ input.code{text-transform:uppercase;letter-spacing:.3em;font-weight:700;font-fam
     <div class="seats" id="seats"></div>
     <p class="cap" id="spect"></p>
     <div class="row">
-      <label class="f">Jumlah ronde<select class="in" id="rounds" onchange="updateLobbySettings()"><option value="4">4 ronde (sekitar 20 menit)</option><option value="8">8 ronde</option><option value="12">12 ronde</option></select></label>
+      <label class="f">Durasi permainan<select class="in" id="rounds" onchange="updateLobbySettings()"><option value="1">Quick Play · 1 ronde</option><option value="4" selected>4 ronde (sekitar 20 menit)</option><option value="8">8 ronde</option><option value="12">12 ronde</option></select></label>
       <label class="f">Tingkat bot<select class="in" id="botlevel" onchange="updateLobbySettings()"><option value="easy">Easy (kadang asal buang, jarang klaim)</option><option value="normal" selected>Normal (efisien)</option><option value="hard">Hard (efisien + bertahan)</option></select></label>
     </div>
     <label class="f">Nilai 1 poin dalam rupiah<input class="in" id="mahjong-point-value" type="number" min="0" max="1000000" step="1" value="0" onchange="updateLobbySettings()"></label><p class="cap">0 = latihan. 1 fan = 10 poin per pembayar; rupiah = poin × nilai ini. Terkunci saat mulai.</p>

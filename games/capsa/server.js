@@ -8,7 +8,7 @@ const { WebSocketServer } = require('ws');
 const E = require('./engine');
 const Money = require('./money');
 const {snapshotRoom}=require('../shared/room-service');
-const BUILD_VERSION = '2026-10-15-emoji-menu-1';
+const BUILD_VERSION = '2026-10-15-dissolve-room-1';
 
 function createApp(options = {}) {
   const rooms = new Map(), timers = new Set();
@@ -244,7 +244,7 @@ function createApp(options = {}) {
         if (msg.type === 'create') {
           if (rooms.size >= 200) return fail(ws, 'Server sedang penuh.');
           if (msg.mode !== undefined && !['official','casual'].includes(msg.mode)) return fail(ws,'Pilih mode Official atau Non-official saat membuat ruangan.');
-          let code; do { code = Array.from({ length:4 }, () => 'ABCDEFGHJKLMNPQRSTUVWXYZ'[crypto.randomInt(24)]).join(''); } while (rooms.has(code));
+          let code;for(let attempt=0;attempt<200;attempt++){const candidate=Array.from({length:4},()=> 'ABCDEFGHJKLMNPQRSTUVWXYZ'[crypto.randomInt(24)]).join('');if(!rooms.has(candidate)&&!hub?.hasCode(candidate)){code=candidate;break;}}if(!code)return fail(ws,'Kode room sedang penuh. Coba lagi.');
           room = { code, players:[], spectators:[], hostToken:null, phase:'lobby', round:0, matchId:1, settings:{ rounds:4, ...E.DEFAULTS, mode:msg.mode || E.DEFAULTS.mode }, practice:false, game:null, result:null, previousWinner:null, chat:[], history:[], active:Date.now(), timers:new Set(), turnTimer:null, deadlineTimer:null, turnKey:null, turnStartedAt:null, turnDeadline:null,
             revision:0, undoUses:[], undoPoints:[], currentTurnCheckpoint:null, lastUndo:null };
           rooms.set(code,room);
@@ -352,6 +352,7 @@ function createApp(options = {}) {
     return new Promise(resolve => wss.close(() => server.close(resolve)));
   }
   return { server,wss,rooms,close,
+    disposeRoom:clearRoomTimers,
     setRoomService(value){hub=value;},capacity:r=>r.settings.mode==='casual'?8:4,
     restoreRoom(saved){return {...saved,timers:new Set(),turnTimer:null,deadlineTimer:null,turnKey:null,turnStartedAt:null,turnDeadline:null};},
     setSpectator(p,value){p.spectator=value;},admit(room,p){p.score??=0;p.autoOffline=false;},

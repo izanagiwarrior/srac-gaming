@@ -7,6 +7,17 @@ const { WebSocketServer } = require('ws');
 const { Chess } = require('chess.js');
 const { tableSettings,record }=require('../shared/table-settings');
 const {snapshotRoom}=require('../shared/room-service');
+const CLOCKS = {
+  casual:null,
+  blitz5:{initialMs:300000,incrementMs:0,label:'Quick Play · Blitz 5+0'},
+  blitz3plus2:{initialMs:180000,incrementMs:2000,label:'Blitz 3+2'}
+};
+function chessSettings(input={},previous) {
+  const next=tableSettings(input,previous);
+  next.clockMode=input.clockMode??previous?.clockMode??'casual';
+  if(!Object.hasOwn(CLOCKS,next.clockMode))throw Error('Pilih Santai, Blitz 5+0, atau Blitz 3+2.');
+  return next;
+}
 
 function createChessServer({ getAddresses = () => [] } = {}) {
   const rooms = new Map();
@@ -36,17 +47,52 @@ function createChessServer({ getAddresses = () => [] } = {}) {
     const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
     for (let length = 4; length <= 6; length++) for (let attempt = 0; attempt < 200; attempt++) {
       let code = ''; for (let i = 0; i < length; i++) code += alphabet[randomInt(alphabet.length)];
-      if (!rooms.has(code)) return code;
+      if (!(rooms.has(code)||hub?.hasCode(code))) return code;
     }
     throw new Error('Kode room sedang penuh. Coba lagi.');
   }
   function playerFor(name,color,bot = false) { return { id:randomUUID(), token:bot ? null : randomUUID(), name:nameFor(name), color, bot, score:0, connected:bot, left:false, ws:null }; }
   function hostFor(room) { return room.players.find(p => !p.bot && !p.left && p.connected) || room.players.find(p => !p.bot && !p.left); }
   const ready = room => room.players.length === 2 && room.players.every(p => p.connected && !p.left);
+  function clockView(room,now=Date.now()) {
+    const control=CLOCKS[room.settings.clockMode||'casual'];if(!control)return null;
+    const c=room.clock,remaining={w:c?.remaining?.w??control.initialMs,b:c?.remaining?.b??control.initialMs};
+    if(c?.active&&c.startedAt!==null)remaining[c.active]=Math.max(0,remaining[c.active]-Math.max(0,now-c.startedAt));
+    return {...control,remaining,active:room.phase==='playing'&&!room.recovering?c?.active||null:null,sampledAt:now};
+  }
+  function consumeClock(room,now=Date.now()) {
+    if(!room.clock)return;
+    room.clock.remaining=clockView(room,now).remaining;room.clock.active=null;room.clock.startedAt=null;
+  }
+  function finishOnTime(room,color) {
+    const opponent=opposite(color),canMate=room.chess.board().flat().some(p=>p?.color===opponent&&p.type!=='k')&&!room.chess.isInsufficientMaterial();
+    finish(room,canMate?'waktu habis':'waktu habis · lawan tidak memiliki materi untuk mat',canMate?opponent:null);
+  }
+  function clockExpired(room,now=Date.now()) {
+    const color=room.clock?.active;
+    if(room.phase==='playing'&&color&&clockView(room,now).remaining[color]<=0){finishOnTime(room,color);return true;}
+    return false;
+  }
+  function armClock(room) {
+    clearTimeout(room.clockTimer);room.clockTimer=null;
+    if(clockExpired(room))return true;
+    consumeClock(room);
+    if(closing||room.recovering||room.phase!=='playing'||!ready(room)||!room.clock)return false;
+    const color=room.chess.turn();
+    if(room.clock.remaining[color]<=0){finishOnTime(room,color);return true;}
+    room.clock.active=color;room.clock.startedAt=Date.now();
+    const match=room.matchId,ply=room.chess.history().length;
+    room.clockTimer=setTimeout(()=>{
+      room.clockTimer=null;
+      if(closing||room.recovering||room.phase!=='playing'||match!==room.matchId||ply!==room.chess.history().length)return;
+      if(clockExpired(room)||armClock(room))broadcast(room);
+    },room.clock.remaining[color]);
+    return false;
+  }
   function note(room,text) { room.chat.push({ id:randomUUID(), name:null, text, time:Date.now() }); room.chat = room.chat.slice(-70); }
   function publicState(room,entity) {
     const game = room.chess, ply = game.history().length;
-    return { type:'state', code:room.code, settings:room.settings,ledger:room.ledger,phase:room.phase, practice:room.practice, matchId:room.matchId, ply,
+    return { type:'state', code:room.code, settings:room.settings,clock:clockView(room),ledger:room.ledger,phase:room.phase, practice:room.practice, matchId:room.matchId, ply,
       you:entity.id, yourColor:entity.color, spectator:entity.color === null, hostId:hostFor(room)?.id || null,
       players:room.players.map(p => ({ id:p.id, name:p.name, score:p.score, color:p.color, bot:p.bot, connected:p.connected, left:p.left })),
       board:game.board().flat().filter(Boolean), turn:game.turn(), check:game.isCheck(), ready:ready(room),
@@ -62,6 +108,7 @@ function createChessServer({ getAddresses = () => [] } = {}) {
   }
   function finish(room,reason,winner = null) {
     if(room.phase!=='playing')return;
+    consumeClock(room);clearTimeout(room.clockTimer);room.clockTimer=null;
     record(room,room.players.map(p=>winner?(p.color===winner?1:-1):0),'Pertandingan '+room.matchId+' · '+reason);
     clearTimeout(room.botTimer); room.botTimer = null; room.phase = 'finished'; room.drawOffer = null;
     room.result = { reason, winner, name:winner ? room.players.find(p => p.color === winner)?.name : null };
@@ -109,6 +156,7 @@ function createChessServer({ getAddresses = () => [] } = {}) {
   }
   function armBot(room) {
     clearTimeout(room.botTimer); room.botTimer = null;
+    if(armClock(room))broadcast(room);
     if (closing || room.recovering || room.phase !== 'playing' || !ready(room) || !room.players.find(p => p.color === room.chess.turn())?.bot) return;
     const match = room.matchId, ply = room.chess.history().length;
     room.botTimer = setTimeout(() => {
@@ -121,11 +169,15 @@ function createChessServer({ getAddresses = () => [] } = {}) {
     },3000);
   }
   function applyMove(room,input) {
+    const acceptedAt=Date.now();
+    if(clockExpired(room,acceptedAt)){broadcast(room);return;}
     const move = room.chess.move(input);
+    consumeClock(room,acceptedAt);
+    if(room.clock)room.clock.remaining[move.color]+=room.clock.incrementMs;
     room.lastMove = { from:move.from, to:move.to, san:move.san, color:move.color };
     room.active = Date.now();
     if (room.drawOffer?.color !== move.color) room.drawOffer = null;
-    detectResult(room); broadcast(room); armBot(room);
+    detectResult(room); armClock(room); broadcast(room); armBot(room);
   }
   function start(room,swap = false) {
     if (!ready(room)) throw new Error('Tunggu kedua pemain terhubung sebelum mulai.');
@@ -133,19 +185,23 @@ function createChessServer({ getAddresses = () => [] } = {}) {
     if (swap) for (const p of room.players) p.color = opposite(p.color);
     room.chess = new Chess(); room.phase = 'playing'; room.result = null; room.lastMove = null;
     room.drawOffer = null; room.rematch.clear(); room.matchId++; room.active = Date.now();
-    for (const [key,value] of Object.entries({ Event:'Meja Kita · Catur', White:room.players.find(p => p.color === 'w').name, Black:room.players.find(p => p.color === 'b').name, Result:'*' })) room.chess.setHeader(key,value);
+    const control=CLOCKS[room.settings.clockMode||'casual'];
+    room.clock=control?{remaining:{w:control.initialMs,b:control.initialMs},incrementMs:control.incrementMs,active:null,startedAt:null}:null;
+    armClock(room);
+    for (const [key,value] of Object.entries({ Event:'Meja Kita · Catur', White:room.players.find(p => p.color === 'w').name, Black:room.players.find(p => p.color === 'b').name, TimeControl:control?`${control.initialMs/1000}+${control.incrementMs/1000}`:'-', Result:'*' })) room.chess.setHeader(key,value);
     note(room,'Permainan dimulai. Putih melangkah lebih dulu.'); broadcast(room); armBot(room);
   }
   function attach(ws,room,entity) {
     const previous = entity.ws;
     if (previous && previous !== ws) { previous.room = null; previous.entity = null; send(previous,{ type:'replaced' }); previous.close(1000,'Session moved'); }
     entity.ws = ws; entity.connected = true; ws.room = room; ws.entity = entity; room.active = Date.now();
-    send(ws,{ type:'joined', code:room.code, token:entity.token, id:entity.id }); broadcast(room); armBot(room);
+    armClock(room);send(ws,{ type:'joined', code:room.code, token:entity.token, id:entity.id }); broadcast(room); armBot(room);
   }
   function detach(ws,explicit = false) {
     const room = ws.room, entity = ws.entity;
     ws.room = null; ws.entity = null;
     if (!room || !entity || entity.ws !== ws) return;
+    clockExpired(room);consumeClock(room);
     entity.ws = null; entity.connected = false; room.active = Date.now();
     if (entity.color === null) {if(!entity.hasAccount)room.spectators = room.spectators.filter(p => p !== entity);}
     else if (explicit) {
@@ -176,8 +232,8 @@ function createChessServer({ getAddresses = () => [] } = {}) {
           if (msg.type === 'create') {
             if (rooms.size >= 200) throw new Error('Server penuh. Coba lagi nanti.');
             const entity = playerFor(msg.name,'w'), room = { code:codeFor(), practice:msg.practice === true,
-              players:[entity], spectators:[], settings:tableSettings(msg.settings),ledger:[],phase:'lobby', chess:new Chess(), result:null, lastMove:null,
-              drawOffer:null, rematch:new Set(), chat:[], matchId:0, active:Date.now(), botTimer:null };
+              players:[entity], spectators:[], settings:chessSettings(msg.settings),ledger:[],phase:'lobby', chess:new Chess(), result:null, lastMove:null,
+              drawOffer:null, rematch:new Set(), chat:[], matchId:0, active:Date.now(), botTimer:null,clock:null,clockTimer:null };
             if (room.practice) room.players.push(playerFor('Meja Bot','b',true));
             rooms.set(room.code,room); note(room,`${entity.name} membuka meja catur.`); attach(ws,room,entity); return;
           }
@@ -195,6 +251,7 @@ function createChessServer({ getAddresses = () => [] } = {}) {
         }
         const room = ws.room, entity = ws.entity;
         if (!room || !entity) throw new Error('Gabung ke room dulu.');
+        if(clockExpired(room)){broadcast(room);if(!['chat','leave'].includes(msg.type))throw Error('Waktu habis. Hasil sudah dicatat server.');}
         room.active = Date.now();
         if (msg.type === 'leave') { detach(ws,true); send(ws,{ type:'left' }); return; }
         if (msg.type === 'chat') {
@@ -205,11 +262,11 @@ function createChessServer({ getAddresses = () => [] } = {}) {
         if (entity.color === null || entity.left) throw new Error('Penonton tidak bisa menggerakkan bidak.');
         if(msg.type==='settings'){
           if(room.phase!=='lobby'||entity.id!==hostFor(room)?.id)throw new Error('Pengaturan dikunci setelah mulai; hanya host di lobby.');
-          room.settings=tableSettings(msg.settings,room.settings);broadcast(room);return;
+          room.settings=chessSettings(msg.settings,room.settings);broadcast(room);return;
         }
         if (msg.type === 'start') {
           if (room.phase !== 'lobby' || entity.id !== hostFor(room)?.id) throw new Error('Hanya host yang bisa mulai.');
-          room.settings=tableSettings(msg.settings,room.settings);return start(room);
+          room.settings=chessSettings(msg.settings,room.settings);return start(room);
         }
         if (msg.type === 'rematch') {
           if (room.phase !== 'finished') throw new Error('Selesaikan permainan dulu.');
@@ -245,18 +302,18 @@ function createChessServer({ getAddresses = () => [] } = {}) {
   });
   const maintenance = setInterval(() => {
     for (const ws of wss.clients) { if (!ws.alive) { ws.terminate(); continue; } ws.alive = false; ws.ping(); }
-    for (const [code,room] of rooms) if (![...room.players,...room.spectators].some(p => !p.bot && p.connected) && Date.now() - room.active > 7 * 86400000) { clearTimeout(room.botTimer); rooms.delete(code); }
+    for (const [code,room] of rooms) if (![...room.players,...room.spectators].some(p => !p.bot && p.connected) && Date.now() - room.active > 7 * 86400000) { clearTimeout(room.botTimer);clearTimeout(room.clockTimer); rooms.delete(code); }
   },30000); maintenance.unref();
   async function close() {
     closing = true; clearInterval(maintenance);
-    for (const room of rooms.values()) clearTimeout(room.botTimer);
+    for (const room of rooms.values()) {clearTimeout(room.botTimer);clearTimeout(room.clockTimer);consumeClock(room);}
     for (const ws of wss.clients) { ws.room = null; ws.entity = null; ws.terminate(); }
     await new Promise(resolve => wss.close(resolve)); await new Promise(resolve => server.close(resolve));
   }
   return { server,wss,rooms,close,
     setRoomService(value){hub=value;},capacity:()=>2,
-    exportRoom(room){return {...snapshotRoom({...room,chess:null}),chessPgn:room.chess.pgn()};},
-    restoreRoom(saved){const room={...saved,chess:new Chess(),botTimer:null};if(saved.chessPgn)room.chess.loadPgn(saved.chessPgn);return room;},
+    exportRoom(room){const clock=room.clock?{...room.clock,remaining:clockView(room).remaining,active:null,startedAt:null}:null;return {...snapshotRoom({...room,chess:null,clock}),chessPgn:room.chess.pgn()};},
+    restoreRoom(saved){const room={...saved,settings:chessSettings(saved.settings),chess:new Chess(),botTimer:null,clockTimer:null,clock:saved.clock?{...saved.clock,active:null,startedAt:null}:null};if(saved.chessPgn)room.chess.loadPgn(saved.chessPgn);return room;},
     setSpectator(p,value){if(value)p.color=null;},
     admit(room,p){p.score??=0;p.left=false;},
     onRotation(room){room.practice=room.players.some(p=>p.bot);},

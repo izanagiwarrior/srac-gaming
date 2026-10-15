@@ -15,7 +15,7 @@ Room yang penuh atau sedang bermain menerima penonton (maksimal 16). Link selalu
 
 - Putih bergerak lebih dulu. Validasi langkah di server menggunakan **chess.js 1.4.0**, lisensi BSD-2-Clause: [source dan dokumentasi](https://github.com/jhlywa/chess.js).
 - Rokade, en passant, promosi empat pilihan, skak dan skakmat mengikuti library. Klien tidak dapat mengirim posisi papan atau memindahkan bidak di luar giliran.
-- Aplikasi mengakhiri pertandingan otomatis saat stalemate, materi tidak cukup, posisi berulang tiga kali, atau 50 langkah tanpa gerakan pion/tangkapan. Ini permainan santai tanpa timer atau prosedur klaim remis turnamen.
+- Aplikasi mengakhiri pertandingan otomatis saat stalemate, materi tidak cukup, posisi berulang tiga kali, atau 50 langkah tanpa gerakan pion/tangkapan. Mode Santai tanpa jam; Blitz memakai jam server. Tidak menerapkan prosedur klaim remis turnamen.
 - Pemain dapat menawarkan remis, menerima/menolak tawaran, menyerah, memutar tampilan papan, mengobrol, dan mengunduh PGN.
 - Bot latihan sederhana menunggu **3 detik**. Bot memilih langkah legal berdasarkan tangkapan, pengembangan, dan ancaman; bukan engine turnamen. Latihan bot memakai remis otomatis dan tidak menerima tawaran remis.
 - Tidak ada undo atau petunjuk langkah terbaik pada catur. Penanda petak sah membantu memilih tujuan bidak.
@@ -39,3 +39,7 @@ Hub build `2026-10-15-social-save-2` menambahkan save privat/pemulihan dijeda, n
 Chat menyediakan 12 emote. Emote baru yang diterima server terlihat seluruh room sebagai efek transparan sekitar 3 detik, tanpa menutup klik kartu/papan. Kurangi animasi menampilkan emoji statis singkat. Riwayat dan reconnect tidak memutar efek lama. Lihat panduan root dan docs/GAME-CONVENTIONS.md untuk komponen bersama; alur aturan, kartu privat dan poin tidak berubah.
 
 Chat biasa juga melayang transparan di pinggir meja (1.5.2), dengan nama pengirim dan maksimal tiga pesan singkat. Isi lengkap tetap di Chat meja. Riwayat lama dan pesan sistem tidak melayang; Kurangi animasi memakai pesan statis.
+
+## Quick Play
+
+Lobby menyediakan Santai tanpa jam, **Blitz 5+0** (5 menit per pemain), dan **Blitz 3+2** (3 menit + 2 detik setiap langkah sah). Jam ditentukan server, input ilegal tidak menghentikannya. Jam dijeda saat pemain terputus atau sesi sedang recovery dan dilanjutkan saat siap. Save menyimpan sisa waktu, bukan process timer; downtime tidak dihitung. Waktu habis mengakhiri pertandingan sekali dengan poin normal. Lawan yang hanya memiliki raja / posisi insufficient-material dinyatakan remis. Ini aturan meja santai; belum mencakup seluruh adjudikasi posisi mati turnamen. Bot tetap menunggu minimal 3 detik dan memakai jamnya sendiri.
