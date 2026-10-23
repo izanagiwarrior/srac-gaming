@@ -1,5 +1,7 @@
 # Run Meja Kita through Cloudflare Quick Tunnel
 
+For actual hosting without a laptop, see [Workers + Durable Objects](CLOUDFLARE-WORKERS.md), the deployed 2.0.0 default target; see [current maintenance status](MAINTENANCE.md). This document describes only the older tunnel target.
+
 This is a **Node server on your computer** forwarded through a temporary Cloudflare URL. The computer, origin process and cloudflared must stay running. It is the same six-game app and WebSocket origin for all friends, even on different networks. This does not upload the server to a Worker or persistent cloud host.
 
 For current vendor behavior/install packages, use [Cloudflare Quick Tunnels](https://developers.cloudflare.com/tunnel/get-started/quick-tunnels/), [cloudflared downloads](https://developers.cloudflare.com/tunnel/downloads/), and [run parameters](https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/configure-tunnels/run-parameters/). Quick Tunnels need no account/domain; they have temporary hostnames and no uptime guarantee. Anyone holding a normal URL can reach the exposed game. The origin here uses WebSockets; Quick Tunnel does not support SSE.
@@ -8,7 +10,7 @@ For current vendor behavior/install packages, use [Cloudflare Quick Tunnels](htt
 
 Read AGENTS.md. Get authorization to expose this game origin if the user has not already requested sharing it publicly. Check the desired port before starting; do not kill unrelated listeners to free it.
 
-The owner prefers access through the Cloudflare link, using only the required loopback origin by default. Starting an installed build does not authorize applying a pending patch. GitHub push and deployment each need an explicit request for that action; neither follows automatically from preparing a patch or approving the other action. A clear request already supplied by the user is authorization, so do not ask for the same permission twice.
+The owner now uses Workers hosting by default. Only use the loopback Node origin below when this separate tunnel setup is explicitly requested. Starting an installed build does not authorize applying a pending patch. GitHub push and deployment each need an explicit request for that action; neither follows automatically from preparing a patch or approving the other action. A clear request already supplied by the user is authorization, so do not ask for the same permission twice.
 
 1. Install Node.js 22+ and cloudflared from the official sources/package managers. On macOS, `brew install cloudflared`; on Windows, `winget install --id Cloudflare.cloudflared --exact`; Linux users can use the official download/package instructions. Do not commit the binary.
 2. From the cloned repo, install locked dependencies:

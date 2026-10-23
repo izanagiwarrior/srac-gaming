@@ -41,6 +41,8 @@
     if (t.s === 'b') { return t.n === 1 ? bird() : stickPos[t.n].map((p, k) => stick(p[0], p[1], p[2], stickColor(t.n, k))).join(''); }
     const txt = (s, y, size, fill, weight = 700) => `<text x="30" y="${y}" text-anchor="middle" font-family="'Songti SC','STSong','SimSun','Noto Serif CJK SC','Noto Serif SC',serif" font-size="${size}" font-weight="${weight}" fill="${fill}">${s}</text>`;
     if (t.s === 'c') return txt(NUM[t.n - 1], 36, 30, t.n === 5 ? RED : INK) + txt('萬', 74, 31, RED);
+    if(t.s==='j')return txt('百',40,31,'#75509f')+txt('搭',72,28,'#75509f');
+    if(t.s==='f'){const labels=['梅','蘭','菊','竹','春','夏','秋','冬'];const color=t.n<=4?'#ae426a':'#277a63';return txt(labels[t.n-1],44,34,color)+txt(String((t.n-1)%4+1),72,18,color);}
     if (t.s === 'w') return txt(WINDS[t.n - 1], 59, 48, INK);
     if (t.n === 1) return txt('中', 59, 48, RED);
     if (t.n === 2) return txt('發', 59, 48, GREEN);

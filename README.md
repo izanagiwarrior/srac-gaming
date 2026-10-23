@@ -1,14 +1,14 @@
 # Meja Kita
 
-Satu landing page untuk **Capsa Banting, Mahjong, Poker Texas Hold’em, Catur, Domino Gaple, dan Blackjack**. Keenam game berjalan dalam satu proses Node.js dan satu port HTTP/WebSocket.
+Satu landing page untuk **Capsa Banting, Mahjong, Poker Texas Hold’em, Catur, Domino Gaple, dan Blackjack**. Hosting utama memakai Cloudflare Workers + SQLite Durable Object tanpa laptop. Target Node.js satu port tetap tersedia secara terpisah.
 
 Repository: [izanagiwarrior/srac-gaming](https://github.com/izanagiwarrior/srac-gaming).
 
-Build: `2026-10-15-dissolve-room-1` · package 1.8.0.
+Baseline cloud terpasang 23 Oktober 2026: **2.0.0 / `2026-10-23-cloudflare-hosting-1`**. [Main online](https://srac-gaming.faiz-triputra.workers.dev/). Periksa `/health` untuk status aktual. Rilis source 2.0.0 mencakup panduan agent; lihat [status dan panduan maintenance](docs/MAINTENANCE.md).
 
 Terbaru: dua belas emote chat tersedia di enam game, dengan efek transparan di meja yang terlihat seluruh room. Lobby Mahjong punya Manual bebas, Manual terbantu, serta Fast. Manual bebas membiarkan pemain mencoba klaim tanpa pemeriksaan awal; server menilai saat klaim dikirim. Panduan dapat dilewati dan panel sidebar tetap dapat dilipat.
 
-Fitur: lobby bersama, nama sekali untuk enam game, kunci room, save/pemulihan sesi, penonton/antrean/rotasi, panel lipat dan aksi HP, suara/volume serta pengurangan animasi. Saat masih ada sesi tersimpan, popup memberi pilihan lanjut atau keluar dulu sebelum pindah room; koneksi yang terputus tetap bisa menyambung ulang. [Panduan sesi bersama](docs/SOCIAL-SESSIONS.md).
+Fitur: lobby bersama, nama diminta saat create/join game, lalu disimpan untuk prefill enam game, kunci room, save/pemulihan sesi, penonton/antrean/rotasi, panel lipat dan aksi HP, suara/volume serta pengurangan animasi. Saat masih ada sesi tersimpan, popup memberi pilihan lanjut atau keluar dulu sebelum pindah room; koneksi yang terputus tetap bisa menyambung ulang. [Panduan sesi bersama](docs/SOCIAL-SESSIONS.md).
 
 ## Jalankan lokal
 
@@ -23,13 +23,13 @@ Buka **http://localhost:3000**. Untuk port lain, gunakan `PORT=3010 npm start`. 
 
 ## Panduan agent dan Cloudflare
 
-Setelah clone/pull, agent mulai dari [AGENTS.md](AGENTS.md), lalu [skill Meja Kita](.agents/skills/meja-kita-games/SKILL.md). Aturan layout, komponen, bot, score/rupiah, kredit dan struktur modul ada di [GAME-CONVENTIONS.md](docs/GAME-CONVENTIONS.md). Cara menjalankan origin dan membagikannya melalui Quick Tunnel, termasuk update tanpa memutus pemain tanpa izin, ada di [CLOUDFLARE.md](docs/CLOUDFLARE.md).
+Setelah clone/pull, agent mulai dari [AGENTS.md](AGENTS.md), [panduan maintenance/handoff](docs/MAINTENANCE.md), lalu [skill Meja Kita](.agents/skills/meja-kita-games/SKILL.md). Aturan layout, komponen, bot, score/rupiah, kredit dan struktur modul ada di [GAME-CONVENTIONS.md](docs/GAME-CONVENTIONS.md). Hosting dan update cloud ada di [CLOUDFLARE-WORKERS.md](docs/CLOUDFLARE-WORKERS.md). [CLOUDFLARE.md](docs/CLOUDFLARE.md) hanya untuk alternatif Node + Quick Tunnel yang memerlukan laptop.
 
 Panduan memakai path relatif dan tidak menyimpan hostname/PID/token sesi pengguna. Siapa pun dapat membuat origin dan tunnel sendiri dari checkout-nya. GitHub push dan deployment live tetap dua tindakan terpisah.
 
 ## Hosting online (opsional)
 
-Alur pilihan pemilik adalah Node origin loopback melalui Cloudflare Quick Tunnel setelah diminta. Laptop tetap diperlukan. Petunjuk Render berikut hanya referensi alternatif; jangan membuat/deploy service tanpa permintaan. Paket gratis dapat tetap meminta kartu untuk verifikasi akun.
+Alur utama pemilik sekarang Workers + SQLite Durable Object, sudah dipasang dan tidak memerlukan laptop. Build lokal tidak menerbitkan perubahan; deployment baru tetap perlu izin spesifik. Node + Quick Tunnel adalah alternatif terpisah yang memerlukan laptop. Petunjuk Render berikut hanya referensi alternatif; jangan membuat/deploy service tanpa permintaan. Paket gratis dapat tetap meminta kartu untuk verifikasi akun.
 
 ### Deploy di Render
 
@@ -75,7 +75,7 @@ Semua game mempunyai pilihan bot **Easy, Normal, Hard**, dengan jeda minimal 3 d
 
 | Game | Creator | Cara menghitung poin/chip |
 | --- | --- | --- |
-| Mahjong | Hendy W | Skor fan yang sudah ada: 1 fan = 10 poin per pembayar; zimo dibayar tiga lawan, buangan dibayar 3× oleh pembuang |
+| Mahjong | Hendy W | Room baru: HKMA core 3–10 fan dengan tabel pembayaran; room legacy mempertahankan 1 fan = 10 poin dan aturan pembayar lamanya. Lihat README Mahjong |
 | Poker | Hendy W | Chip net = stack + chip dalam pot yang belum selesai − seluruh bought chips; setelah pot selesai nilai final berubah |
 | Capsa | Faiz T | Kalah −jumlah kartu tersisa; pemenang menerima jumlahnya |
 | Domino | Faiz T | Kalah −titik tersisa; pool diterima pemenang. Seri dibagi rata, sisa 1 poin menurut urutan kursi |
@@ -99,7 +99,9 @@ Meja 1–7 pemain melawan dealer otomatis, enam deck baru diacak setiap ronde. H
 
 ## Penyimpanan dan restart
 
-Seluruh enam game disimpan di direktori privat `DATA_DIR/rooms/` (default `var/rooms/`). Sesi belum selesai dipulihkan dalam keadaan jeda: pemain kembali ke kursinya, lalu host menekan **Lanjutkan sesi**. Unduh file pemulihan kursimu bila ingin kembali dari link Cloudflare baru. Simpan file itu sendiri; teman cukup diberi link undangan.
+Pada hosting Workers, enam game memakai snapshot privat SQLite Durable Object. Pertahankan actor/binding/migrasi; jangan upload save Node atau mengganti store. Recovery unfinished dijeda hingga pemain kembali dan host melanjutkan. Detail [cloud](docs/CLOUDFLARE-WORKERS.md).
+
+Pada target Node, seluruh enam game disimpan di direktori privat `DATA_DIR/rooms/` (default `var/rooms/`). Sesi belum selesai dipulihkan dalam keadaan jeda: pemain kembali ke kursinya, lalu host menekan **Lanjutkan sesi**. Unduh file pemulihan kursimu bila ingin kembali dari link Cloudflare baru. Simpan file itu sendiri; teman cukup diberi link undangan.
 
 Upgrade pertama dari build UI-polish tetap mengakhiri lima game yang sebelumnya hanya di RAM. Save Poker lama diimpor tanpa dihapus. Pertahankan seluruh `DATA_DIR`, termasuk `poker/` dan `rooms/`, pada update. Detail migrasi, batas retensi tujuh hari, rotasi akun dan batas pemeriksaan ada di [SOCIAL-SESSIONS.md](docs/SOCIAL-SESSIONS.md).
 
@@ -150,3 +152,11 @@ Pilih durasi di lobby sebelum mulai. Capsa, Mahjong, Domino dan Blackjack dapat 
 ## Bubarkan ruang (host)
 
 Buka **Meja & preferensi → Bubarkan ruang**. Dialog menyebut kode dan akibatnya; host harus mengonfirmasi. Pemain/penonton kembali ke halaman masuk, room hilang dari daftar, undangan lama dan file pemulihan tidak berlaku. Sesi offline dibersihkan saat mencoba menyambung lagi. Kode yang dibubarkan tidak dialokasikan ulang selama DATA_DIR dipertahankan. Ronde aktif dibatalkan tanpa membuat hasil/payout baru; unduh rekap yang diperlukan terlebih dahulu.
+
+## Mahjong Hong Kong (termasuk cloud 2.0.0)
+
+Mahjong new rooms offer HKMA core scoring (3–10 fan and payment ladder), flowers/seasons, optional locally defined jokers and flower fan bonuses, and a skippable four-wall/dice/deal ceremony. See [actual rules and limitations](games/mahjong/README.md). Existing saved rooms keep legacy rules. This source update does not authorize pushing or changing a running host.
+
+## Cloudflare hosting (2.0.0)
+
+The Workers + SQLite Durable Object adapter for all six games was deployed on 23 October 2026; it runs without a laptop. Build with `npm run build:cloudflare`; this does not deploy. See [setup, limits and safe deployment](docs/CLOUDFLARE-WORKERS.md). It includes Hong Kong Mahjong and game-entry nickname changes. The existing Node command and private saves remain separate. No Git push or public deployment is implied by a build.

@@ -1,12 +1,15 @@
 {
   "name": "srac-gaming",
-  "version": "1.8.0",
+  "version": "2.0.0",
   "private": true,
   "description": "Six multiplayer games: Capsa, Mahjong, Poker, Chess, Domino and Blackjack",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "test:ui": "node --test tests/*.test.js"
+    "test:ui": "node --test tests/*.test.js",
+    "build:cloudflare": "node scripts/build-cloudflare.mjs",
+    "dev:cloudflare": "wrangler dev --local --ip 127.0.0.1 --port 3024",
+    "deploy:cloudflare": "wrangler deploy"
   },
   "dependencies": {
     "chess.js": "1.4.0",
@@ -14,5 +17,9 @@
   },
   "engines": {
     "node": ">=22"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2",
+    "wrangler": "4.152.0"
   }
 }

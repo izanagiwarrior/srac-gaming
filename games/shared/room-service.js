@@ -35,8 +35,8 @@ function settled(slug,r) {
   return ['result','finished'].includes(r.phase);
 }
 function active(slug,r){return (r.state||r.phase)!=='lobby'&&!settled(slug,r);}
-function installRoomService(app,{slug,dataDir}) {
-  const filename=path.join(dataDir,slug+'.v8');let stopped=false,lastBuffer=null,savedAt=null,saveError=false;
+function installRoomService(app,{slug,dataDir,persistence=null,saveInterval=5000}) {
+  const filename=persistence?null:path.join(dataDir,slug+'.v8');let stopped=false,lastBuffer=null,savedAt=null,saveError=false;
   const closedCodes=new Set();let archives=[];
   const entityFor=ws=>ws.roomPlayer?{room:ws.roomPlayer.room,person:ws.roomPlayer.player}:{room:ws.room,person:ws.entity||ws.player||ws.person};
   function save({exclude=null,closed=closedCodes,history=archives}={}) {
@@ -45,6 +45,7 @@ function installRoomService(app,{slug,dataDir}) {
       const rooms=[...app.rooms.values()].filter(r=>r!==exclude&&!closed.has(r.code)).map(r=>{ensurePeople(r);return app.exportRoom?app.exportRoom(r):snapshotRoom(r);});
       const buffer=v8.serialize({format:1,game:slug,rooms,closedCodes:[...closed],archives:history});
       if(lastBuffer?.equals(buffer))return true;
+      if(persistence){persistence.write(buffer);lastBuffer=buffer;savedAt=Date.now();saveError=false;return true;}
       fs.mkdirSync(dataDir,{recursive:true,mode:0o700});
       const temp=filename+'.tmp';let fd;
       try {fd=fs.openSync(temp,'w',0o600);fs.fchmodSync(fd,0o600);fs.writeFileSync(fd,buffer);fs.fsyncSync(fd);}finally{if(fd!==undefined)fs.closeSync(fd);}
@@ -158,19 +159,20 @@ function installRoomService(app,{slug,dataDir}) {
     if(['next','again','rematch'].includes(msg.type)&&room.social.queue.length){error(ws,'Ada antrean pemain. Host dapat memakai Main lagi & rotasi di panel Meja.');return true;}
     return false;
   }
-  if(fs.existsSync(filename)) {
-    const loaded=v8.deserialize(fs.readFileSync(filename));
+  const persisted=persistence?persistence.read():fs.existsSync(filename)?fs.readFileSync(filename):null;
+  if(persisted) {
+    const loaded=v8.deserialize(persisted);
     if(loaded.format!==1||loaded.game!==slug||!Array.isArray(loaded.rooms))throw Error('Format save '+slug+' tidak valid; file asli dipertahankan.');
     if(loaded.closedCodes!==undefined&&(!Array.isArray(loaded.closedCodes)||loaded.closedCodes.some(c=>typeof c!=='string'||!/^[A-Z0-9]{4,16}$/.test(c))))throw Error('Daftar kode room tertutup tidak valid; file asli dipertahankan.');
     for(const code of loaded.closedCodes||[])closedCodes.add(code);
     archives=Array.isArray(loaded.archives)?loaded.archives.slice(-200):[];
     app.rooms.clear();
     for(const saved of loaded.rooms){if(closedCodes.has(saved.code))continue;const r=app.restoreRoom(saved);ensurePeople(r);for(const p of everyone(r)){p.ws=null;p.connected=!!p.bot;}r.recovering=active(slug,r);app.rooms.set(r.code,r);}
-    savedAt=fs.statSync(filename).mtimeMs;
+    savedAt=persistence?persistence.savedAt():fs.statSync(filename).mtimeMs;
   }else for(const r of app.rooms.values()){ensurePeople(r);r.recovering=active(slug,r);}
   const service={handle,enrich,changed:()=>save(),save,meta,hasCode:code=>closedCodes.has(code)||app.rooms.has(code),roomFor:entityFor,summary(){return [...app.rooms.values()].filter(r=>!r.social?.locked&&everyone(r).some(p=>p.connected&&!p.bot)).map(r=>({game:slug,code:r.code,phase:r.recovering?'paused':settled(slug,r)?'between':r.state==='lobby'||r.phase==='lobby'?'lobby':'playing',capacity:app.capacity(r),players:r.players.filter(p=>!p.bot&&p.connected).map(p=>p.name),seats:r.players.length,spectators:r.spectators.filter(p=>!p.bot&&p.connected).length,queued:r.social?.queue.length||0}));},close(){save();stopped=true;clearInterval(interval);}};
   app.setRoomService(service);
-  const interval=setInterval(()=>save(),5000);interval.unref();
+  const interval=saveInterval?setInterval(()=>save(),saveInterval):null;interval?.unref();
   return service;
 }
 module.exports={installRoomService,snapshotRoom};

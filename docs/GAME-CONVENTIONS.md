@@ -41,7 +41,7 @@ The server records each completed result once. Keep active stakes distinct from 
 | Game | Current scoring convention |
 | --- | --- |
 | Capsa | Losing players lose one point per remaining card; the winner receives the sum |
-| Mahjong | Existing fan scoring, 1 fan = 10 points per payer, with zimo/discard payer rules |
+| Mahjong | New HK rooms: 3–10 fan/payment ladder per Mahjong README; old legacy rooms retain 1 fan = 10 points and their original payer rules |
 | Poker | Net = stack + unresolved contributed chips − bought chips; final after pot awards |
 | Catur | Win +1 / loss −1 / draw 0, including resignation or leaving during play |
 | Domino | Losers lose remaining pips; winner receives the pool. Tied winners split, with leftover points by seat order |
@@ -97,3 +97,11 @@ Jam Catur berada di server; klien hanya menampilkan estimasi dari sampel terbaru
 Semua game memakai tombol host **Bubarkan ruang** di kontrol Meja bersama, bukan salinan per game. Tampilkan kode dan akibatnya dalam dialog, fokus awal pada Batal, dan tunggu balasan server sebelum menghapus sesi browser. Host saat ini, socket pemilik sesi, kode dan roomId harus cocok pada saat eksekusi; penonton/pemain lain tidak boleh membubarkan ruang. Konfirmasi lama tidak berlaku setelah room/hak host berubah.
 
 Pembubaran menghapus room aktif, memutus ikatan seluruh socket tanpa native leave (tidak mencatat resign/fold/payout baru), menghentikan semua timer termasuk jam Blitz dan transisi klaim, dan mengirim notifikasi literal ke semua peserta/penonton. Kode yang dibubarkan dicadangkan di snapshot privat agar undangan/token lama tidak bisa hidup lagi setelah restart atau dipakai room baru. Setiap allocator native harus memeriksa service.hasCode. Resource milik factory yang tidak tercakup timer room dibersihkan melalui disposeRoom. Jika penulisan penghapusan gagal, pertahankan room dan beri error; jangan menampilkan sukses.
+
+## Hong Kong Mahjong (1.9.0)
+
+New rooms use the documented HKMA core scoring/deal profile; old snapshots without ruleset remain legacy. Flowers are public bonus tiles replaced from the wall tail, never meld tiles. Joker and flower fan options are explicitly local variants and OFF by default. Respect minimum3/max10 fan, the documented payment ladder, Pao, and viewer-specific server Hu eligibility. Opening phase is server-owned, default animated, host-skippable by current opening ID, paused on recovery, and cleared on disposal. No tile identities from the wall or other concealed hands may enter opening messages. Render only public occupancy/counts/dice; preserve shared sidebar and reduced motion.
+
+## Cloud runtime adapter (2.0.0)
+
+Keep game rules authoritative in the existing six factories. Cloud-only transport/filesystem/timer adapters live under cloudflare/, bound by scripts/build-cloudflare.mjs; never import them into the ordinary Node target. The room service accepts optional synchronous persistence and a disabled periodic-save interval for the cloud target. Preserve Set/shared references and private per-viewer messages; only whitelisted public assets go into Workers Assets. Keep one small hub actor, owned timer cleanup, checkpoint-before-publish, closed-code reservations and paused recovery on cold restore. See CLOUDFLARE-WORKERS.md for limits and release rules.

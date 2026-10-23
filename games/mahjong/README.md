@@ -1,3 +1,42 @@
+# Hong Kong Mahjong — kandidat 1.9.0 / protokol v10
+
+## Aturan yang digunakan
+
+Room baru memakai **acuan Hong Kong Mahjong Association (HKMA)** untuk inti bentuk Hu, fan, dan pembayaran. Sumber primer: [halaman aturan HKMA](https://www.hkmahjong.org/rules?lang=en) dan [Hong Kong Mahjong (English)](https://docs.google.com/document/d/1a66AhGRZE6IJmA_nd-C7gIQfSJ7sXo_2-c4XgVnMpTQ/edit). Implementasi ini bukan salinan buku aturan atau sertifikasi turnamen: fitur bantuan, undo, manual/fast, bot dan durasi terbatas adalah fasilitas meja santai. Penalti wasit fisik/turnamen tidak disimulasikan.
+
+- Hu memerlukan empat set dan satu pasang atau Thirteen Orphans, **minimal 3 fan**, **batas 10 fan**. Tidak ada fan menang dasar otomatis. Tujuh Pasang hanya pada profil legacy.
+- Mesin menilai seluruh pemisahan set yang sah dan memilih fan tertinggi. Closed Hand hanya bila tidak ada meld, termasuk tidak ada Kong tertutup. Angin kursi dan angin ronde dapat dihitung terpisah pada set yang sama.
+- Fan: semua Chow 1; tertutup 1; Zimo 1; tiap Pung naga/angin relevan 1; terminal+huruf 1; rebut Kong 1; pengganti Kong 1; ubin terakhir 1. Semua Pung dan campur satu warna 3; naga kecil 3 ditambah dua Pung naga; naga besar 5 ditambah tiga Pung naga; satu warna penuh 7. Pola limit diberi 10 dan total dibatasi 10.
+- Limit: semua huruf, angin kecil/besar, empat Pung tertutup tanpa Kong (Hu buangan harus melengkapi pasangan), empat Kong, semua terminal, Heaven/Earth, Thirteen Orphans, Hu dari Kong beruntun, Nine Gates. Nine Gates dari buangan mensyaratkan bentuk tunggu sembilan sisi sebelum ubin menang. Joker tidak membentuk pola limit.
+- Tabel poin buangan untuk fan 3–10: **32, 64, 96, 128, 192, 256, 384, 512**. Pembuang membayar nilai itu penuh; Zimo dibayar **setengah** nilai itu oleh masing-masing tiga lawan. Jumlah delta nol. Rate rupiah hanya pengukuran net poin, bukan transaksi uang.
+- Pao: pemberi klaim set keempat atau naga ketiga memikul seluruh pembayaran jika penerima kemudian Zimo. Tanggung jawab baru menggantikan yang lama. Hu buangan tetap ditanggung pembuang ubin menang; Kong tertutup keempat tidak menciptakan Pao baru.
+- Added Kong dapat direbut untuk Hu; concealed Kong hanya dapat direbut oleh Thirteen Orphans. Jendela klaim memakai ID yang sama dengan alur klaim biasa. Pada Manual bebas server tidak mengirim pilihan Hu sebelum dicoba; semua klaim harus memenuhi bentuk dan minimum fan.
+
+## Bunga, musim, dan joker
+
+Bunga ON secara default: 4 bunga + 4 musim ditambahkan ke 136 ubin standar. Bunga selalu ditampilkan terbuka di depan pemilik dan diganti dari ujung tembok; tidak masuk set atau hitungan 13/14 ubin. Saat pembagian awal, penggantian dilakukan bergiliran mulai dealer dan diulang untuk bunga pengganti; saat draw/Kong, penggantian berantai dilakukan otomatis. Set bunga turut tampil pada hasil ronde.
+
+Tabel fan HKMA yang dirujuk tidak memuat bonus fan bunga. Karena itu **bonus bunga OFF default**; mekanik penggantian tetap berlaku. Toggle **variasi meja HKOS** menambahkan: tanpa bunga 1 fan; bunga/musim sesuai kursi 1 fan per kelompok; kelompok empat lengkap 2 fan menggantikan bonus kursi kelompok itu. Tidak ada kemenangan otomatis tujuh/delapan bunga. Semua variasi diberi label di lobby/meja.
+
+**Joker OFF default.** Saat ON, ditambah empat ubin liar, total148 bersama bunga. Joker hanya menggantikan ubin pada pasangan/Chow/Pung di bagian tangan tertutup; tidak digunakan untuk klaim/Kong terbuka, tidak membuat pola limit, dan joker yang dibuang tidak dapat diklaim. Perhitungan memilih representasi sah dengan fan tertinggi. Ini variasi meja, bukan aturan HKMA. Bantuan shanten standar dinonaktifkan ketika joker ON agar tidak menyatakan estimasi palsu; server tetap menilai Hu.
+
+## Tembok, dadu, pembagian
+
+- Empat sisi tembok, dua tingkat; default144 ubin =18 tumpuk per sisi. Dengan empat joker, total148 dan dua sisi berisi19 tumpuk, dua sisi18. Tiga dadu berasal dari server dan benar-benar menentukan sisi serta titik potong tembok.
+- Urutan pemain Timur→Selatan→Barat→Utara; pengambilan fisik tembok bergerak berlawanan. Ambil empat ubin bergiliran tiga kali, lalu ubin ke-13 masing-masing dan ubin lompat dealer; dealer memulai dengan14, lainnya13, setelah penggantian bunga.
+- Animasi default ON, dapat dimatikan host di lobby. **Skip & mulai** hanya untuk host, membawa ID pembukaan terbaru dan melewati animasi seluruh room. Semua ubin dibagikan sekali oleh server; tidak ada re-shuffle/deal ulang saat Skip/reconnect. Aksi bermain diblokir selama pembukaan; bot menunggu minimal3 detik setelah pembukaan selesai.
+- Server menyimpan fase pembukaan. Recovery dijeda melalui kontrol bersama; melanjutkan meneruskan tahap yang tersimpan. Timer opening dibersihkan saat close/dissolve. Klien tidak menerima identitas ubin tembok/tangan lawan; hanya posisi tembok terisi, jumlah pembagian dan dadu publik. Tangan sendiri baru dikirim setelah pembukaan selesai.
+- Kurangi animasi/OS reduced motion menghentikan gerak visual, tetapi tahapan tetap sinkron server; host tetap dapat Skip. Warna muka ubin tetap terbaca dalam Dark/Light.
+- Kursi tetap pada Hong Kong; dealer menang tetap Timur, selain itu dealer berpindah ke Selatan. Angin ronde bergeser setelah empat perpindahan dealer. Quick Play tetap menghitung jumlah tangan/ronde yang dipilih, termasuk seri dan dealer ulang; bukan sesi turnamen satu putaran penuh.
+
+## Kompatibilitas dan batas pemeriksaan
+
+Save lama tanpa `ruleset` dipulihkan sebagai `legacy`, mempertahankan fan/pembayaran dan kursi acak sebelumnya. Tidak mengonversi ronde/saldo lama ke HKMA. Pilihan profil, bunga, bonus bunga, joker, animasi dan bantuan dikunci setelah mulai. Protokolv10 meminta refresh browser setelah deployment yang diizinkan.
+
+Patch hanya disiapkan di staging. Pemeriksaan sintaks/source dan authoring preview terpisah; tidak menambah/menjalankan tes otomatis/gameplay tanpa permintaan. Detail bukti/batas pengujian akhir ada pada catatan patch operator. Riwayat fitur sebelum 1.9.0 di bawah berlaku pada profil legacy, kecuali sudah digantikan bagian ini.
+
+---
+
 > Game terintegrasi di Meja Kita. Jalankan aplikasi dari root repository dengan `npm start`; lihat README utama. Instruksi standalone di bawah adalah dokumentasi source asal.
 
 # Mahjong P2P (main bareng di WiFi yang sama)

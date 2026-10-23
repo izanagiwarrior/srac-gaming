@@ -268,6 +268,7 @@ input.code{text-transform:uppercase;letter-spacing:.3em;font-weight:700;font-fam
 @media(max-width:640px){.top{flex-wrap:wrap;gap:10px}.game-setting-row{width:100%;justify-content:space-between}.set-legend{font-size:10px;gap:5px 9px}.set-legend>small{font-size:9px}.set-key b{font-size:8px;min-width:17px}}
 @media (prefers-reduced-motion:reduce){.turnbar.mine{animation:none}}
 </style>
+<link rel="stylesheet" href="/mahjong/hong-kong.css">
 <script src="/game-tools.js"></script><link rel="stylesheet" href="/hub-game.css"><script src="/hub-game.js" defer></script><link rel="stylesheet" href="/theme.css"></head>
 <body><nav class="hubbar" aria-label="Pilihan permainan"><a href="/" data-hub-home>← Pilih game</a><span>MEJA KITA</span></nav>
 <div id="conn" class="toast" style="display:none;bottom:auto;top:calc(10px + env(safe-area-inset-top,0px))"></div>
@@ -305,12 +306,21 @@ input.code{text-transform:uppercase;letter-spacing:.3em;font-weight:700;font-fam
       <label class="f">Durasi permainan<select class="in" id="rounds" onchange="updateLobbySettings()"><option value="1">Quick Play · 1 ronde</option><option value="4" selected>4 ronde (sekitar 20 menit)</option><option value="8">8 ronde</option><option value="12">12 ronde</option></select></label>
       <label class="f">Tingkat bot<select class="in" id="botlevel" onchange="updateLobbySettings()"><option value="easy">Easy (kadang asal buang, jarang klaim)</option><option value="normal" selected>Normal (efisien)</option><option value="hard">Hard (efisien + bertahan)</option></select></label>
     </div>
-    <label class="f">Nilai 1 poin dalam rupiah<input class="in" id="mahjong-point-value" type="number" min="0" max="1000000" step="1" value="0" onchange="updateLobbySettings()"></label><p class="cap">0 = latihan. 1 fan = 10 poin per pembayar; rupiah = poin × nilai ini. Terkunci saat mulai.</p>
+    <label class="f">Nilai 1 poin dalam rupiah<input class="in" id="mahjong-point-value" type="number" min="0" max="1000000" step="1" value="0" onchange="updateLobbySettings()"></label><p class="cap">0 = latihan. Skor memakai tabel fan aturan meja; rupiah = poin hasil settlement × nilai ini. Terkunci saat mulai.</p>
     <label class="f">Mode klaim<select class="in" id="claim-mode" onchange="updateLobbySettings()" aria-describedby="claim-mode-copy"><option value="manual">Manual bebas · coba klaim sendiri</option><option value="assisted" selected>Manual terbantu · cek pilihan klaim</option><option value="fast">Fast · otomatis lewat tanpa klaim</option></select></label>
     <p class="cap" id="claim-mode-copy">Semua pemain menjawab sendiri. Aplikasi memeriksa pilihan klaim; tanpa klaim sah, hanya Lewat yang tersedia.</p>
     <p class="cap">Manual bebas tidak memberi tahu apakah klaim tersedia; kesalahan ditolak tanpa kehilangan ubin. Fast lebih cepat, tetapi pemain yang diminta menjawab bisa tertebak punya pilihan. Default: Manual terbantu.</p>
     <label class="fast-toggle"><input type="checkbox" id="handhighlight" checked onchange="updateLobbySettings()"><span><b>Highlight set di tangan</b><small id="handhighlight-copy">Aktif: tandai Chow/Pung yang sudah lengkap di tangan sendiri, serta ubin yang bisa menjadi keduanya.</small></span></label>
     <p class="cap">Host memilih mode klaim dan highlight set untuk seluruh meja di lobby. Terkunci setelah Mulai permainan, termasuk ronde berikutnya dan main lagi. Buat ruangan baru untuk mengganti mode. Tidak ada batas waktu.</p>
+<div class="hk-setting-group"><h3>Aturan & pembukaan meja</h3>
+<label class="f">Acuan skor<select class="in" id="hk-ruleset" onchange="chooseHKRuleset()"><option value="hkma">Hong Kong · acuan HKMA (3–10 fan)</option><option value="legacy">Aturan lama · 1 fan = 10 poin</option></select></label>
+<p class="hk-rule-copy" id="hk-rules-copy">HKMA: minimal 3 fan untuk Hu, maksimal 10. Buangan: pembuang membayar seluruh nilai tabel. Zimo: masing-masing lawan membayar setengah nilai tabel. Pao berlaku.</p>
+<label class="fast-toggle"><input type="checkbox" id="hk-flowers" checked onchange="updateLobbySettings()"><span><b>Bunga & musim · 8 ubin</b><small>Dibuka di depan pemain dan diganti dari ujung tembok; tidak masuk 13/14 ubin atau set.</small></span></label>
+<label class="fast-toggle"><input type="checkbox" id="hk-flower-bonus" onchange="updateLobbySettings()"><span><b>Bonus fan bunga · variasi meja HKOS</b><small>Bukan tabel HKMA: tanpa bunga +1, bunga/musim sesuai kursi +1, satu set lengkap +2 menggantikan bonus bunga kursi.</small></span></label>
+<label class="fast-toggle"><input type="checkbox" id="hk-jokers" onchange="updateLobbySettings()"><span><b>Joker opsional · variasi meja</b><small>OFF secara default. Empat joker liar hanya melengkapi tangan tertutup, bukan untuk Pung/Chow/Kong terbuka atau pola limit. Joker yang dibuang tidak dapat diklaim.</small></span></label>
+<label class="fast-toggle"><input type="checkbox" id="hk-animation" checked onchange="updateLobbySettings()"><span><b>Animasi pembukaan · default ON</b><small>Empat sisi tembok → tiga dadu → potong tembok → bagi 4–4–4–1 dan ubin dealer → penggantian bunga. Host dapat menekan Skip & mulai.</small></span></label>
+<p class="cap">Aturan dikunci saat mulai. Durasi Quick Play dan bantuan klaim adalah fitur meja santai; bukan sertifikasi pertandingan resmi HKMA.</p>
+</div>
     <button class="btn primary" id="startbtn" onclick="doStart()">Mulai permainan</button>
     <p class="cap" id="waitmsg"></p>
   </div>
@@ -337,6 +347,8 @@ input.code{text-transform:uppercase;letter-spacing:.3em;font-weight:700;font-fam
 </div>
 <div class="overlay" id="overlay"></div>
 <script src="/mahjong/engine.js"></script>
+<script src="/mahjong/hong-kong.js"></script>
+<script src="/mahjong/opening.js"></script>
 <script src="/mahjong/tiles.js"></script>
 <script src="/mahjong/hand-help.js"></script>
 <script src="/mahjong/client.js"></script>

@@ -11,3 +11,9 @@ screenshots/
 *.zip
 
 *.pid
+
+# Cloudflare build artifacts and private local emulator state
+dist/
+.wrangler/
+.dev.vars
+.dev.vars.*

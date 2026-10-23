@@ -4,14 +4,14 @@
   const WINDS = ['東', '南', '西', '北'], WIND_ID = ['Timur', 'Selatan', 'Barat', 'Utara'];
   const DRAG = ['中', '發', '白'], DRAG_ID = ['Naga Merah', 'Naga Hijau', 'Naga Putih'];
   const T = (s, n) => ({ s, n });
-  const idxOf = t => t.s === 'd' ? t.n - 1 : t.s === 'b' ? 8 + t.n : t.s === 'c' ? 17 + t.n : t.s === 'w' ? 26 + t.n : 30 + t.n;
-  const fromIdx = i => i < 9 ? T('d', i + 1) : i < 18 ? T('b', i - 8) : i < 27 ? T('c', i - 17) : i < 31 ? T('w', i - 26) : T('g', i - 30);
-  const isSuit = i => i < 27;
-  function tileName(t) { if (SUITS[t.s]) return t.n + ' ' + SUITS[t.s].name; if (t.s === 'w') return 'Angin ' + WIND_ID[t.n - 1]; return DRAG_ID[t.n - 1]; }
+  const idxOf = t => t.s === 'd' ? t.n - 1 : t.s === 'b' ? 8 + t.n : t.s === 'c' ? 17 + t.n : t.s === 'w' ? 26 + t.n : t.s === 'g' ? 30 + t.n : t.s === 'j' ? 34 : 34 + t.n;
+  const fromIdx = i => i < 9 ? T('d', i + 1) : i < 18 ? T('b', i - 8) : i < 27 ? T('c', i - 17) : i < 31 ? T('w', i - 26) : i < 34 ? T('g', i - 30) : i === 34 ? T('j',1) : T('f',i-34);
+  const isSuit = i => i >= 0 && i < 27;
+  function tileName(t) { if(t.s==='j')return 'Joker · variasi meja'; if(t.s==='f')return ['Bunga Plum','Bunga Orchid','Bunga Chrysanthemum','Bunga Bamboo','Musim Semi','Musim Panas','Musim Gugur','Musim Dingin'][t.n-1]; if (SUITS[t.s]) return t.n + ' ' + SUITS[t.s].name; if (t.s === 'w') return 'Angin ' + WIND_ID[t.n - 1]; return DRAG_ID[t.n - 1]; }
   const byIdx = (a, b) => idxOf(a) - idxOf(b) || a.id - b.id;
-  function counts(hand) { const c = new Array(34).fill(0); for (const t of hand) c[idxOf(t)]++; return c; }
+  function counts(hand) { const c = new Array(34).fill(0); for (const t of hand) { const i=idxOf(t); if(i>=0&&i<34)c[i]++; } return c; }
   function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
-  function buildWall() { const w = []; let id = 0; for (let i = 0; i < 34; i++) for (let k = 0; k < 4; k++) w.push({ ...fromIdx(i), id: id++ }); return w; }
+  function buildWall(options = {}) { const w = []; let id = 0; for (let i = 0; i < 34; i++) for (let k = 0; k < 4; k++) w.push({ ...fromIdx(i), id: id++ }); if(options.flowers)for(let n=1;n<=8;n++)w.push({s:'f',n,id:id++}); if(options.jokers)for(let k=0;k<4;k++)w.push({s:'j',n:1,id:id++}); return w; }
 
   function shantenStd(c0, melds) {
     const cnt = c0.slice(); let best = 8, m = melds, t = 0;
@@ -88,14 +88,14 @@
   function botChooseDiscard(hand, melds) {
     const c = counts(hand); let best = null, bestScore = Infinity; const tried = new Set();
     for (const t of hand) {
-      const i = idxOf(t); if (tried.has(i)) continue; tried.add(i);
+      const i = idxOf(t); if (i>=34 || tried.has(i)) continue; tried.add(i);
       c[i]--; const s = shanten(c, melds.length); c[i]++;
       let rel = c[i] - 1; if (isSuit(i)) { const n = i % 9; if (n > 0) rel += c[i - 1]; if (n < 8) rel += c[i + 1]; if (n > 1) rel += c[i - 2] * .5; if (n < 7) rel += c[i + 2] * .5; }
       const edge = isSuit(i) ? ((i % 9 === 0 || i % 9 === 8) ? 1 : 2) : 0;
       const score = s * 100 + rel * 10 + edge + Math.random();
       if (score < bestScore) { bestScore = score; best = t; }
     }
-    return best;
+    return best || hand[0];
   }
   function botDecide(hand, melds, o, t) {
     if (o.win) return { type: 'win', win: o.win };
@@ -124,11 +124,12 @@
     if (level !== 'hard' || !ctx || !ctx.threats || !ctx.threats.length) return botChooseDiscard(hand, melds);
     // Sulit: seperti normal, tapi saat ada lawan yang mengancam, pilih ubin aman kalau biayanya kecil.
     const c = counts(hand); const cands = []; const seen = new Set();
-    for (const t of hand) { const i = idxOf(t); if (seen.has(i)) continue; seen.add(i); c[i]--; const s = shanten(c, melds.length); c[i]++;
+    for (const t of hand) { const i = idxOf(t); if (i>=34 || seen.has(i)) continue; seen.add(i); c[i]--; const s = shanten(c, melds.length); c[i]++;
       const safe = ctx.threats.every(th => th.discards.has(i) || (ctx.visible && ctx.visible[i] + c[i] >= 4));
       let rel = c[i] - 1; if (isSuit(i)) { const n = i % 9; if (n > 0) rel += c[i - 1]; if (n < 8) rel += c[i + 1]; }
       cands.push({ t, i, s, safe, rel }); }
     cands.sort((a, b) => a.s - b.s || a.rel - b.rel);
+    if(!cands.length)return hand[0];
     const best = cands[0]; const myFar = best.s >= 2;
     const danger = ctx.threats.some(th => th.melds >= 2) || (ctx.wall !== undefined && ctx.wall < 20);
     if (danger) { const safeC = cands.find(x => x.safe && (x.s <= best.s + (myFar ? 2 : 1))); if (safeC) return safeC.t; }

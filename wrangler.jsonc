@@ -1,0 +1,20 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "srac-gaming",
+  "main": "dist/cloudflare/worker.js",
+  "compatibility_date": "2026-10-23",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "preview_urls": false,
+  "build": {"command": "npm run build:cloudflare"},
+  "assets": {
+    "directory": "dist/cloudflare/public",
+    "binding": "ASSETS",
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "none",
+    "run_worker_first": ["/health", "/api/*", "/*/ws", "/*/api/info"]
+  },
+  "durable_objects": {"bindings": [{"name": "GAMING_HUB", "class_name": "GamingHub"}]},
+  "migrations": [{"tag": "v1", "new_sqlite_classes": ["GamingHub"]}],
+  "observability": {"enabled": false}
+}

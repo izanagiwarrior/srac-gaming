@@ -3,8 +3,9 @@ const http = require('http'), fs = require('fs'), path = require('path'), os = r
 const { WebSocketServer } = require('ws');
 const { randomInt, randomBytes } = require('node:crypto');
 const E = require('./engine');
+const HK = require('./hong-kong');
 const {tableSettings}=require('../shared/table-settings');
-const BUILD = '2026-10-15-dissolve-room-1', CLIENT_VERSION = 9;
+const BUILD = '2026-10-23-mahjong-hong-kong-1', CLIENT_VERSION = 10;
 const CLAIM_MODES = ['manual','assisted','fast'];
 const claimMode = settings => CLAIM_MODES.includes(settings.claimMode) ? settings.claimMode : settings.autoPass === true ? 'fast' : 'assisted';
 
@@ -27,7 +28,7 @@ function hasClaimChoice(o) { return !!(o && (o.win || o.pung || o.kong || (o.cho
 
 class Room {
   constructor(code) {
-    this.code = code; this.players = []; this.spectators = []; this.chat = []; this.history = []; this.ledger = []; this.state = 'lobby'; this.settings = { rounds: 4, turnSeconds: 0, claimSeconds: 0, botLevel: 'normal', pointValue:0, claimMode:'assisted', autoPass: false, highlightSets: true }; this.G = null; this.timers = {}; this.lastActivity = Date.now();
+    this.code = code; this.players = []; this.spectators = []; this.chat = []; this.history = []; this.ledger = []; this.state = 'lobby'; this.settings = { rounds: 4, turnSeconds: 0, claimSeconds: 0, botLevel: 'normal', pointValue:0, claimMode:'assisted', autoPass: false, highlightSets: true, ruleset:'hkma', flowers:true, flowerBonus:false, jokers:false, animateDeal:true }; this.G = null; this.timers = {}; this.lastActivity = Date.now();
   }
   humans() { return this.players.filter(p => !p.bot); }
   hostSeat() { const h = this.players.find(p => !p.bot && p.connected && p.token === this.hostToken) || this.players.find(p => !p.bot && p.connected) || this.players.find(p => !p.bot); return h ? h.seat : -1; }
@@ -84,6 +85,9 @@ class Room {
       next.autoPass=next.claimMode==='fast';
       if(settings.rounds!==undefined){if(![1,4,8,12].includes(Number(settings.rounds)))throw Error('Pilih Quick Play 1 ronde, 4, 8, atau 12 ronde.');next.rounds=Number(settings.rounds);}
       if (typeof settings.highlightSets === 'boolean') next.highlightSets = settings.highlightSets;
+      if(settings.ruleset!==undefined){if(!['hkma','legacy'].includes(settings.ruleset))throw Error('Pilih acuan HKMA atau aturan lama.');next.ruleset=settings.ruleset;}
+      for(const key of ['flowers','flowerBonus','jokers','animateDeal'])if(settings[key]!==undefined){if(typeof settings[key]!=='boolean')throw Error('Pilihan '+key+' tidak valid.');next[key]=settings[key];}
+      if(!next.flowers)next.flowerBonus=false;
       this.settings=next;
     }catch(error){send(this.players[seat]?.ws,{type:'error',msg:error.message});return false;}
     this.lastActivity = Date.now();
@@ -91,7 +95,7 @@ class Room {
   }
   newMatch(keepScore=false) {
     if(!keepScore){this.ledger=[];for (const p of this.players) p.score = 0;}
-    this.G = { dealer: 0, hand: 1, maxHands: this.settings.rounds, wall: [], current: 0, phase: 'idle', last: null, pending: null, over: false, result: null, log: '', gen: 0, final: false, turnDeadline: null };
+    this.G = { dealer: 0, hand: 1, maxHands: this.settings.rounds, wall: [], current: 0, phase: 'idle', last: null, pending: null, over: false, result: null, log: '', gen: 0, final: false, turnDeadline: null, dealerRotations:0 };
     const first = this.players[Math.floor(Math.random() * 4)];
     this.startHand(first);
   }
@@ -115,8 +119,127 @@ class Room {
     E.shuffle(this.players); this.players.forEach((p, i) => p.seat = i);
     this.G.dealer = this.players.indexOf(dealerPlayer);
   }
+  evaluateHongKong(p,hand,zimo,tile) {
+    const G=this.G,P=this.players[p];
+    return HK.evaluate(hand,P.melds,{seat:this.wind(p),roundWind:Math.floor((G.dealerRotations||0)/4)%4,zimo,
+      winningIndex:tile?E.idxOf(tile):-1,jokers:this.settings.jokers,flowers:P.flowers||[],flowerBonus:this.settings.flowerBonus,
+      afterKong:zimo&&G.drawKind==='kong',kongChain:zimo?G.kongChain||0:0,lastWall:zimo&&G.wall.length===0,
+      robbedKong:!!(G.robKong||G.robbedKong),concealedRob:G.robKong?.kind==='conc',
+      heaven:zimo&&p===G.dealer&&!G.discardCount&&!G.kongDeclarations,
+      earth:!zimo&&p!==G.dealer&&G.discardCount===1&&G.last?.from===G.dealer&&!G.hadMeld&&!G.kongDeclarations});
+  }
+  winningHand(p,hand,zimo,tile) {
+    if(this.settings.ruleset!=='hkma')return E.findWin(hand,this.players[p].melds);
+    if(!zimo&&HK.isJoker(tile))return null;
+    const result=this.evaluateHongKong(p,hand,zimo,tile);
+    return result?.score.qualified?result.win:null;
+  }
+  claimOptions(p,tile,canChow) {
+    if(HK.isJoker(tile))return {win:null,pung:false,kong:false,chows:[]};
+    const P=this.players[p],o=E.computeOptions(P.hand,P.melds,tile,canChow);
+    o.win=this.winningHand(p,[...P.hand,tile],false,tile);
+    if(!this.G.wall.length)o.kong=false;
+    return o;
+  }
+  drawHongKong(p,tail) {
+    const P=this.players[p],G=this.G;
+    let tile=tail?G.wall.pop():G.wall.shift();
+    while(tile&&HK.isFlower(tile)){
+      P.flowers.push(tile);this.log(P.name+' membuka '+E.tileName(tile)+' dan mengambil pengganti dari ujung tembok.');
+      tile=G.wall.pop();
+    }
+    return tile;
+  }
+  startHongKongHand(dealerPlayer) {
+    const G=this.G;
+    for(const value of Object.values(this.timers))clearTimeout(value);this.timers={};
+    if(dealerPlayer)G.dealer=this.players.indexOf(dealerPlayer);
+    G.over=false;G.result=null;G.pending=null;G.last=null;G.final=false;G.undo=null;G.robKong=null;G.robbedKong=false;
+    G.discardCount=0;G.hadMeld=false;G.kongDeclarations=0;G.kongChain=0;G.drawKind='initial';
+    const shuffled=E.shuffle(E.buildWall({flowers:this.settings.flowers,jokers:this.settings.jokers}));
+    G.wallOriginal=shuffled.map(t=>t.id);G.wallTotal=shuffled.length;
+    const stacks=shuffled.length/2,small=Math.floor(stacks/4),extra=stacks%4;
+    G.wallSides=Array.from({length:4},(_,i)=>2*(small+(i<extra?1:0)));
+    const dice=Array.from({length:3},()=>randomInt(1,7)),sum=dice.reduce((a,b)=>a+b,0),breaker=(G.dealer+sum-1)%4;
+    const physicalSide=(4-breaker)%4,sideStart=G.wallSides.slice(0,physicalSide).reduce((a,b)=>a+b,0);
+    G.wallHead=(sideStart+sum*2)%shuffled.length;
+    G.wall=shuffled.slice(G.wallHead).concat(shuffled.slice(0,G.wallHead));
+    const dealt=[0,0,0,0],steps=[{stage:'build',label:'Susun empat sisi tembok',ms:900,dealt:dealt.slice(),drawn:0},
+      {stage:'dice',label:'Dealer melempar tiga dadu',ms:1400,dealt:dealt.slice(),drawn:0},
+      {stage:'break',label:'Buka tembok di depan '+this.players[breaker].name+', setelah tumpuk '+sum,ms:900,dealt:dealt.slice(),drawn:0}];
+    for(const P of this.players){P.hand=[];P.melds=[];P.discards=[];P.flowers=[];P.drawn=null;P.pao=null;}
+    let drawn=0;
+    for(let round=0;round<3;round++)for(let offset=0;offset<4;offset++){
+      const seat=(G.dealer+offset)%4;this.players[seat].hand.push(...G.wall.splice(0,4));dealt[seat]+=4;drawn+=4;
+      steps.push({stage:'deal',seat,label:'Bagikan empat ubin ke '+this.players[seat].name,ms:180,dealt:dealt.slice(),drawn});
+    }
+    // The dealer's second jumping tile is the fifth tile after the 48-tile deal.
+    for(let offset=0;offset<5;offset++){
+      const seat=(G.dealer+offset%4)%4,tile=G.wall.shift();this.players[seat].hand.push(tile);dealt[seat]++;drawn++;
+      if(offset===4)this.players[seat].drawn=tile;
+      steps.push({stage:'deal',seat,label:offset===4?'Dealer mengambil ubin ke-14':'Bagikan ubin ke-13',ms:180,dealt:dealt.slice(),drawn});
+    }
+    // Initial flowers are replaced in rounds, dealer first. A new flower from
+    // replacement waits for the next sweep, as in the initial HKMA procedure.
+    let replacing=true;
+    while(replacing){replacing=false;for(let offset=0;offset<4;offset++){
+      const P=this.players[(G.dealer+offset)%4],flowers=P.hand.filter(HK.isFlower);
+      if(!flowers.length)continue;replacing=true;P.hand=P.hand.filter(t=>!HK.isFlower(t));P.flowers.push(...flowers);
+      for(let n=0;n<flowers.length;n++){if(!G.wall.length)return this.endHand(null);P.hand.push(G.wall.pop());}
+    }}
+    for(const P of this.players)P.hand.sort(E.byIdx);
+    const dealer=this.players[G.dealer];if(!dealer.hand.includes(dealer.drawn))dealer.drawn=dealer.hand[dealer.hand.length-1];
+    steps.push({stage:'flowers',label:'Buka bunga dan musim; ambil ubin pengganti',ms:1000,dealt:dealt.slice(),drawn,final:true});
+    G.opening={id:randomBytes(12).toString('hex'),dice,sum,breaker,breakStack:sum,steps,index:0};G.current=G.dealer;G.phase='opening';this.bump();
+    this.log('Ronde '+G.hand+': '+dealer.name+' menjadi Timur. Dadu '+dice.join(' + ')+' = '+sum+'.');
+    if(!this.settings.animateDeal)return this.finishOpening();
+    this.advanceOpening();
+  }
+  advanceOpening() {
+    const G=this.G;if(G.over||G.phase!=='opening'||closing||this.recovering)return;
+    clearTimeout(this.timers.opening);this.broadcastState();
+    const gen=G.gen,step=G.opening.steps[G.opening.index];
+    this.timers.opening=setTimeout(()=>{
+      if(this.G!==G||G.gen!==gen||G.over||this.recovering||closing||G.phase!=='opening')return;
+      G.opening.index++;if(G.opening.index>=G.opening.steps.length)this.finishOpening();else this.advanceOpening();
+    },step.ms);
+  }
+  finishOpening() {
+    const G=this.G;if(G.over||G.phase!=='opening'||closing||this.recovering)return;
+    clearTimeout(this.timers.opening);G.phase='discard';G.current=G.dealer;this.bump();
+    this.log(this.players[G.dealer].name+' membuka ronde dengan 14 ubin. Pilih satu buangan.');this.armTurn(G.dealer);this.broadcastState();
+    if(this.players[G.dealer].bot){const gen=G.gen;this.timers.bot=setTimeout(()=>{if(G.gen===gen&&!G.over&&!this.recovering)this.botAct(G.dealer,true);},3000);}
+  }
+  publicOpening() {
+    const G=this.G;if(G.phase!=='opening'||!G.opening)return null;
+    const o=G.opening,step=o.steps[o.index];
+    return {id:o.id,stage:step.stage,label:step.label,seat:step.seat,dealt:step.dealt,dice:step.stage==='build'?[]:o.dice,
+      sum:o.sum,breaker:o.breaker,breakStack:o.breakStack,progress:(o.index+1)/o.steps.length};
+  }
+  wallLayout() {
+    const G=this.G;if(!G.wallOriginal)return null;
+    let occupied;
+    if(G.phase==='opening'&&!G.opening.steps[G.opening.index].final){
+      const drawn=G.opening.steps[G.opening.index].drawn;occupied=Array(G.wallTotal).fill(true);
+      for(let k=0;k<drawn;k++)occupied[(G.wallHead+k)%G.wallTotal]=false;
+    }else{const ids=new Set(G.wall.map(t=>t.id));occupied=G.wallOriginal.map(id=>ids.has(id));}
+    return {sides:G.wallSides,occupied,head:G.wallHead,total:G.wallTotal};
+  }
+  offerRobKong(seat,kind,arg,tile) {
+    const G=this.G,claims=[],opts={},waiting=new Set(),mode=claimMode(this.settings);
+    G.robKong={seat,kind,arg,tileId:tile.id,previousLast:G.last};G.last={tile,from:seat};G.phase='claim';this.bump();
+    for(let q=0;q<4;q++)if(q!==seat){
+      const P=this.players[q],o=mode==='manual'&&!P.bot?{manual:true,robOnly:true}:{win:this.winningHand(q,[...P.hand,tile],false,tile),pung:false,kong:false,chows:[],robOnly:true};
+      if(P.bot){if(o.win)claims.push({p:q,type:'win',win:o.win});continue;}
+      opts[q]=o;if(P.connected&&(mode!=='fast'||o.win))waiting.add(q);
+    }
+    this.log(this.players[seat].name+' menyatakan Kong. Kesempatan merebut untuk Hu.');
+    if(waiting.size){G.pending={id:randomBytes(12).toString('hex'),claims,opts,waiting,deadline:null,autoPass:mode==='fast',claimMode:mode};this.broadcastState();}
+    else this.resolveClaims(claims);
+  }
   startHand(dealerPlayer) {
     const G = this.G;
+    if(this.settings.ruleset==='hkma')return this.startHongKongHand(dealerPlayer);
     if (dealerPlayer) this.shuffleSeats(dealerPlayer);
     G.wall = E.shuffle(E.buildWall()); G.over = false; G.result = null; G.pending = null; G.last = null; G.final = false;
     for (const P of this.players) { P.hand = G.wall.splice(0, 13).sort(E.byIdx); P.melds = []; P.discards = []; P.drawn = null; }
@@ -126,20 +249,20 @@ class Room {
   async startTurn(p) {
     const G = this.G; if (G.over||this.recovering||closing) return;
     if (G.wall.length === 0) return this.endHand(null);
-    const P = this.players[p]; const t = G.wall.shift(); P.hand.push(t); P.drawn = t; G.current = p; G.phase = 'discard'; G.pending = null; this.bump();
+    const P = this.players[p]; const t = this.settings.ruleset==='hkma'?this.drawHongKong(p,false):G.wall.shift();if(!t)return this.endHand(null); P.hand.push(t); P.drawn = t; G.current = p; G.phase = 'discard'; G.pending = null; G.drawKind='wall';G.kongChain=0;G.robbedKong=false;this.bump();
     this.log(`${P.name} mengambil ubin.`);
     if (!P.bot) { this.armTurn(p); this.broadcastState(); return; }
     this.broadcastState();
-    await sleep(3000); return this.botAct(p, true);
+    const gen=G.gen;await sleep(3000);if(G.gen!==gen||G.over||closing||this.recovering)return;return this.botAct(p, true);
   }
   scheduleOfflineAct(p) {
     const G = this.G; const gen = G.gen; clearTimeout(this.timers.offline);
     this.timers.offline = setTimeout(() => { const P = this.players[p]; if (G.gen === gen && !G.over && G.current === p && G.phase === 'discard' && !P.connected) this.botAct(p, !!P.drawn); }, OFFLINE_ACT_MS);
   }
   async botAct(p, canWin) {
-    const G = this.G; if (G.over||this.recovering||closing) return; const P = this.players[p];
-    if (canWin && P.drawn) { const w = E.findWin(P.hand, P.melds); if (w) return this.endHand(p, P.drawn, true, w); }
-    const k = E.botKong(P.hand, P.melds); if (k) return this.doKong(p, k.kind, k.arg);
+    const G = this.G; if (G.over||this.recovering||closing||G.current!==p||G.phase!=='discard') return; const P = this.players[p];
+    if (canWin && P.drawn) { const w = this.winningHand(p,P.hand,true,P.drawn); if (w) return this.endHand(p, P.drawn, true, w); }
+    const k = E.botKong(P.hand, P.melds); if (k && (this.settings.ruleset!=='hkma'||G.wall.length)) return this.doKong(p, k.kind, k.arg);
     return this.discardTile(p, E.botChooseDiscardLevel(P.hand, P.melds, this.settings.botLevel, this.botContext(p)));
   }
   botContext(p) {
@@ -148,24 +271,31 @@ class Room {
     const threats = this.players.filter((Q, i) => i !== p && (Q.melds.length >= 2 || (this.G.wall.length < 20 && Q.melds.length >= 1))).map(Q => ({ discards: new Set(Q.discards.map(E.idxOf)), melds: Q.melds.length }));
     return { visible, threats, wall: this.G.wall.length };
   }
-  async doKong(p, kind, arg) {
+  async doKong(p, kind, arg, checkedRob=false) {
     const G = this.G; const P = this.players[p]; let tiles;
+    if(this.settings.ruleset==='hkma'&&!checkedRob){
+      const tile=kind==='conc'?P.hand.find(t=>E.idxOf(t)===arg):P.hand.find(t=>P.melds[arg]?.type==='pung'&&E.idxOf(t)===E.idxOf(P.melds[arg].tiles[0]));
+      if(!tile||HK.isJoker(tile)||!G.wall.length)return;
+      if(kind==='conc'&&P.hand.filter(t=>E.idxOf(t)===arg).length!==4)return;
+      return this.offerRobKong(p,kind,arg,tile);
+    }
     if (kind === 'conc') { tiles = P.hand.filter(t => E.idxOf(t) === arg); if (tiles.length !== 4) return; P.hand = P.hand.filter(t => E.idxOf(t) !== arg); P.melds.push({ type: 'kong', tiles, open: false }); }
     else { const m = P.melds[arg]; if (!m || m.type !== 'pung') return; const i = E.idxOf(m.tiles[0]); const k = P.hand.findIndex(t => E.idxOf(t) === i); if (k < 0) return; m.tiles.push(P.hand.splice(k, 1)[0]); m.type = 'kong'; tiles = m.tiles; }
-    P.drawn = null; G.phase = 'kong'; this.bump(); this.log(`${P.name} Kong ${E.tileName(tiles[0])}!`); this.broadcastState();
+    G.kongDeclarations=(G.kongDeclarations||0)+1; P.drawn = null; G.phase = 'kong'; this.bump(); this.log(`${P.name} Kong ${E.tileName(tiles[0])}!`); this.broadcastState();
     const gen=G.gen;await sleep(600);if(G.gen!==gen||G.over||closing||this.recovering)return;
     return this.finishKong(p);
   }
   async finishKong(p) {
     const G=this.G,P=this.players[p];if(G.over||closing||this.recovering)return;
     if(!G.wall.length)return this.endHand(null);
-    const tile=G.wall.pop();P.hand.push(tile);P.drawn=tile;G.phase='discard';this.bump();
+    const tile=this.settings.ruleset==='hkma'?this.drawHongKong(p,true):G.wall.pop();if(!tile)return this.endHand(null);P.hand.push(tile);P.drawn=tile;G.drawKind='kong';G.kongChain=(G.kongChain||0)+1;G.phase='discard';this.bump();
     if(!P.bot){this.armTurn(p);this.broadcastState();return;}
     this.broadcastState();const gen=G.gen;await sleep(3000);if(G.gen!==gen||closing||this.recovering)return;return this.botAct(p,true);
   }
   async discardTile(p, t) {
     const G = this.G; const P = this.players[p]; const k = P.hand.indexOf(t); if (k < 0) return;
     const prevLast = G.last; const hadDrawn = P.drawn;
+    if(this.settings.ruleset==='hkma'){G.discardCount=(G.discardCount||0)+1;G.robbedKong=false;}
     P.hand.splice(k, 1); P.drawn = null; P.discards.push(t); G.last = { tile: t, from: p }; G.phase = 'claim'; G.pending = null; this.bump(); const gen = G.gen;
     this.log(`${G.autoNote || ''}${P.name} membuang ${E.tileName(t)}.`); G.autoNote = null;
     if (!P.bot && P.connected) { G.undo = { seat: p, until: Date.now() + UNDO_MS, tile: t, prevLast, hadDrawn, claimed: false }; }
@@ -182,7 +312,7 @@ class Room {
       if (q === p) continue; const Q = this.players[q];
       // Manual bebas does not precompute or disclose a human's available claims.
       // Bots retain their normal rule-based decisions in all three modes.
-      const o=mode==='manual'&&!Q.bot?{manual:true}:E.computeOptions(Q.hand,Q.melds,t,q===(p+1)%4);
+      const o=mode==='manual'&&!Q.bot?{manual:true}:this.claimOptions(q,t,q===(p+1)%4);
       if (Q.bot) { const d = E.botDecideLevel(Q.hand, Q.melds, o, t, this.settings.botLevel); if (d) claims.push({ p: q, ...d }); continue; }
       opts[q] = o;
       const hasOption = hasClaimChoice(o);
@@ -199,7 +329,7 @@ class Room {
     const c = msg.claim; const P = this.players[seat];
     if(msg.claimId!==pend.id)return send(P.ws,{type:'error',msg:'Buangan sudah berubah. Pilih klaim untuk buangan yang sedang tampil.'});
     if (!['win', 'set', 'pass'].includes(c)) return send(P.ws, { type: 'error', msg: 'Pilih Klaim, Hu, atau Lewat.' });
-    if (c === 'win') { const win=o.manual?E.findWin([...P.hand,G.last.tile],P.melds):o.win;if (!win) return send(P.ws, { type: 'error', msg: 'Ubin ini tidak membuat tanganmu menang. Kamu masih bisa memilih klaim lain atau Lewat.' }); pend.claims.push({ p: seat, type: 'win', win }); }
+    if (c === 'win') { const win=this.winningHand(seat,[...P.hand,G.last.tile],false,G.last.tile);if (!win) return send(P.ws, { type: 'error', msg: this.settings.ruleset==='hkma'?'Hu belum sah: perlu bentuk lengkap dan minimal 3 fan. Kamu masih bisa klaim lain atau Lewat.':'Ubin ini tidak membuat tanganmu menang. Kamu masih bisa memilih klaim lain atau Lewat.' }); pend.claims.push({ p: seat, type: 'win', win }); }
     else if (c === 'set') {
       const v = this.validateSet(seat, msg.tiles || []); if (v.error) return send(P.ws, { type: 'error', msg: v.error });
       pend.claims.push({ p: seat, ...v.claim });
@@ -214,8 +344,10 @@ class Room {
     const G = this.G; const P = this.players[seat]; const t = G.last.tile; const ti = E.idxOf(t);
     if(!Array.isArray(ids)||![2,3].includes(ids.length))return {error:'Pilih 2 ubin (Pung/Chow) atau 3 ubin (Kong) dari tanganmu.'};
     const tiles = []; for (const id of ids) { const x = P.hand.find(h => h.id === id); if (!x || tiles.includes(x)) return { error: 'Ubin tidak valid.' }; tiles.push(x); }
+    if(G.robKong)return {error:'Saat merebut Kong hanya boleh Hu atau Lewat.'};
+    if(HK.isJoker(t)||tiles.some(HK.isJoker))return {error:'Joker hanya melengkapi tangan tertutup, tidak untuk klaim terbuka.'};
     const idx = tiles.map(E.idxOf);
-    if (tiles.length === 3) { if (idx.every(i => i === ti)) return { claim: { type: 'kong' } }; return { error: 'Kong butuh 3 ubin yang sama dengan buangan.' }; }
+    if (tiles.length === 3) { if(this.settings.ruleset==='hkma'&&!G.wall.length)return {error:'Tembok habis; Kong memerlukan ubin pengganti.'}; if (idx.every(i => i === ti)) return { claim: { type: 'kong' } }; return { error: 'Kong butuh 3 ubin yang sama dengan buangan.' }; }
     if (idx.every(i => i === ti)) return { claim: { type: 'pung' } };
     if (!E.isSuit(ti)) return { error: 'Ubin huruf hanya bisa Pung atau Kong.' };
     if (seat !== (G.last.from + 1) % 4) return { error: 'Chow hanya boleh dari pemain di sebelah kirimu.' };
@@ -229,6 +361,7 @@ class Room {
     if(claims.some(c=>this.players[c.p].bot)){const gen=G.gen;this.broadcastState();await sleep(3000);if(G.gen!==gen||G.over||closing||this.recovering)return;}
     G.resolvingClaims=null;
     const wins = claims.filter(c => c.type === 'win').sort((a, b) => order(a.p) - order(b.p));
+    if(G.robKong){const rob=G.robKong;G.robKong=null;if(wins.length){const w=wins[0],P=this.players[w.p],owner=this.players[rob.seat],index=owner.hand.findIndex(t=>t.id===rob.tileId);if(index<0)return;P.hand.push(owner.hand.splice(index,1)[0]);G.robbedKong=true;return this.endHand(w.p,G.last.tile,false,w.win,rob.seat);}G.last=rob.previousLast;G.current=rob.seat;return this.doKong(rob.seat,rob.kind,rob.arg,true);}
     if (wins.length) { const w = wins[0]; const P = this.players[w.p]; P.hand.push(G.last.tile); this.players[from].discards.pop(); return this.endHand(w.p, G.last.tile, false, w.win, from); }
     const pk = claims.find(c => c.type === 'kong') || claims.find(c => c.type === 'pung');
     if (pk) return this.applyClaim(pk);
@@ -241,28 +374,34 @@ class Room {
     if (cl.type === 'chow') { for (const j of cl.combo) { const k = P.hand.findIndex(x => E.idxOf(x) === j); taken.push(P.hand.splice(k, 1)[0]); } }
     else { const n = cl.type === 'kong' ? 3 : 2; for (let k = 0; k < n; k++) { const idx = P.hand.findIndex(x => E.idxOf(x) === i); taken.push(P.hand.splice(idx, 1)[0]); } }
     const tiles = [...taken, t].sort(E.byIdx); P.melds.push({ type: cl.type, tiles, open: true, from: G.last.from });
+    if(this.settings.ruleset==='hkma'){if(cl.type==='kong')G.kongDeclarations=(G.kongDeclarations||0)+1;const dragons=P.melds.filter(m=>m.type!=='chow'&&m.tiles[0].s==='g').length;if(P.melds.length===4||t.s==='g'&&dragons===3)P.pao=G.last.from;G.hadMeld=true;G.kongChain=0;}
     G.current = cl.p; G.phase = cl.type==='kong'?'kong':'discard'; P.drawn = null; this.bump();
     const label = cl.type === 'chow' ? 'Chow' : cl.type === 'pung' ? 'Pung' : 'Kong';
     this.log(`${P.name} ${label} ${E.tileName(t)} dari ${this.players[G.last.from].name}!`); this.broadcastState(); const gen=G.gen;await sleep(650);if(G.gen!==gen||G.over||closing||this.recovering)return;
     if (cl.type === 'kong') return this.finishKong(cl.p);
     if (!P.bot) { this.armTurn(cl.p); this.broadcastState(); return; }
-    await sleep(3000);return this.botAct(cl.p, false);
+    await sleep(3000);if(G.gen!==gen||G.over||closing||this.recovering)return;return this.botAct(cl.p, false);
   }
   endHand(winner, tile, zimo, win, from) {
-    const G = this.G; G.over = true; G.phase = 'end'; G.pending = null; this.bump(); clearTimeout(this.timers.claim);
+    const G = this.G;if(G.over)return;
+    const evaluated=winner!==null&&this.settings.ruleset==='hkma'?this.evaluateHongKong(winner,this.players[winner].hand,zimo,tile):null;
+    if(winner!==null&&this.settings.ruleset==='hkma'&&!evaluated?.score.qualified)return;
+    G.over = true; G.phase = 'end'; G.pending = null; this.bump(); clearTimeout(this.timers.claim);
     let r;
     if (winner === null) { r = { draw: true }; this.log('Dinding habis. Ronde seri.'); }
     else {
-      const P = this.players[winner]; const sc = E.scoreHand(P.hand, P.melds, win, zimo, this.wind(winner)); const pts = 10 * sc.total; const delta = [0, 0, 0, 0];
-      if (zimo) { for (let q = 0; q < 4; q++) if (q !== winner) delta[q] -= pts; delta[winner] += 3 * pts; } else { delta[from] -= 3 * pts; delta[winner] += 3 * pts; }
+      const P = this.players[winner]; const sc = evaluated?.score||E.scoreHand(P.hand, P.melds, win, zimo, this.wind(winner)); const pts = 10 * sc.total; const delta = [0, 0, 0, 0];
+      const settlement=evaluated?HK.settlement(sc,winner,from,zimo,P.pao):null;
+      if(settlement)delta.splice(0,4,...settlement.delta);
+      else if (zimo) { for (let q = 0; q < 4; q++) if (q !== winner) delta[q] -= pts; delta[winner] += 3 * pts; } else { delta[from] -= 3 * pts; delta[winner] += 3 * pts; }
       this.players.forEach((Q, i) => Q.score += delta[i]);
-      r = { winner, zimo, from, tile, fans: sc.fans, total: sc.total, delta };
+      r = { winner, zimo, from, tile, fans: sc.fans, total: sc.total, rawTotal:sc.rawTotal,delta,payments:settlement?.payments,chuck:sc.chuck,selfEach:sc.selfEach,ruleset:this.settings.ruleset,pao:P.pao,flowers:P.flowers||[],jokers:this.settings.jokers };
       this.log(`${P.name} menang${zimo ? ' (Zimo)' : ' dari buangan ' + this.players[from].name}!`);
     }
     r.compare = this.players.map((P, i) => {
       let status; const isW = !r.draw && r.winner === i;
       if (isW) status = { kind: 'win', total: r.total };
-      else { const w = E.waitsOf(P.hand, P.melds); if (w.length) status = { kind: 'tenpai', waits: w }; else status = { kind: 'far', shanten: E.shanten(E.counts(P.hand), P.melds.length) }; }
+      else { const w = this.settings.ruleset==='hkma' ? Array.from({length:34},(_,n)=>n).filter(n=>this.winningHand(i,[...P.hand,E.fromIdx(n)],false,E.fromIdx(n))) : E.waitsOf(P.hand, P.melds); if (w.length) status = { kind: 'tenpai', waits: w }; else status = { kind: 'far', shanten: E.shanten(E.counts(P.hand), P.melds.length) }; }
       return { seat: i, hand: P.hand.slice().sort(E.byIdx), melds: P.melds, status };
     });
     r.round = G.hand; r.maxHands = G.maxHands; r.final = G.hand >= G.maxHands;
@@ -273,7 +412,8 @@ class Room {
   next(seat) {
     const G = this.G; if (!G || !G.over || !G.result) return; if (seat !== this.hostSeat()) return;
     if (G.result.final) { G.final = true; this.broadcastState(); return; }
-    const nextDealer = this.players[(G.dealer + 1) % 4]; // giliran dealer berpindah ke pemain berikutnya, lalu kursi diacak
+    if(this.settings.ruleset==='hkma'){if(G.result.winner!==G.dealer){G.dealer=(G.dealer+1)%4;G.dealerRotations=(G.dealerRotations||0)+1;}G.hand++;return this.startHand();}
+    const nextDealer = this.players[(G.dealer + 1) % 4]; // aturan lama mempertahankan pengacakan
     G.hand++; this.startHand(nextDealer);
   }
   again(seat) { const G = this.G; if (!G || !G.over) return; if (seat !== this.hostSeat()) return; clearTimeout(this.timers.next); this.newMatch(true); }
@@ -281,12 +421,13 @@ class Room {
   // ---------- Aksi dari klien ----------
   onAction(seat, msg) {
     const G = this.G; if (!G || G.over) return; const P = this.players[seat]; if (!P) return; this.lastActivity = Date.now();
+    if(G.phase==='opening'){if(msg.action==='skip-opening'&&seat===this.hostSeat()&&msg.openingId===G.opening?.id&&!this.recovering)this.finishOpening();return;}
     if (msg.action === 'claim') return this.humanClaim(seat, msg);
     if (msg.action === 'undo') return this.undoDiscard(seat);
     if (G.pending) return;
     if (G.current !== seat || G.phase !== 'discard') return;
     if (msg.action === 'discard') { const t = P.hand.find(x => x.id === msg.id); if (t) this.discardTile(seat, t); }
-    else if (msg.action === 'win') { if (P.drawn) { const w = E.findWin(P.hand, P.melds); if (w) this.endHand(seat, P.drawn, true, w); } }
+    else if (msg.action === 'win') { if (P.drawn) { const w = this.winningHand(seat,P.hand,true,P.drawn); if (w) this.endHand(seat, P.drawn, true, w);else send(P.ws,{type:'error',msg:'Hu belum sah: perlu bentuk lengkap dan minimal 3 fan.'}); } }
     else if (msg.action === 'kong') { this.doKong(seat, msg.kind === 'add' ? 'add' : 'conc', msg.arg | 0); }
   }
 
@@ -297,6 +438,7 @@ class Room {
     if (u.claimed) return send(P.ws, { type: 'error', msg: 'Sudah ada pemain yang mengklaim ubin itu.' });
     if (G.phase !== 'claim' || !G.last || G.last.tile !== u.tile) return;
     P.discards.pop(); P.hand.push(u.tile); P.drawn = u.hadDrawn ? u.tile : null;
+    if(this.settings.ruleset==='hkma')G.discardCount=Math.max(0,(G.discardCount||0)-1);
     G.last = u.prevLast; G.pending = null; G.undo = null; G.current = seat; G.phase = 'discard'; this.bump();
     this.armTurn(seat); this.log(`${P.name} membatalkan buangan.`); this.broadcastState();
   }
@@ -311,10 +453,12 @@ class Room {
     return {
       type: 'state', v: CLIENT_VERSION, build: BUILD, code: this.code, you: v, hand: G.hand, maxHands: G.maxHands, dealer: G.dealer, current: G.current, phase: G.phase, wall: G.wall.length, log: G.log, over: G.over, final: G.final,
       last: G.last ? { tile: G.last.tile, from: G.last.from } : null,
+      roundWind:Math.floor((G.dealerRotations||0)/4)%4,opening:this.publicOpening(),wallLayout:this.wallLayout(),
       hostSeat: this.hostSeat(),settings:this.settings,ledger:this.ledger,
       players: this.players.map((P, i) => ({
         name: P.name, bot: P.bot, connected: P.connected, score: P.score, wind: this.wind(i), handCount: P.hand.length,
-        hand: (!spec && i === v || reveal) ? P.hand : null, drawn: !spec && i === v && P.drawn ? P.drawn.id : null,
+        hand: G.phase!=='opening'&&(!spec && i === v || reveal) ? P.hand : null, drawn: G.phase!=='opening'&&!spec && i === v && P.drawn ? P.drawn.id : null,
+        flowers:G.phase==='opening'?[]:P.flowers||[],pao:P.pao,
         melds: P.melds.map(m => (m.type === 'kong' && !m.open && i !== v && !reveal) ? { type: 'kong', open: false, hidden: true, tiles: [m.tiles[1], m.tiles[2]] } : m),
         discards: P.discards
       })),
@@ -332,13 +476,14 @@ class Room {
       autoPassed: !!(!spec && G.pending && G.pending.autoPass && G.last.from !== v && G.pending.opts[v] && !hasClaimChoice(G.pending.opts[v])),
       turnDeadline: G.turnDeadline, turnSeconds: this.settings.turnSeconds, claimSeconds: this.settings.claimSeconds,
       result: G.result
+      ,canHu:!spec&&G.phase==='discard'&&G.current===v&&!!this.players[v].drawn?!!this.winningHand(v,this.players[v].hand,true,this.players[v].drawn):false
     };
   }
   broadcastState() { if(closing)return;hub?.changed(this);for (const p of this.players) if (!p.bot && p.connected) send(p.ws, this.personal(p.seat)); for (const s of this.spectators) if (s.connected) send(s.ws, this.personal(-1)); }
 }
 
 // ---------- HTTP statis ----------
-const assets = { '/':'public/index.html', '/index.html':'public/index.html', '/engine.js':'engine.js', '/client.js':'public/client.js', '/tiles.js':'public/tiles.js', '/hand-help.js':'public/hand-help.js' };
+const assets = { '/':'public/index.html', '/index.html':'public/index.html', '/engine.js':'engine.js', '/hong-kong.js':'hong-kong.js', '/opening.js':'public/opening.js', '/hong-kong.css':'public/hong-kong.css', '/client.js':'public/client.js', '/tiles.js':'public/tiles.js', '/hand-help.js':'public/hand-help.js' };
 const server = http.createServer((req, res) => {
   if (!['GET','HEAD'].includes(req.method)) { res.writeHead(405); return res.end(); }
   let url;
@@ -367,7 +512,7 @@ wss.on('connection', ws => {
     if(hub?.handle(ws,msg))return;
     const rp = ws.roomPlayer;
     if (rp && ['create','join','rejoin'].includes(msg.type)) return send(ws,{ type:'error',msg:'Keluar dari room ini sebelum pindah.' });
-    if (['create','join','rejoin'].includes(msg.type) && msg.v !== CLIENT_VERSION) return send(ws,{ type:'error',msg:'Mahjong sudah diperbarui. Muat ulang halaman untuk menggunakan emoji dan pilihan mode klaim terbaru.',fatal:true });
+    if (['create','join','rejoin'].includes(msg.type) && msg.v !== CLIENT_VERSION) return send(ws,{ type:'error',msg:'Mahjong sudah diperbarui: aturan Hong Kong, bunga, joker dan animasi pembagian. Muat ulang halaman Mahjong.',versionMismatch:true });
     if (msg.type === 'create') {
       if (rooms.size >= 200) return send(ws,{ type:'error',msg:'Server penuh. Coba lagi nanti.' });
       const room = new Room(makeCode()); rooms.set(room.code, room);
@@ -425,11 +570,12 @@ async function close() {
 }
 return { server,wss,rooms,close,
   setRoomService(value){hub=value;},capacity:()=>4,
-  restoreRoom(saved){const room=Object.assign(new Room(saved.code),saved);room.settings.claimMode=claimMode(room.settings);room.settings.autoPass=room.settings.claimMode==='fast';room.timers={};if(room.G){room.G.gen++;room.G.undo=null;room.G.turnDeadline=null;if(room.G.pending&&!room.G.pending.id)room.G.pending.id=randomBytes(12).toString('hex');}return room;},
+  restoreRoom(saved){const room=Object.assign(new Room(saved.code),saved);room.settings.ruleset ||= 'legacy';for(const p of room.players)p.flowers ||= [];room.settings.claimMode=claimMode(room.settings);room.settings.autoPass=room.settings.claimMode==='fast';room.timers={};if(room.G){room.G.gen++;room.G.undo=null;room.G.turnDeadline=null;if(room.G.pending&&!room.G.pending.id)room.G.pending.id=randomBytes(12).toString('hex');}return room;},
   setSpectator(p,value){p.spectator=value;if(value)p.seat=-1;},
   admit(room,p,index){p.seat=index;p.hand=[];p.melds=[];p.discards=[];p.drawn=null;p.score??=0;},
   broadcastRoom(room){if(room.state==='lobby')room.broadcastLobby();else room.broadcastState();},
-  resumeRoom(room){const G=room.G;if(!G||G.over)return;G.gen++;if(G.phase==='kong')return room.finishKong(G.current);if(G.phase==='claim'){if(G.pending)return room.broadcastState();return G.resolvingClaims?room.resolveClaims(G.resolvingClaims):room.offerClaims();}if(G.phase==='discard'){const p=room.players[G.current];if(p.bot){const gen=G.gen;room.timers.recovery=setTimeout(()=>{if(G.gen===gen&&!G.over&&!room.recovering)room.botAct(p.seat,!!p.drawn);},3000);}else room.armTurn(p.seat);}},
+  resumeRoom(room){const G=room.G;if(!G||G.over)return;G.gen++;if(G.phase==='opening')return room.advanceOpening();if(G.phase==='kong')return room.finishKong(G.current);if(G.phase==='claim'){if(G.pending)return room.broadcastState();return G.resolvingClaims?room.resolveClaims(G.resolvingClaims):room.offerClaims();}if(G.phase==='discard'){const p=room.players[G.current];if(p.bot){const gen=G.gen;room.timers.recovery=setTimeout(()=>{if(G.gen===gen&&!G.over&&!room.recovering)room.botAct(p.seat,!!p.drawn);},3000);}else room.armTurn(p.seat);}},
+  disposeRoom(room){if(room.G){room.G.over=true;room.G.gen++;}Object.values(room.timers).forEach(clearTimeout);},
   nextRound(room){if(room.G.result.final)room.again(room.hostSeat());else room.next(room.hostSeat());}
 };
 }

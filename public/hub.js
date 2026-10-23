@@ -11,16 +11,14 @@ fetch('/health',{ cache:'no-store' }).then(response => {
 
 (function(){
   const names={capsa:'Capsa Banting',mahjong:'Mahjong',poker:'Poker',catur:'Catur',domino:'Domino Gaple',blackjack:'Blackjack'},M=window.MejaRoom;
-  const input=document.getElementById('mk-nickname'),notice=document.getElementById('mk-profile-status'),list=document.getElementById('mk-directory-list'),file=document.getElementById('mk-recovery-file');
-  input.value=M.name();if(input.value)notice.textContent='Halo, '+input.value+'. Namamu dipakai di semua game pada browser ini.';
-  document.getElementById('mk-profile-form').addEventListener('submit',event=>{event.preventDefault();if(!input.reportValidity())return;const name=M.remember(input.value);input.value=name;notice.textContent=name?'Tersimpan. Pilih game atau gabung ke meja teman.':'Isi nama panggilan dulu.';});
+  const notice=document.getElementById('mk-profile-status'),list=document.getElementById('mk-directory-list'),file=document.getElementById('mk-recovery-file');
   document.getElementById('mk-import').addEventListener('click',()=>file.click());
   file.addEventListener('change',async()=>{const selected=file.files[0];if(!selected)return;
     try{
       if(selected.size>8192)throw Error('File pemulihan terlalu besar.');
       const data=JSON.parse(await selected.text());
       if(data.format!==1||!Object.hasOwn(names,data.game)||typeof data.code!=='string'||!/^[A-Z0-9]{4,8}$/.test(data.code)||typeof data.token!=='string'||!/^[a-zA-Z0-9-]{16,128}$/.test(data.token))throw Error('File pemulihan Meja Kita tidak valid.');
-      const seat={format:1,game:data.game,code:data.code,token:data.token,time:Date.now(),name:M.remember(data.name||input.value)};
+      const seat={format:1,game:data.game,code:data.code,token:data.token,time:Date.now(),name:M.remember(data.name||M.name())};
       let seats;try{seats=JSON.parse(localStorage.getItem('mejakita.saved-seats'))||{};}catch{seats={};}
       seats[data.game]||={};seats[data.game][data.code]=seat;localStorage.setItem('mejakita.saved-seats',JSON.stringify(seats));
       if(data.game==='capsa')localStorage.setItem('mejakita.capsa.session',JSON.stringify(seat));
@@ -29,7 +27,6 @@ fetch('/health',{ cache:'no-store' }).then(response => {
       location.assign('/'+data.game+'/?room='+encodeURIComponent(data.code));
     }catch(error){notice.textContent=error.message||'File tidak dapat dibaca.';}finally{file.value='';}
   });
-  document.addEventListener('click',event=>{const link=event.target.closest('a.game-card,a.mk-join-link');if(!link)return;if(input.value.trim()){M.remember(input.value);return;}if(!M.name()){event.preventDefault();input.focus();notice.textContent='Isi nama panggilan sekali untuk semua game, lalu pilih mejamu.';}});
   let loading=false;
   async function refresh(){if(loading||document.hidden)return;loading=true;const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),7000);
     try{const response=await fetch('/api/lobby',{cache:'no-store',signal:controller.signal});if(!response.ok)throw Error('Lobby tidak tersedia');const data=await response.json();const rooms=data.rooms.filter(r=>Object.hasOwn(names,r.game));

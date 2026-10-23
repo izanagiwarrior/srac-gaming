@@ -1,10 +1,10 @@
 # Shared lobby, saved rooms and device preferences
 
-Build `2026-10-15-social-save-2` / package 1.4.1 adds the same room controls to all six games. The hub still needs a running Node origin and internet connection; saving does not keep a sleeping laptop online.
+Build `2026-10-15-social-save-2` / package 1.4.1 adds the same room controls to all six games. That historical Node target needs a running laptop/origin. Current 2.0.0 cloud hosting uses Workers + SQLite Durable Object without a laptop; see [maintenance/current status](MAINTENANCE.md) and [cloud persistence](CLOUDFLARE-WORKERS.md). The disk instructions below apply to Node; never copy its saves into cloud storage.
 
 ## Players
 
-- Set a nickname once in the landing page. Existing game entry fields use it; changing a name when joining updates the shared browser preference.
+- The landing page never requires a nickname or blocks game/room links. Ask for a nickname only in each game’s create/join entry form. Remember it as a browser preference to prefill future game entries; changing it there updates that preference. Session-file recovery still works from the landing page without a name form.
 - The shared lobby lists open rooms with an online human, the game, player nicknames, capacity, phase and spectator count. It refreshes every five seconds while visible. No hands, deck, tokens, recovery files or local paths are listed.
 - The host can lock a room. A locked room is omitted from the directory and new joins are rejected even with its code. Existing seat tokens can reconnect. Locking is an invitation control, not an identity-verification system.
 - Spectators can chat and queue for the next round. Poker now also supports spectators and keeps hole cards private. Spectators cannot take gameplay actions or edit settings.
@@ -23,12 +23,12 @@ Build `2026-10-15-social-save-2` / package 1.4.1 adds the same room controls to 
 - Explicit leave follows each game's existing rules: an active Catur game counts as resignation; Poker keeps account totals and checks/folds the hand; active seats in the other games pass to bots. The popup describes these effects. Spectators leave their viewing session. This feature does not change payouts, rules, disconnect timers or private views. Poker's manually chosen **Return to saved room** backup remains available after explicit leave and does not auto-resume.
 - Saved ownership is browser/origin specific. The popup cannot discover a seat created in another browser or on a previous Quick Tunnel hostname unless its private recovery file is imported.
 
-### Private snapshots
+### Private snapshots (Node target)
 
 - The hub writes six private snapshots under `DATA_DIR/rooms/<game>.v8` (default `var/rooms/`). Writes use a mode-0600 temporary file, file fsync and atomic rename. A snapshot is written before broadcasting changed state; a five-second sweep also captures cleanup. Identical snapshots are not rewritten. Save failures are shown in the room controls and logged.
 - Snapshots include the current deck/wall, private hands, turn/claim state, scores/chips, history/chat, host, session tokens, queue and lock. They never serialize sockets, timer handles or callbacks. v8 serialization preserves Sets and shared Mahjong tile references; Catur reconstructs from PGN including move history, Poker from its explicit Game serializer.
 - After a restart, an unfinished saved round is **paused**. Bots, claim transitions, dealer actions and Capsa deadlines stay stopped until seated human players reconnect and the current host selects **Lanjutkan sesi**. Capsa gets a fresh 60-second deadline after resuming. A completed round/lobby needs no artificial paused turn.
-- Mahjong claim resolution and kong replacement draws have explicit resumable phases. A pending discard undo window expires on restart. The Mahjong client protocol is v9 in the emoji/manual-claim release; older pages must refresh after approved deployment.
+- Mahjong claim resolution and kong replacement draws have explicit resumable phases. A pending discard undo window expires on restart. The historical emoji/manual-claim release used v9; current Hong Kong Mahjong uses v10. Older pages must refresh after approved deployment.
 - Saved seat credentials stay in the original browser. **Simpan file pemulihan** downloads one private JSON file for the viewer's own token. The landing-page import validates its schema/size and restores that seat without putting the token in a URL, room list, chat, or CSV. This file is needed if a new Quick Tunnel hostname changes browser origin. A normal invitation link gives friends the room, not ownership of your seat.
 - Fully abandoned rooms are retained for seven days before existing maintenance removes them. Archives are bounded to 128 total accounts per room and existing per-game connected-spectator limits. Back up private runtime separately if longer retention is needed. Local disk loss, user deletion or disk-write failures are not solved by a browser token.
 
@@ -87,3 +87,7 @@ Clock Catur menyimpan anggaran `remaining` per warna dan increment. Export mengu
 - Pembubaran membatalkan ronde/tangan aktif tanpa menambah hasil, menentukan pemenang, refund atau payout buatan. Hasil selesai tidak dihitung ulang. Snapshot privat menyimpan paling banyak 200 ringkasan pembubaran: nama/bot, nilai poin, skor/stack/buy-in/contributed terakhir dan ledger hasil yang sudah dicatat; unfinished menandai angka yang belum settled. Ringkasan tidak memuat token, deck/tangan atau snapshot yang dapat direstore, dan tidak diterbitkan lewat directory/API/UI. Unduh rekap sebelum bubar jika perlu salinan pengguna. closedCodes dipertahankan tanpa retensi 200 tersebut.
 - Simpan seluruh DATA_DIR. Menghapus data privat atau rollback ke build lama dapat menghilangkan pencadangan kode; migrasi/rollback harus menjaga daftar closedCodes, bukan memulihkan room yang sudah dibubarkan dari backup lama. Tidak mengubah legacy Poker file; snapshot shared tetap canonical sehingga legacy tidak diimpor ulang ketika snapshot kosong dari room aktif.
 - Pemeriksaan default hanya sintaks/source dan preview dialog yang dibatalkan. Jangan mengklaim pembubaran multiplayer, penolakan nonhost, restart persistence atau failure injection sudah diuji jika belum diminta.
+
+## Mahjong Hong Kong snapshots (v10)
+
+Room snapshots now optionally retain settings.ruleset/flowers/flowerBonus/jokers/animateDeal, public flowers per person, Pao, dealer rotation count, wall order/physical slots (private save only), and opening phase/progress. Missing ruleset maps to legacy; never rewrite old scoring or balances to HKMA. Resume opening only after the existing explicit host recovery action; no bot/discard can run during it. All opening timer handles remain in room.timers and are excluded from serialization. Joker IDs and wall contents remain private; only occupancy positions/counts are public.

@@ -1,32 +1,36 @@
-# Meja Kita: instructions for coding agents
+# SRAC-Gaming: instructions for coding agents
 
-Read [.agents/skills/meja-kita-games/SKILL.md](.agents/skills/meja-kita-games/SKILL.md) when changing a game, preparing a release, or making this hub available through Cloudflare. These instructions travel with the repository; use paths relative to your checkout.
+## Read first
 
-## Live games and authorization
+1. [Maintenance and current handoff](docs/MAINTENANCE.md): deployed baseline, workflow, architecture, known verification gaps and next-agent checklist.
+2. [Repository skill](.agents/skills/meja-kita-games/SKILL.md): implementation/release workflow.
+3. [Game conventions](docs/GAME-CONVENTIONS.md) and [sessions/storage](docs/SOCIAL-SESSIONS.md).
+4. For hosting, [Cloudflare Workers](docs/CLOUDFLARE-WORKERS.md); for game changes, that game's README. [Quick Tunnel](docs/CLOUDFLARE.md) is a separate legacy option.
 
-- Prepare patches in a separate checkout/folder. Never edit the source or static files of a running host: frontend changes can reach players without a restart.
-- Every deploy, restart, stop, reload, or switch of an active host/tunnel needs explicit approval for that action/version. A request to patch or push GitHub alone does not authorize a live deployment. Earlier approvals are not standing approval for later versions.
-- Starting an installed version does not authorize installing a pending patch. GitHub pushes also require an explicit request for that push; deployment approval does not include pushing, and push approval does not include deployment. A clear current request for the specific action is approval; do not ask for the same approval twice.
-- The owner prefers playing through the Cloudflare link. When that setup is authorized, run the required Node origin on loopback and the tunnel; do not start a separate LAN game host by default. Quick Tunnel still needs the laptop and origin running. Fully hosted Cloudflare deployment is a separate migration, not implied by this preference.
-- Finish a reviewable patch first, then show its version, target origin/port, restart needs, and session impact before asking to deploy. Keep active games running while waiting.
-- Inspect the actual listener/process and /health before touching a host. Do not assume a previous PID, IP, port, checkout or trycloudflare URL is still current. Use an isolated origin and rooms for preview.
-- This build persists all six games under DATA_DIR/rooms; preserve the entire private runtime, including legacy Poker DATA_DIR/poker. The first upgrade from UI-polish still loses the five older RAM games. Follow docs/SOCIAL-SESSIONS.md for migration, paused recovery, retention and account rotation; never promise recovery without checking successful saves.
-- Stop only your own temporary preview during cleanup. Keep a working Cloudflare tunnel if its origin stays the same; replacing it disconnects public visitors and normally changes the temporary URL.
-- After a patch/release, report a table with Status, Version, Contents/changes, including Running version and Pending to deploy version. Update running only after the approved deploy and status check succeed. Store local process/URL/approval details under ignored var/, not tracked documentation.
+## Current baseline — 23 October 2026
 
-## Consistent games
+- Public hosting is **Cloudflare Workers + SQLite Durable Object**, package **2.0.0**, build **2026-10-23-cloudflare-hosting-1**: https://srac-gaming.faiz-triputra.workers.dev/ . It does not need a laptop, Node origin or tunnel.
+- This is the last confirmed deployment, not proof of current availability. Check actual public /health before reporting live status. A commit hash alone does not identify the currently dirty development source or a deployed bundle.
+- The owner's `SRAC-Gaming/staging` is the development/Git checkout. Sibling `live` is legacy Node hosting-only (last installed 1.8.0); preserve it and its private runtime. Cloud deployment does not update it. Do not pull, merge, commit or push there, or bypass its Git hooks. Other contributors use their own development checkout and cloud account.
+- This 2.0.0 source release includes Hong Kong Mahjong, game-entry names, Workers hosting and maintenance documentation. Inspect actual Git status and remote history to confirm publication; do not discard local changes. Documentation changes do not require a runtime version bump or deployment.
 
-[docs/GAME-CONVENTIONS.md](docs/GAME-CONVENTIONS.md) defines the required layout, components, creator credits, bot levels, score/rupiah accounting and module structure. Follow it for existing and new games.
+## Authorization and active players
 
-- Maintain one public HTTP port, the root landing page, and separate game paths/room/session/WebSocket namespaces.
-- Server owns rules, state, legality and accounting. Private hands and deck/hole information stay private according to that game's rules; hints/probabilities use only information visible to their viewer.
-- Keep rule variations documented as table rules. Do not call a local variant universally official.
-- Do not add or run automated/gameplay tests unless the user asks. Syntax checks, source review, and isolated authoring previews are allowed; report what was and was not checked.
+- Prepare patches in staging or another isolated checkout, never served files. Static edits can reach players without a restart. No symlinks/hardlinks/watchers connecting staging and a served Node live tree.
+- Patch, GitHub push, cloud deployment, Node release, start, stop, restart and reload are separate actions. Each publishing/hosting action requires the human's current explicit authorization for that action/version. Earlier approval is not standing permission. A clear current instruction is approval; do not ask for it twice.
+- Complete a reviewable candidate first. Before a new deployment approval, explain exact build, included patches, destination and impact: sockets may disconnect and unfinished rooms may pause until reconnect/host resume. Keep active matches running while awaiting an answer.
+- Starting an installed build is not permission to install pending patches. Never silently deploy while fixing a bug, preparing documentation, building, or pushing GitHub. Keep automatic Git deployments off.
+- Default online target is Workers. Do not start LAN/Node/cloudflared or change DNS, billing, plans, accounts or data as a side effect. Quick Tunnel requires a separately authorized Node origin and laptop.
+- Preserve cloud SQLite, actor identity, migration history, closed-code reservations and accounting. Preserve the entire legacy Node DATA_DIR, including rooms/ and poker/. No resets, namespace deletion, old-save upload, destructive sync or rollback over newer data to fix an error.
+- After each patch/release report **Status | Version | Contents**, with **Running version** and **Pending to deploy version**. Mark Running only after approved deployment and checks succeed. Distinguish pending Git publication from pending cloud installation.
 
-## Repository and runtime
+## Implementation and privacy
 
-- Never commit player sessions, tokens, credentials, .env, cloudflared binaries/configuration credentials, logs, PIDs, node_modules, preview runtime or machine-specific paths/IPs.
-- Use the root package-lock and public dependency registry. Install only when dependencies are missing/changed; do not run install scripts without need/approval.
-- Keep Render auto-deploy off unless explicitly requested. This app uses Node processes and RAM rooms; Quick Tunnel routes to that live origin. Do not assume it can be deployed unchanged as a static site or Cloudflare Worker.
-- Canonical repo: https://github.com/izanagiwarrior/srac-gaming. For the owner's checkout, use the approved personal izanagiwarrior identity, never the owner's work account/email. Other contributors use their own approved identity; creator credits are not Git author identities.
-- Stage only the intended source/docs, inspect the diff and confirm no private runtime is included. Push without force; do not overwrite remote work or discard uncommitted changes to resolve a conflict.
+- Follow GAME-CONVENTIONS: common sidebar order, responsive Dark/Light UI, creator credits, actual bot levels with at least three-second delays, host money settings and server-owned rules/accounting.
+- Keep native factories authoritative for each game. Hints use only viewer-visible information. Do not expose other hands, future deck/wall, seat tokens or snapshots. Label house variants accurately.
+- Reuse shared components and room lifecycle; preserve recovery, queue/rotation, dissolve tombstones, resource cleanup and per-viewer messages in Node and Workers.
+- Do not add/run automated or gameplay tests unless requested. Source/syntax review, builds, dry-runs and isolated empty-entry authoring previews are allowed. Report actual evidence and untested behavior; never promise bug-free gameplay from a handshake.
+- Never commit credentials, player data, tokens, .env, logs, PIDs, runtime, preview stores, generated dist, node_modules or machine-specific private paths. Only whitelisted public assets enter Workers Assets.
+- Canonical Git repo: https://github.com/izanagiwarrior/srac-gaming . Owner uses approved personal izanagiwarrior identity/SSH, never office Git identity. Cloudflare account selection is separate; verify the account approved by the human. An exception for Cloudflare does not authorize office Git use.
+- Inspect branch/status/remote/identity and intended diff before publication. No force push, reset, clean, checkout or overwriting remote/uncommitted work to resolve discrepancies. Install locked dependencies only when needed; avoid unnecessary install scripts.
+- Keep detailed approvals, deployment IDs, release manifests, backup paths, selected account and verification evidence in private operator notes/ignored var/. Keep this repo's handoff factual and portable; update it after changes.
