@@ -2,6 +2,10 @@
 
 Last reconciled: **23 October 2026**. Read root [AGENTS.md](../AGENTS.md) first. This document records context and procedures; it does not authorize push, deployment, interruption, gameplay tests or data migration. Dates below are historical evidence. Recheck actual source and service before acting.
 
+## Installed alignment correction2.3.1
+
+Local2.3.1 / `2026-10-23-toolbar-alignment-1` corrects the landing toolbar width and summary/theme baseline; shared grid keeps invitation controls in a separate row. Cloud2.3.1 was installed after the user explicitly requested “deploy push”. Health/root/six entries200, three CSS asset hashes and six empty WSS passed. Public desktop alignment matched the preview with no console errors. No runtime candidate remains pending; personal Git publication of this source/docs is authorized and must be confirmed from the remote. Desktop/mobile390px Dark/Light and expanded preferences were visually reviewed on a separate loopback origin, plus empty Blackjack room toolbar geometry; no gameplay/automated tests. Syntax/build/whitespace passed, preview stopped. Preserve all room data and require fresh publication authorization.
+
 ## Current release2.3.0
 
 **2.3.0 / 2026-10-23-lobby-consistency-1** is installed on Cloudflare following the user’s explicit “push dan deploy”. Same Worker/SQLite identities, room data and Free plan preserved. Health/root/six entries200, six empty WSSconnected and12changed assets matched source; no production room actions. No runtime installation is pending. Personal Git publication of the same source/docs is authorized; verify the remote commit before claiming push success. This release includes the previously documented2.2.1session-refresh draft. Future releases need new authorization.

@@ -7,7 +7,13 @@
 3. [Game conventions](docs/GAME-CONVENTIONS.md) and [sessions/storage](docs/SOCIAL-SESSIONS.md).
 4. For hosting, [Cloudflare Workers](docs/CLOUDFLARE-WORKERS.md); for game changes, that game's README. [Quick Tunnel](docs/CLOUDFLARE.md) is a separate legacy option.
 
-## Installed UI release — 23 October 2026
+## Installed alignment patch — 23 October 2026
+
+Cloud **2.3.1 / `2026-10-23-toolbar-alignment-1`** is deployed and checked after explicit user instruction “deploy push”. Personal Git publication of this same source/docs is authorized; verify actual remote commit before reporting push complete. No runtime candidate remains pending. CSS-only presentation correction: landing preferences panel matches header/main inner gutters (40px desktop,22px mobile; content max1200), preferences summary and Dark/Light share a grid row, room shortcuts retain a separate row. Expanded preferences retain full width and reserve space for theme controls. No game rules, protocol, accounting, credentials or storage change. Root package/build IDs reflect the candidate; Mahjong's unchanged game build/protocol remain2.3.0/v12.
+
+Syntax/root server, whitespace and cloud build passed. Isolated loopback authoring: landing desktop brand/panel both left40 at1280px; summary/theme top131 and bottom175. Mobile390px brand/panel left22 with scrollWidth390; Dark/Light, expanded/collapsed preferences reviewed. Empty Blackjack preview room (not Start) confirmed quick-action bottom153.6 below theme/summary top161.6, no overlap; no console errors on inspected pages. Preview was stopped and tabs closed. No gameplay/automated tests or public room actions. Public health/root/six entries200, three changed CSS hashes matched, six empty WSSconnected. Public desktop brand/panel left40 and summary/theme top131, no console errors; browser tab closed. Future publication requires fresh authorization.
+
+## Previous UI baseline2.3.0 — 23 October 2026
 
 Cloud is deployed and checked: **2.3.0 / 2026-10-23-lobby-consistency-1**, Mahjong protocol12, at https://srac-gaming.faiz-triputra.workers.dev/ . User explicitly authorized this release with “push dan deploy”. It includes lobby order, visible invitations and the previously documented session-refresh draft. No runtime candidate remains pending. Git publication of this source/docs is authorized; verify actual remote commit before claiming push complete.
 

@@ -81,3 +81,7 @@ html[data-theme="light"] .chat-form button[type="submit"] { background:var(--mk-
 /* Theme controls use their own row; room invitation buttons must never sit under them. */
 html[data-theme] .mk-room-tools>.mk-theme-switch{position:static;width:max-content;margin:0 0 10px auto}
 html[data-theme] .mk-room-tools>details>summary{padding-right:0}
+
+html[data-theme] .mk-room-tools>.mk-theme-switch{position:static;grid-column:2;grid-row:2;align-self:start;margin:0;z-index:1}
+html[data-theme] .mk-room-tools>details>summary{min-height:44px;padding:10px 140px 10px 0}
+@media(max-width:700px){html[data-theme] .mk-room-tools>details>summary{min-height:54px;padding-right:124px}.mk-room-tools .mk-tools-hint{display:block;margin-left:0}}

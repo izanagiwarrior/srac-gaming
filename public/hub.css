@@ -13,3 +13,7 @@ a{color:inherit;text-decoration:none}button,input{font:inherit}a:focus-visible,b
 .chess-art{background:radial-gradient(ellipse at center,#87956c,#556945 80%)}.chess-art img{width:100%;height:100%;object-fit:contain}.chess-art .game-art-word{color:#f3e8c5}
 
 .domino-art{background:radial-gradient(ellipse at center,#6d8062,#304e39 80%)}.domino-art img{width:100%;height:100%;object-fit:contain}.domino-art .game-art-word{color:#f3e8c5}
+
+/* Match the landing header/sections' inner content edges (1280 minus two 40px gutters). */
+body:has(>.header)>.mk-room-tools{width:calc(100% - 80px);max-width:1200px}
+@media(max-width:760px){body:has(>.header)>.mk-room-tools{width:calc(100% - 44px)}}

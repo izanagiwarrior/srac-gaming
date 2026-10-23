@@ -24,3 +24,11 @@ html[data-theme="light"] .mk-session-health .mk-recovery{background:#f6eed9;bord
 .mk-customize{margin:16px 0;border:1px solid var(--line,#c5d1b455);border-radius:10px;min-width:0;background:transparent;color:inherit}.mk-customize>summary{padding:14px;cursor:pointer;font:600 14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;list-style:revert}.mk-customize>summary:focus-visible{outline:2px solid var(--gold,#dfc58d);outline-offset:2px}.mk-customize-body{padding:0 14px 14px;min-width:0}.mk-customize-body label{min-width:0}.mk-customize-body input,.mk-customize-body select{max-width:100%}
 html[data-theme="light"] .mk-room-identity :is(small,span){color:#526652}html[data-theme="light"] .mk-quick-actions{border-color:#c5cebd}
 @media(max-width:700px){.mk-quick-actions{align-items:flex-start;flex-direction:column;gap:12px}.mk-quick-buttons{display:grid;grid-template-columns:1fr 1fr;width:100%;justify-content:stretch}.mk-quick-buttons button:first-child{grid-column:1/-1}.mk-quick-buttons button{white-space:normal;padding:10px}.mk-customize>summary{font-size:14px}}
+
+/* Preferences and theme share a header row; essential room actions keep their own row. */
+.mk-room-tools{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:12px;align-items:start}
+.mk-room-tools>.mk-quick-actions{grid-column:1/-1;grid-row:1}
+.mk-room-tools>details{grid-column:1/-1;grid-row:2;min-width:0}
+.mk-room-tools>.mk-session-health{grid-column:1/-1;grid-row:3}
+.mk-room-tools>.mk-tools-status{grid-column:1/-1;grid-row:4}
+.mk-room-tools>.mk-session-notice{grid-column:1/-1;grid-row:5}
