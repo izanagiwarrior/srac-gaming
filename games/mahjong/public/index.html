@@ -278,17 +278,17 @@ input.code{text-transform:uppercase;letter-spacing:.3em;font-weight:700;font-fam
   <div class="hero"><h1>Mahjong P2P</h1><p>Main bareng teman lewat browser. Buat ruangan, bagikan kode 4 huruf, kursi kosong diisi bot.</p></div>
   <div class="panel">
     <label class="f">Nama kamu<input class="in" id="name" maxlength="16" placeholder="misalnya Hendy" autocomplete="nickname"></label>
-    <button class="btn primary" onclick="doCreate()">Buat ruangan baru</button>
+    <button class="btn primary" data-mj-action="create">Buat ruangan baru</button>
   </div>
   <div class="panel">
     <h2>Gabung ke ruangan</h2>
     <div class="row">
       <label class="f">Kode ruangan<input class="in code" id="joincode" maxlength="4" placeholder="ABCD" autocapitalize="characters" autocomplete="off"></label>
-      <button class="btn" onclick="doJoin()" style="flex:0 0 auto">Gabung</button>
+      <button class="btn" data-mj-action="join" style="flex:0 0 auto">Gabung</button>
     </div>
     <p class="cap">Server ini ada di <span class="addr" id="addr"></span>. Teman cukup membuka alamat yang sama dari browser mereka.</p>
   </div>
-  <div class="nav" style="justify-content:center"><button class="btn ghost" onclick="openTutorial(false)">Baca panduan main</button></div>
+  <div class="nav" style="justify-content:center"><button class="btn ghost" data-mj-action="tutorial">Baca panduan main</button></div>
 </div>
 
 <div id="lobby" class="screen lobbywrap" style="display:none">
@@ -296,37 +296,37 @@ input.code{text-transform:uppercase;letter-spacing:.3em;font-weight:700;font-fam
   <div class="hero"><h1>Ruang tunggu</h1><p>Bagikan kode ini ke temanmu. Pemain yang belum datang saat dimulai akan digantikan bot.</p></div>
   <div class="panel">
     <div class="bigcode" id="bigcode">----</div>
-    <div class="row"><div class="addr" id="invite"></div><button class="btn ghost" onclick="copyInvite()" style="flex:0 0 auto">Salin link</button></div>
+    <div class="row"><div class="addr" id="invite"></div><button class="btn ghost" data-mj-action="copy-invite" style="flex:0 0 auto">Salin link</button></div>
   </div>
   <div class="panel">
     <h2>Pemain</h2>
     <div class="seats" id="seats"></div>
     <p class="cap" id="spect"></p>
     <div class="row">
-      <label class="f">Durasi permainan<select class="in" id="rounds" onchange="updateLobbySettings()"><option value="1">Quick Play · 1 ronde</option><option value="4" selected>4 ronde (sekitar 20 menit)</option><option value="8">8 ronde</option><option value="12">12 ronde</option></select></label>
-      <label class="f">Tingkat bot<select class="in" id="botlevel" onchange="updateLobbySettings()"><option value="easy">Easy (kadang asal buang, jarang klaim)</option><option value="normal" selected>Normal (efisien)</option><option value="hard">Hard (efisien + bertahan)</option></select></label>
+      <label class="f">Durasi permainan<select class="in" id="rounds" data-mj-change="settings"><option value="1">Quick Play · 1 ronde</option><option value="4" selected>4 ronde (sekitar 20 menit)</option><option value="8">8 ronde</option><option value="12">12 ronde</option></select></label>
+      <label class="f">Tingkat bot<select class="in" id="botlevel" data-mj-change="settings"><option value="easy">Easy (kadang asal buang, jarang klaim)</option><option value="normal" selected>Normal (efisien)</option><option value="hard">Hard (efisien + bertahan)</option></select></label>
     </div>
-    <label class="f">Nilai 1 poin dalam rupiah<input class="in" id="mahjong-point-value" type="number" min="0" max="1000000" step="1" value="0" onchange="updateLobbySettings()"></label><p class="cap">0 = latihan. Skor memakai tabel fan aturan meja; rupiah = poin hasil settlement × nilai ini. Terkunci saat mulai.</p>
-    <label class="f">Mode klaim<select class="in" id="claim-mode" onchange="updateLobbySettings()" aria-describedby="claim-mode-copy"><option value="manual">Manual bebas · coba klaim sendiri</option><option value="assisted" selected>Manual terbantu · cek pilihan klaim</option><option value="fast">Fast · otomatis lewat tanpa klaim</option></select></label>
+    <label class="f">Nilai 1 poin dalam rupiah<input class="in" id="mahjong-point-value" type="number" min="0" max="1000000" step="1" value="0" data-mj-change="settings"></label><p class="cap">0 = latihan. Skor memakai tabel fan aturan meja; rupiah = poin hasil settlement × nilai ini. Terkunci saat mulai.</p>
+    <label class="f">Mode klaim<select class="in" id="claim-mode" data-mj-change="settings" aria-describedby="claim-mode-copy"><option value="manual">Manual bebas · coba klaim sendiri</option><option value="assisted" selected>Manual terbantu · cek pilihan klaim</option><option value="fast">Fast · otomatis lewat tanpa klaim</option></select></label>
     <p class="cap" id="claim-mode-copy">Semua pemain menjawab sendiri. Aplikasi memeriksa pilihan klaim; tanpa klaim sah, hanya Lewat yang tersedia.</p>
     <p class="cap">Manual bebas tidak memberi tahu apakah klaim tersedia; kesalahan ditolak tanpa kehilangan ubin. Fast lebih cepat, tetapi pemain yang diminta menjawab bisa tertebak punya pilihan. Default: Manual terbantu.</p>
-    <label class="fast-toggle"><input type="checkbox" id="handhighlight" checked onchange="updateLobbySettings()"><span><b>Highlight set di tangan</b><small id="handhighlight-copy">Aktif: tandai Chow/Pung yang sudah lengkap di tangan sendiri, serta ubin yang bisa menjadi keduanya.</small></span></label>
+    <label class="fast-toggle"><input type="checkbox" id="handhighlight" checked data-mj-change="settings"><span><b>Highlight set di tangan</b><small id="handhighlight-copy">Aktif: tandai Chow/Pung yang sudah lengkap di tangan sendiri, serta ubin yang bisa menjadi keduanya.</small></span></label>
     <p class="cap">Host memilih mode klaim dan highlight set untuk seluruh meja di lobby. Terkunci setelah Mulai permainan, termasuk ronde berikutnya dan main lagi. Buat ruangan baru untuk mengganti mode. Tidak ada batas waktu.</p>
 <div class="hk-setting-group"><h3>Aturan & pembukaan meja</h3>
-<label class="f">Acuan skor<select class="in" id="hk-ruleset" onchange="chooseHKRuleset()"><option value="hkma">Hong Kong · acuan HKMA (3–10 fan)</option><option value="legacy">Aturan lama · 1 fan = 10 poin</option></select></label>
+<label class="f">Acuan skor<select class="in" id="hk-ruleset" data-mj-change="ruleset"><option value="hkma">Hong Kong · acuan HKMA (3–10 fan)</option><option value="legacy">Aturan lama · 1 fan = 10 poin</option></select></label>
 <p class="hk-rule-copy" id="hk-rules-copy">HKMA: minimal 3 fan untuk Hu, maksimal 10. Buangan: pembuang membayar seluruh nilai tabel. Zimo: masing-masing lawan membayar setengah nilai tabel. Pao berlaku.</p>
-<label class="fast-toggle"><input type="checkbox" id="hk-flowers" checked onchange="updateLobbySettings()"><span><b>Bunga & musim · 8 ubin</b><small>Dibuka di depan pemain dan diganti dari ujung tembok; tidak masuk 13/14 ubin atau set.</small></span></label>
-<label class="fast-toggle"><input type="checkbox" id="hk-flower-bonus" onchange="updateLobbySettings()"><span><b>Bonus fan bunga · variasi meja HKOS</b><small>Bukan tabel HKMA: tanpa bunga +1, bunga/musim sesuai kursi +1, satu set lengkap +2 menggantikan bonus bunga kursi.</small></span></label>
-<label class="fast-toggle"><input type="checkbox" id="hk-jokers" onchange="updateLobbySettings()"><span><b>Joker opsional · variasi meja</b><small>OFF secara default. Empat joker liar hanya melengkapi tangan tertutup, bukan untuk Pung/Chow/Kong terbuka atau pola limit. Joker yang dibuang tidak dapat diklaim.</small></span></label>
-<label class="fast-toggle"><input type="checkbox" id="hk-animation" checked onchange="updateLobbySettings()"><span><b>Animasi pembukaan · default ON</b><small>Empat sisi tembok → tiga dadu → potong tembok → bagi 4–4–4–1 dan ubin dealer → penggantian bunga. Host dapat menekan Skip & mulai.</small></span></label>
+<label class="fast-toggle"><input type="checkbox" id="hk-flowers" checked data-mj-change="settings"><span><b>Bunga & musim · 8 ubin</b><small>Dibuka di depan pemain dan diganti dari ujung tembok; tidak masuk 13/14 ubin atau set.</small></span></label>
+<label class="fast-toggle"><input type="checkbox" id="hk-flower-bonus" data-mj-change="settings"><span><b>Bonus fan bunga · variasi meja HKOS</b><small>Bukan tabel HKMA: tanpa bunga +1, bunga/musim sesuai kursi +1, satu set lengkap +2 menggantikan bonus bunga kursi.</small></span></label>
+<label class="fast-toggle"><input type="checkbox" id="hk-jokers" data-mj-change="settings"><span><b>Joker opsional · variasi meja</b><small>OFF secara default. Empat joker liar hanya melengkapi tangan tertutup, bukan untuk Pung/Chow/Kong terbuka atau pola limit. Joker yang dibuang tidak dapat diklaim.</small></span></label>
+<label class="fast-toggle"><input type="checkbox" id="hk-animation" checked data-mj-change="settings"><span><b>Animasi pembukaan · default ON</b><small>Empat sisi tembok → tiga dadu → potong tembok → bagi 4–4–4–1 dan ubin dealer → penggantian bunga. Host dapat menekan Skip & mulai.</small></span></label>
 <p class="cap">Aturan dikunci saat mulai. Durasi Quick Play dan bantuan klaim adalah fitur meja santai; bukan sertifikasi pertandingan resmi HKMA.</p>
 </div>
-    <button class="btn primary" id="startbtn" onclick="doStart()">Mulai permainan</button>
+    <button class="btn primary" id="startbtn" data-mj-action="start">Mulai permainan</button>
     <p class="cap" id="waitmsg"></p>
   </div>
 
   <details class="panel guide"><summary>Pratinjau meja & panduan</summary><div id="guide"></div><div class="howto" id="guidelegend"></div></details>
-  <div class="nav"><button class="btn ghost" onclick="doLeave()">Keluar</button><button class="btn ghost" onclick="openTutorial(false)">Aturan lengkap mahjong</button></div>
+  <div class="nav"><button class="btn ghost" data-mj-action="leave">Keluar</button><button class="btn ghost" data-mj-action="tutorial">Aturan lengkap mahjong</button></div>
  </div>
  <div class="rcol"><div id="mahjong-lobby-sidebar"></div></div>
 </div>
@@ -342,8 +342,8 @@ input.code{text-transform:uppercase;letter-spacing:.3em;font-weight:700;font-fam
 <div class="sidecard chatcard" id="chatbox" hidden>
   <h3>Obrolan meja</h3>
   <div class="chatlist" id="chatlist"></div>
-  <div class="emojis"><button class="emo" onclick="sendEmoji('👍')">👍</button><button class="emo" onclick="sendEmoji('😂')">😂</button><button class="emo" onclick="sendEmoji('😭')">😭</button><button class="emo" onclick="sendEmoji('🔥')">🔥</button><button class="emo" onclick="sendEmoji('😱')">😱</button><button class="emo" onclick="sendEmoji('🙏')">🙏</button><button class="emo" onclick="sendEmoji('🀄')">🀄</button><button class="emo" onclick="sendEmoji('☕')">☕</button></div>
-  <div class="chatin"><input class="in" id="chatinput" maxlength="200" placeholder="Tulis pesan..." autocomplete="off"><button class="btn" onclick="sendChat()">Kirim</button></div>
+  <div class="emojis"><button class="emo" data-mj-action="emoji" data-value="👍">👍</button><button class="emo" data-mj-action="emoji" data-value="😂">😂</button><button class="emo" data-mj-action="emoji" data-value="😭">😭</button><button class="emo" data-mj-action="emoji" data-value="🔥">🔥</button><button class="emo" data-mj-action="emoji" data-value="😱">😱</button><button class="emo" data-mj-action="emoji" data-value="🙏">🙏</button><button class="emo" data-mj-action="emoji" data-value="🀄">🀄</button><button class="emo" data-mj-action="emoji" data-value="☕">☕</button></div>
+  <div class="chatin"><input class="in" id="chatinput" maxlength="200" placeholder="Tulis pesan..." autocomplete="off"><button class="btn" data-mj-action="chat">Kirim</button></div>
 </div>
 <div class="overlay" id="overlay"></div>
 <script src="/mahjong/engine.js"></script>

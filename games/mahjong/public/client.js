@@ -63,7 +63,7 @@ function renderLobby() {
   if (!lobby) return; buildGuide(); const isHost = lobby.hostSeat === mySeatLobby();
   $('bigcode').textContent = lobby.code;
   const link = `${location.origin}${location.pathname}?room=${lobby.code}`; $('invite').textContent = link;
-  $('seats').innerHTML = [0, 1, 2, 3].map(i => { const p = lobby.players[i]; if (!p) return `<div class="seat empty"><span>Kursi ${i + 1}: kosong, akan diisi bot</span></div>`; const canGive = isHost && !isSpectator && p.seat !== mySeatLobby() && !p.bot && p.connected; return `<div class="seat"><span class="who"><span class="dot ${p.connected ? '' : 'off'}"></span>${esc(p.name)}${p.seat === lobby.hostSeat ? ' <span class="tag">Host</span>' : ''}${p.seat === mySeatLobby() ? ' (kamu)' : ''}${canGive ? `<button class="hostbtn" onclick="makeHost(${p.seat},'${esc(p.name).replace(/'/g, '')}')">Jadikan host</button>` : ''}</span><span class="cap">${WIND_ID[i]}</span></div>`; }).join('');
+  $('seats').innerHTML = [0, 1, 2, 3].map(i => { const p = lobby.players[i]; if (!p) return `<div class="seat empty"><span>Kursi ${i + 1}: kosong, akan diisi bot</span></div>`; const canGive = isHost && !isSpectator && p.seat !== mySeatLobby() && !p.bot && p.connected; return `<div class="seat"><span class="who"><span class="dot ${p.connected ? '' : 'off'}"></span>${esc(p.name)}${p.seat === lobby.hostSeat ? ' <span class="tag">Host</span>' : ''}${p.seat === mySeatLobby() ? ' (kamu)' : ''}${canGive ? `<button class="hostbtn" data-mj-action="host" data-seat="${p.seat}">Jadikan host</button>` : ''}</span><span class="cap">${WIND_ID[i]}</span></div>`; }).join('');
   $('rounds').value = String(lobby.settings.rounds); $('rounds').disabled = !isHost || isSpectator; $('botlevel').value = lobby.settings.botLevel || 'normal'; $('botlevel').disabled = !isHost || isSpectator;
   const hongKong=lobby.settings.ruleset==='hkma';
   $('hk-ruleset').value=lobby.settings.ruleset||'legacy';$('hk-ruleset').disabled=!isHost||isSpectator;
@@ -183,7 +183,7 @@ function renderOpening(){
   const focused=document.activeElement?.id==='skip-mahjong-opening';
   $('app').innerHTML=MahjongOpening.opening(S);
   const button=$('skip-mahjong-opening');if(button){button.onclick=()=>sendMsg({type:'action',action:'skip-opening',openingId:S.opening.id});if(focused)button.focus({preventScroll:true});}
-  $('gtitle').innerHTML=`<div><h1>Mahjong · pembukaan meja</h1><div class="sub">Room ${esc(S.code)} · ronde ${S.hand}/${S.maxHands} · angin ronde ${WIND_ID[S.roundWind||0]}</div></div><button class="iconbtn" onclick="confirmLeave()" aria-label="Keluar">⎋</button>`;
+  $('gtitle').innerHTML=`<div><h1>Mahjong · pembukaan meja</h1><div class="sub">Room ${esc(S.code)} · ronde ${S.hand}/${S.maxHands} · angin ronde ${WIND_ID[S.roundWind||0]}</div></div><button class="iconbtn" data-mj-action="confirm-leave" aria-label="Keluar">⎋</button>`;
   renderMahjongSidebar();
 }
 
@@ -195,7 +195,7 @@ function renderGame() {
   const newMeld = i => prev && prev.players[i] && prev.hand === S.hand && S.players[i].melds.length > prev.players[i].melds.length;
   const meldsHTML = i => S.players[i].melds.map((m, k, arr) => (k === arr.length - 1 && newMeld(i)) ? meldHTML(m).replace('class="meld"', 'class="meld anim-new"') : meldHTML(m)).join('');
   const iAmHost = !spec && S.hostSeat === S.you;
-  const opp = i => { const P = S.players[i]; const reveal = S.over && P.hand; const canGive = iAmHost && !P.bot && P.connected; return `<div class="opp ${S.current === i && !S.over ? 'turn' : ''}">${bubble(i)}<div class="nm"><span>${esc(P.name)}${P.bot ? ' <span class="cap" style="color:rgba(255,255,255,.6)">bot</span>' : ''}${!P.bot && !P.connected ? ' <span class="off">offline</span>' : ''}${S.hostSeat === i ? ' <span class="cap" style="color:var(--gold)">host</span>' : ''}${canGive ? `<button class="hostbtn" onclick="makeHost(${i},'${esc(P.name).replace(/'/g, '')}')">Jadikan host</button>` : ''}</span><span>${WIND_ID[P.wind]}</span></div><div class="cnt">${reveal ? P.hand.slice().sort(byIdx).map(t => tileHTML(t)).join('') : tileHTML(null) + `<span>× ${P.handCount}</span>`}</div><div class="melds">${meldsHTML(i)}</div>${flowersHTML(P)}</div>`; };
+  const opp = i => { const P = S.players[i]; const reveal = S.over && P.hand; const canGive = iAmHost && !P.bot && P.connected; return `<div class="opp ${S.current === i && !S.over ? 'turn' : ''}">${bubble(i)}<div class="nm"><span>${esc(P.name)}${P.bot ? ' <span class="cap" style="color:rgba(255,255,255,.6)">bot</span>' : ''}${!P.bot && !P.connected ? ' <span class="off">offline</span>' : ''}${S.hostSeat === i ? ' <span class="cap" style="color:var(--gold)">host</span>' : ''}${canGive ? `<button class="hostbtn" data-mj-action="host" data-seat="${i}">Jadikan host</button>` : ''}</span><span>${WIND_ID[P.wind]}</span></div><div class="cnt">${reveal ? P.hand.slice().sort(byIdx).map(t => tileHTML(t)).join('') : tileHTML(null) + `<span>× ${P.handCount}</span>`}</div><div class="melds">${meldsHTML(i)}</div>${flowersHTML(P)}</div>`; };
   const lastNew = S.last && (!prev || !prev.last || prev.last.tile.id !== S.last.tile.id || prev.hand !== S.hand);
   const prow = i => { const P = S.players[i]; return `<div class="prow"><div class="lbl">${esc(P.name)}</div><div class="tiles">${P.discards.map(t => tileHTML(t, S.last && S.last.tile.id === t.id ? 'last' + (lastNew ? ' anim-pop' : '') : '')).join('')}</div></div>`; };
   let actions = '', hint = '', claimbox = '';
@@ -203,10 +203,10 @@ function renderGame() {
   if (!S.over && !spec) {
     if (S.options) {
       const o = S.options, t = S.last.tile, manual=!!o.manual, canSet = hasSetClaimOption(o), ps = canSet ? pickSet() : null;
-      const zoneTiles = UI.pick.map(id => myHand().find(h => h.id === id)).filter(Boolean).map(x => tileHTML(x, 'click', `onclick="togglePick(${x.id})"`)).join('') + '<div class="slot"></div>'.repeat(Math.max(0, 2 - UI.pick.length));
+      const zoneTiles = UI.pick.map(id => myHand().find(h => h.id === id)).filter(Boolean).map(x => tileHTML(x, 'click', `data-mj-action="pick" data-id="${x.id}"`)).join('') + '<div class="slot"></div>'.repeat(Math.max(0, 2 - UI.pick.length));
       const zone = canSet ? `<div class="zone">${tileHTML(t, 'last')}<span style="opacity:.6">+</span>${zoneTiles}<span class="lbl">${ps ? esc(ps.label) : ''}</span></div>` : '';
-      claimbox = `<div class="claimbox" ${canSet ? 'ondragover="event.preventDefault()" ondrop="dropPick(event)"' : ''}><div class="hd"><span>${esc(S.players[S.last.from].name)} ${o.robOnly?'menyatakan Kong':'membuang'} ${tileName(t)}. ${manual?'Manual bebas: mau mencoba klaim atau lewat?':hasClaimOption(o) ? 'Mau diambil?' : 'Belum ada klaim yang sah.'}</span></div>${zone}${manual?'<p class="manual-pass-copy">'+(o.robOnly?'Hanya Hu atau Lewat. Kong tertutup hanya dapat direbut dengan Tiga Belas Yatim.':'Pung, Chow, Kong, atau Hu boleh dicoba.')+' Kombinasi baru diperiksa setelah tombol ditekan. Kalau salah, pilih lagi atau Lewat.</p>':!hasClaimOption(o) ? '<p class="manual-pass-copy">Manual terbantu: tekan Lewat untuk melanjutkan. Pemain lain juga perlu menjawab sendiri.</p>' : ''}
-       <div class="btns">${o.win||manual ? `<button class="act win" onclick="claim('win')">${manual?'Coba Hu':'Hu! Menang'}</button>` : ''}${canSet ? `<button class="act" onclick="claim('set')" ${ps && ps.ok ? '' : 'disabled'}>${manual?'Coba klaim':'Klaim'}</button>` : ''}<button class="act pass" onclick="claim('pass')">Lewat</button></div></div>`;
+      claimbox = `<div class="claimbox" ${canSet ? 'data-mj-drop="pick"' : ''}><div class="hd"><span>${esc(S.players[S.last.from].name)} ${o.robOnly?'menyatakan Kong':'membuang'} ${tileName(t)}. ${manual?'Manual bebas: mau mencoba klaim atau lewat?':hasClaimOption(o) ? 'Mau diambil?' : 'Belum ada klaim yang sah.'}</span></div>${zone}${manual?'<p class="manual-pass-copy">'+(o.robOnly?'Hanya Hu atau Lewat. Kong tertutup hanya dapat direbut dengan Tiga Belas Yatim.':'Pung, Chow, Kong, atau Hu boleh dicoba.')+' Kombinasi baru diperiksa setelah tombol ditekan. Kalau salah, pilih lagi atau Lewat.</p>':!hasClaimOption(o) ? '<p class="manual-pass-copy">Manual terbantu: tekan Lewat untuk melanjutkan. Pemain lain juga perlu menjawab sendiri.</p>' : ''}
+       <div class="btns">${o.win||manual ? `<button class="act win" data-mj-action="claim" data-value="win">${manual?'Coba Hu':'Hu! Menang'}</button>` : ''}${canSet ? `<button class="act" data-mj-action="claim" data-value="set" ${ps && ps.ok ? '' : 'disabled'}>${manual?'Coba klaim':'Klaim'}</button>` : ''}<button class="act pass" data-mj-action="claim" data-value="pass">Lewat</button></div></div>`;
       hint = o.robOnly?'Hanya Hu atau Lewat. Kong tertutup hanya dapat direbut oleh Tiga Belas Yatim.':manual?'Ketuk 2 atau 3 ubin, lalu Coba klaim. Tidak ada pemeriksaan kombinasi sebelum dikirim.':canSet ? 'Ketuk atau seret ubin ke kotak, lalu tekan Klaim.' : o.win ? 'Kamu bisa menekan Hu! Menang atau Lewat.' : 'Manual terbantu: tidak ada set yang dapat diklaim; tekan Lewat sendiri.';
     } else if (S.claimOpen) {
       const waiting = (S.claimWaiting || []).map(i => esc(S.players[i].name)).join(', ');
@@ -214,15 +214,15 @@ function renderGame() {
     }
     if (S.undoUntil && S.undoUntil > Date.now() && S.last && S.last.from === S.you) {
       const left = Math.max(0, (S.undoUntil - Date.now()) / 1000);
-      actions += `<button class="act undo" onclick="undoDiscard()">Batalkan buangan ${tileHTML(S.last.tile)} <span class="cd" id="undocd">${left.toFixed(1)}s</span></button>`;
+      actions += `<button class="act undo" data-mj-action="undo">Batalkan buangan ${tileHTML(S.last.tile)} <span class="cd" id="undocd">${left.toFixed(1)}s</span></button>`;
       clearTimeout(UI.undoT); UI.undoT = setTimeout(() => renderGame(), (S.undoUntil - Date.now()) + 50);
       clearInterval(UI.undoI); UI.undoI = setInterval(() => { const el = $('undocd'); if (!el) return clearInterval(UI.undoI); el.textContent = Math.max(0, (S.undoUntil - Date.now()) / 1000).toFixed(1) + 's'; }, 100);
       if (!S.options) hint = 'Salah buang? Kamu punya 2 detik untuk membatalkan.';
     } else if (canDiscard()) {
-      if (M.drawn !== null && S.canHu) actions += `<button class="act win" onclick="act({action:'win'})">Hu! Menang (Zimo)</button>`;
+      if (M.drawn !== null && S.canHu) actions += `<button class="act win" data-mj-action="win">Hu! Menang (Zimo)</button>`;
       const c = counts(M.hand);
-      for (let i = 0; i < 34; i++) if (c[i] === 4 && (S.settings.ruleset!=='hkma'||S.wall>0)) actions += `<button class="act" onclick="act({action:'kong',kind:'conc',arg:${i}})">Kong tertutup ${ht(i)}</button>`;
-      M.melds.forEach((m, k) => { if (m.type === 'pung' && c[idxOf(m.tiles[0])] === 1 && (S.settings.ruleset!=='hkma'||S.wall>0)) actions += `<button class="act" onclick="act({action:'kong',kind:'add',arg:${k}})">Kong tambah ${tileHTML(m.tiles[0])}</button>`; });
+      for (let i = 0; i < 34; i++) if (c[i] === 4 && (S.settings.ruleset!=='hkma'||S.wall>0)) actions += `<button class="act" data-mj-action="kong" data-kind="conc" data-id="${i}">Kong tertutup ${ht(i)}</button>`;
+      M.melds.forEach((m, k) => { if (m.type === 'pung' && c[idxOf(m.tiles[0])] === 1 && (S.settings.ruleset!=='hkma'||S.wall>0)) actions += `<button class="act" data-mj-action="kong" data-kind="add" data-id="${k}">Kong tambah ${tileHTML(m.tiles[0])}</button>`; });
       hint = UI.autoSort ? 'Klik satu ubin untuk membuang.' : (UI.sel === null ? 'Ketuk ubin untuk memilih, lalu tekan Buang. Ketuk ubin lain untuk memindahkannya.' : 'Tekan Buang, atau ketuk ubin lain untuk memindahkan ubin terpilih.');
     }
   }
@@ -234,12 +234,12 @@ function renderGame() {
   const cd = canDiscard(); const order = displayOrder(); const picking = hasSetClaimOption(S.options); const interactive = !S.over && !spec && (picking || (UI.autoSort ? cd : true)); const cl = UI.clue || {};
   const helpMarks = spec || !S.highlightSets ? new Map() : HAND_HELP.analyze(M.hand);
   const drawnNew = M.drawn !== null && (!prev || prev.players[view()].drawn !== M.drawn);
-  const th = (t, k) => { const help = helpMarks.get(t.id); const sep = t.id === M.drawn && k === order.length - 1; const mark = (cl.good || []).includes(t.id) ? 'ok ' : (cl.alt || []).includes(t.id) ? 'alt ' : ''; const cls = (interactive ? 'click ' : '') + (sep ? 'drawn ' : '') + (sep && drawnNew ? 'anim-draw ' : '') + mark + (UI.sel === t.id ? 'sel ' : '') + (picking && UI.pick.includes(t.id) ? 'pick ' : '') + (help ? help.className : ''); const dnd = (UI.autoSort && !picking) ? '' : `draggable="true" ondragstart="dragStart(event,${t.id})" ondragover="event.preventDefault()" ondrop="dropOn(event,${t.id})"`; return tileHTML(t, cls, `onclick="tapTile(${t.id})" ${dnd} ${interactive ? 'aria-label="' + esc(tileName(t) + (help ? ' · ' + help.description : '')) + '" tabindex="0" role="button" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();tapTile(' + t.id + ')}"' : ''}`, help); };
-  if (!UI.autoSort && cd && UI.sel !== null) { const st = M.hand.find(x => x.id === UI.sel); if (st) actions += `<button class="act" onclick="discardSel()">Buang ${tileHTML(st)}</button>`; }
-  const soundBtn = `<button class="tool ${UI.sound ? 'on' : ''}" onclick="setSound(${UI.sound ? 'false' : 'true'})" title="Bunyi saat giliranmu">${UI.sound ? '🔔 Suara' : '🔕 Suara'}</button>`;
+  const th = (t, k) => { const help = helpMarks.get(t.id); const sep = t.id === M.drawn && k === order.length - 1; const mark = (cl.good || []).includes(t.id) ? 'ok ' : (cl.alt || []).includes(t.id) ? 'alt ' : ''; const cls = (interactive ? 'click ' : '') + (sep ? 'drawn ' : '') + (sep && drawnNew ? 'anim-draw ' : '') + mark + (UI.sel === t.id ? 'sel ' : '') + (picking && UI.pick.includes(t.id) ? 'pick ' : '') + (help ? help.className : ''); const dnd = (UI.autoSort && !picking) ? '' : `draggable="true" data-mj-drag="${t.id}" data-mj-drop="tile" data-drop-id="${t.id}"`; return tileHTML(t, cls, `data-mj-action="tile" data-id="${t.id}" ${dnd} ${interactive ? 'aria-label="' + esc(tileName(t) + (help ? ' · ' + help.description : '')) + '" tabindex="0" role="button"' : ''}`, help); };
+  if (!UI.autoSort && cd && UI.sel !== null) { const st = M.hand.find(x => x.id === UI.sel); if (st) actions += `<button class="act" data-mj-action="discard">Buang ${tileHTML(st)}</button>`; }
+  const soundBtn = `<button class="tool ${UI.sound ? 'on' : ''}" data-mj-action="sound" data-value="${UI.sound ? 'false' : 'true'}" title="Bunyi saat giliranmu">${UI.sound ? '🔔 Suara' : '🔕 Suara'}</button>`;
   const tools = spec
-    ? `<div class="tools"><button class="tool ${UI.big ? 'on' : ''}" onclick="setBig(${UI.big ? 'false' : 'true'})">${UI.big ? 'Ubin besar: aktif' : 'Ubin besar'}</button></div>`
-    : `<div class="tools"><button class="tool ${UI.autoSort ? 'on' : ''}" onclick="setAutoSort(true)">Urutkan otomatis</button><button class="tool ${UI.autoSort ? '' : 'on'}" onclick="setAutoSort(false)">Atur manual</button>${UI.autoSort ? '' : '<button class="tool" onclick="sortOnce()">Urutkan sekali</button>'}${!S.over ? `<button class="tool ${UI.clue ? 'on' : ''}" onclick="toggleClue()">${UI.clue ? 'Tutup petunjuk' : 'Petunjuk'}</button>` : ''}<button class="tool ${UI.big ? 'on' : ''}" onclick="setBig(${UI.big ? 'false' : 'true'})">${UI.big ? 'Ubin besar: aktif' : 'Ubin besar'}</button>${soundBtn}</div>${UI.clue ? `<div class="clue">${UI.clue.html}</div>` : ''}`;
+    ? `<div class="tools"><button class="tool ${UI.big ? 'on' : ''}" data-mj-action="big" data-value="${UI.big ? 'false' : 'true'}">${UI.big ? 'Ubin besar: aktif' : 'Ubin besar'}</button></div>`
+    : `<div class="tools"><button class="tool ${UI.autoSort ? 'on' : ''}" data-mj-action="autosort" data-value="true">Urutkan otomatis</button><button class="tool ${UI.autoSort ? '' : 'on'}" data-mj-action="autosort" data-value="false">Atur manual</button>${UI.autoSort ? '' : '<button class="tool" data-mj-action="sort">Urutkan sekali</button>'}${!S.over ? `<button class="tool ${UI.clue ? 'on' : ''}" data-mj-action="clue">${UI.clue ? 'Tutup petunjuk' : 'Petunjuk'}</button>` : ''}<button class="tool ${UI.big ? 'on' : ''}" data-mj-action="big" data-value="${UI.big ? 'false' : 'true'}">${UI.big ? 'Ubin besar: aktif' : 'Ubin besar'}</button>${soundBtn}</div>${UI.clue ? `<div class="clue">${UI.clue.html}</div>` : ''}`;
   const meArea = spec
     ? `<div class="me"><div class="specbar">Kamu menonton. Tangan pemain disembunyikan sampai ronde selesai.${S.spectators.length ? ' Penonton: ' + S.spectators.map(esc).join(', ') : ''}</div>${tools}</div>`
     : `<div class="me">${bubble(S.you)}${flowersHTML(M,true)}<div class="melds">${meldsHTML(S.you)}</div><div class="hand ${cd ? 'myturn' : ''}">${order.map(th).join('')}</div>${S.highlightSets ? HAND_HELP.legend() : ''}${tools}</div>`;
@@ -248,7 +248,7 @@ function renderGame() {
  <div class="scores">${pills}${S.spectators && S.spectators.length ? `<div class="pill"><span class="w">👁 ${S.spectators.length} penonton</span></div>` : ''}</div>
  <div class="table">
   <div class="opps">${opp(rel(3))}${opp(rel(2))}${opp(rel(1))}</div>
-  <div class="pool">${S.wallLayout?MahjongOpening.wall(S,true):''}<div class="ph"><span>${UI.poolMode === 'tile' ? 'Ubin yang sudah terlihat di meja (angka = jumlah lembar, titik emas = di tanganmu)' : 'Buangan per pemain'}</span><span class="sw"><button class="tool ${UI.poolMode === 'tile' ? 'on' : ''}" onclick="setPool('tile')">Per ubin</button><button class="tool ${UI.poolMode === 'player' ? 'on' : ''}" onclick="setPool('player')">Per pemain</button></span></div>
+  <div class="pool">${S.wallLayout?MahjongOpening.wall(S,true):''}<div class="ph"><span>${UI.poolMode === 'tile' ? 'Ubin yang sudah terlihat di meja (angka = jumlah lembar, titik emas = di tanganmu)' : 'Buangan per pemain'}</span><span class="sw"><button class="tool ${UI.poolMode === 'tile' ? 'on' : ''}" data-mj-action="pool" data-value="tile">Per ubin</button><button class="tool ${UI.poolMode === 'player' ? 'on' : ''}" data-mj-action="pool" data-value="player">Per pemain</button></span></div>
   ${UI.poolMode === 'tile' ? poolCountsHTML() : [view(), rel(1), rel(2), rel(3)].map(prow).join('')}
   ${S.last ? `<div class="lastd"><span style="font-size:12px;opacity:.85">Buangan terakhir:</span>${tileHTML(S.last.tile, 'last' + (lastNew ? ' anim-pop' : ''))}<span style="font-size:12px">${esc(S.players[S.last.from].name)}</span></div>` : ''}</div>
   <div class="status"><span>${esc(S.log)}</span><span>Dinding: ${S.wall}</span></div>
@@ -258,7 +258,7 @@ function renderGame() {
   ${meArea}
  </div>`;
   const matchModes = `<div class="match-modes" aria-label="Mode meja terkunci"><div class="mode-badges"><span class="pace-mode">${S.settings.ruleset==='hkma'?'HKMA · 3–10 fan':'Aturan lama'}${S.settings.jokers&&S.settings.ruleset==='hkma'?' · Joker ON (variasi)':''}${S.settings.flowerBonus&&S.settings.ruleset==='hkma'?' · bonus bunga (variasi)':''}</span><span class="pace-mode">Klaim: ${CLAIM_MODE_NAMES[currentClaimMode(S)]}</span><span class="pace-mode">Highlight set: ${S.highlightSets ? 'ON' : 'OFF'}</span></div><small>Dipilih di lobby · terkunci</small></div>`;
-  $('gtitle').innerHTML = `<div><h1>Mahjong</h1><div class="sub">Ruangan ${S.code} · ${S.maxHands===1?'Quick Play · ':''}Ronde ${S.hand} dari ${S.maxHands}${S.settings.ruleset==='hkma'?' · angin ronde '+WIND_ID[S.roundWind||0]:''}, dealer ${esc(S.players[S.dealer].name)}${spec ? ' · mode penonton' : ''}</div></div><div class="game-setting-row">${matchModes}<div style="display:flex;gap:6px"><button class="iconbtn" onclick="openTutorial(false)" title="Panduan" aria-label="Panduan">?</button><button class="iconbtn" onclick="confirmLeave()" title="Keluar" aria-label="Keluar">⎋</button></div></div>`;
+  $('gtitle').innerHTML = `<div><h1>Mahjong</h1><div class="sub">Ruangan ${S.code} · ${S.maxHands===1?'Quick Play · ':''}Ronde ${S.hand} dari ${S.maxHands}${S.settings.ruleset==='hkma'?' · angin ronde '+WIND_ID[S.roundWind||0]:''}, dealer ${esc(S.players[S.dealer].name)}${spec ? ' · mode penonton' : ''}</div></div><div class="game-setting-row">${matchModes}<div style="display:flex;gap:6px"><button class="iconbtn" data-mj-action="tutorial" title="Panduan" aria-label="Panduan">?</button><button class="iconbtn" data-mj-action="confirm-leave" title="Keluar" aria-label="Keluar">⎋</button></div></div>`;
   renderMahjongSidebar();
 }
 // ---------- Riwayat aksi ----------
@@ -385,12 +385,12 @@ function handleResult() {
   }
   body += `<div class="cmp"><h3>Perbandingan tangan</h3>${r.compare.map(cp => { const P = S.players[cp.seat]; const isW = cp.status.kind === 'win'; let st; if (isW) st = `Menang, ${cp.status.total} fan`; else if (cp.status.kind === 'tenpai') st = `<div class="wait">Tenpai, menunggu: ${cp.status.waits.map(ht).join('')}</div>`; else st = cp.status.shanten <= 0 ? 'Tenpai' : `Masih ${cp.status.shanten} ubin dari tenpai`; return `<div class="crow2 ${isW ? 'win' : ''}"><div class="hd"><span>${esc(P.name)}${!S.spectator && cp.seat === S.you ? ' (kamu)' : ''}</span><span>${WIND_ID[P.wind]}${!r.draw && r.from === cp.seat && !r.zimo ? ', membuang ubin pemenang' : ''}</span></div><div class="ex">${cp.melds.map(meldHTML).join('')}${cp.hand.map(t => tileHTML(t, isW && r.tile && t.id === r.tile.id ? 'last' : '')).join('')}</div><div>${st}</div></div>`; }).join('')}</div>`;
   const isHost = !S.spectator && S.hostSeat === S.you; const hostName = S.players[S.hostSeat] ? esc(S.players[S.hostSeat].name) : 'host';
-  const nav = isHost ? `<button class="btn primary" onclick="sendMsg({type:'next'})">${r.final ? 'Lihat hasil akhir' : 'Ronde berikutnya'}</button>` : `<span class="cap">Menunggu <b>${hostName}</b> (host) ${r.final ? 'membuka hasil akhir' : 'memulai ronde berikutnya'}...</span>`;
+  const nav = isHost ? `<button class="btn primary" data-mj-action="next-round">${r.final ? 'Lihat hasil akhir' : 'Ronde berikutnya'}</button>` : `<span class="cap">Menunggu <b>${hostName}</b> (host) ${r.final ? 'membuka hasil akhir' : 'memulai ronde berikutnya'}...</span>`;
   ov.innerHTML = `<div class="modal res">${body}<div class="nav"><span class="cap">Ronde ${r.round} dari ${r.maxHands}.${r.final ? '' : (S.settings.ruleset==='hkma'?' Dealer menang: tetap Timur; selain itu dealer bergeser ke Selatan. Kursi tetap.':' Posisi duduk diacak lagi di ronde berikutnya.')}</span>${nav}</div></div>`; ov.style.display = 'flex';
 }
 function showFinal() {
   const ov = $('overlay'); const r = S.result; const you = r.ranking.findIndex(x => x.seat === S.you) + 1; const isHost = !S.spectator && S.hostSeat === S.you;
-  ov.innerHTML = `<div class="modal res"><h2>Hasil akhir</h2><p>${S.spectator ? `Pertandingan ${S.maxHands} ronde selesai.` : `Kamu finis di peringkat ${you} dari 4 setelah ${S.maxHands} ronde.`}</p><div class="delta" style="grid-template-columns:1fr">${r.ranking.map((x, k) => `<div><span>${k + 1}. ${esc(x.name)}${!S.spectator && x.seat === S.you ? ' (kamu)' : ''}</span><b>${x.score}</b></div>`).join('')}</div><div class="nav"><button class="btn ghost" onclick="doLeave()">Keluar ruangan</button>${isHost ? `<button class="btn primary" onclick="sendMsg({type:'again'})">Main lagi</button>` : '<span class="cap">Menunggu host memulai pertandingan baru...</span>'}</div></div>`; ov.style.display = 'flex';
+  ov.innerHTML = `<div class="modal res"><h2>Hasil akhir</h2><p>${S.spectator ? `Pertandingan ${S.maxHands} ronde selesai.` : `Kamu finis di peringkat ${you} dari 4 setelah ${S.maxHands} ronde.`}</p><div class="delta" style="grid-template-columns:1fr">${r.ranking.map((x, k) => `<div><span>${k + 1}. ${esc(x.name)}${!S.spectator && x.seat === S.you ? ' (kamu)' : ''}</span><b>${x.score}</b></div>`).join('')}</div><div class="nav"><button class="btn ghost" data-mj-action="leave">Keluar ruangan</button>${isHost ? `<button class="btn primary" data-mj-action="again">Main lagi</button>` : '<span class="cap">Menunggu host memulai pertandingan baru...</span>'}</div></div>`; ov.style.display = 'flex';
 }
 
 // ---------- Panduan ----------
@@ -402,7 +402,7 @@ const STEPS = [
   { t: 'Chow dan Kong', h: `<p><b>Chow</b> adalah 3 ubin berurutan dari jenis yang sama, misalnya 4-5-6 Karakter. Angin dan naga tidak bisa di-Chow, dan 8-9-1 tidak sah.</p><div class="ex">${chow('c', 4)}${gap}${chow('d', 1)}</div><p><b>Kong</b> adalah 4 ubin identik. Dihitung sebagai 1 set seperti Pung. Setelah Kong, kamu mengambil 1 ubin pengganti dari ujung dinding.</p><div class="ex">${ts(T('d', 6), T('d', 6), T('d', 6), T('d', 6))}</div>` },
   { t: 'Alur giliran', h: `<p>Setiap pemain mulai dengan 13 ubin. Dealer (Timur) jalan duluan, lalu giliran berputar ke pemain di sebelah kananmu, atas, kiri, lalu kembali ke kamu.</p><p>Di giliranmu: <span class="tag">1</span>ambil 1 ubin dari dinding, <span class="tag">2</span>cek apakah bisa menang atau Kong, <span class="tag">3</span>buang 1 ubin. Saat giliranmu, bar kuning <b>GILIRANMU</b> muncul. Tidak ada batas waktu.</p><p><b>Klik ubin di tanganmu untuk membuangnya.</b> Ubin yang baru diambil ditaruh agak terpisah di paling kanan. Salah pencet? Ada tombol <b>Batalkan buangan</b> selama 2 detik setelah membuang, selama belum ada yang mengklaim.</p><p>Susunan ubin bebas kamu atur karena lawan tidak melihatnya. Pilih <b>Atur manual</b> di bawah tangan untuk menyusun sendiri: ketuk ubin lalu ketuk ubin lain untuk memindahkannya, dan buang lewat tombol <b>Buang</b>.</p>` },
   { t: 'Mengambil buangan lawan', h: `<p>Ubin yang dibuang lawan boleh kamu ambil kalau melengkapi set di tanganmu:</p><table class="fan"><tr><td><b>Hu</b> (menang)</td><td>dari siapa saja</td></tr><tr><td><b>Pung</b> atau <b>Kong</b></td><td>dari siapa saja</td></tr><tr><td><b>Chow</b></td><td>hanya dari pemain di sebelah kirimu</td></tr></table><p>Kalau beberapa pemain mau mengambil ubin yang sama, prioritasnya: <b>Hu, lalu Pung/Kong, lalu Chow</b>.</p><p>Set hasil klaim dibuka di meja dan tidak bisa diubah lagi. Setelah klaim, giliran langsung pindah ke kamu dan kamu harus membuang 1 ubin.</p><p class="cap">Host memilih <b>mode klaim</b> di lobby. <b>Manual bebas</b>: semua pemain memilih sendiri; coba 2 ubin untuk Pung/Chow atau 3 untuk Kong, lalu tekan <b>Coba klaim</b>, atau coba <b>Hu</b>. Klaim baru diperiksa saat ditekan. Kalau salah, ubin tetap di tangan dan kamu masih bisa mencoba lagi atau <b>Lewat</b>. <b>Manual terbantu</b>: semua pemain tetap menjawab, tetapi pilihan dan kombinasi diperiksa sebelum klaim. <b>Fast</b>: tanpa pilihan sah, otomatis lewat. Mode dikunci selama permainan, ronde berikutnya dan main lagi; buat ruangan baru untuk menggantinya.</p>` },
-  { t: 'Menang (Hu)', h: `<p>Kamu <b>Hu</b> saat 14 ubinmu membentuk 4 set + 1 pasang. Set yang sudah diklaim ikut dihitung.</p><p><span class="tag">Zimo</span> ubin ke-14 datang dari ambilanmu sendiri. Ketiga lawan membayar.<br><span class="tag">Dari buangan</span> lawan membuang ubin yang kamu butuhkan. Pada HKMA, pembuang membayar nilai buangan penuh menurut tabel fan; Zimo dibayar setengah nilai tabel oleh tiap lawan, kecuali Pao.</p><p>Hong Kong memakai 4 set + 1 pasang atau Tiga Belas Yatim. Minimal 3 fan; Tujuh Pasang hanya tersedia pada aturan lama.</p><p><b>Latihan:</b> tangan ini tinggal butuh 1 ubin. Ubin mana yang membuatnya menang?</p><div class="ex" style="--tw:28px">${chow('d', 2)}${gap}${chow('b', 5)}${gap}${pung('c', 8)}${gap}${pung('w', 1)}${gap}${ts(T('d', 9))}</div><div class="quiz">${tileHTML(T('d', 9), '', `onclick="quizPick(this,true)"`)}${tileHTML(T('b', 1), '', `onclick="quizPick(this,false)"`)}${tileHTML(T('g', 1), '', `onclick="quizPick(this,false)"`)}</div><p class="cap" id="quizmsg">Klik salah satu ubin di atas.</p>` },
+  { t: 'Menang (Hu)', h: `<p>Kamu <b>Hu</b> saat 14 ubinmu membentuk 4 set + 1 pasang. Set yang sudah diklaim ikut dihitung.</p><p><span class="tag">Zimo</span> ubin ke-14 datang dari ambilanmu sendiri. Ketiga lawan membayar.<br><span class="tag">Dari buangan</span> lawan membuang ubin yang kamu butuhkan. Pada HKMA, pembuang membayar nilai buangan penuh menurut tabel fan; Zimo dibayar setengah nilai tabel oleh tiap lawan, kecuali Pao.</p><p>Hong Kong memakai 4 set + 1 pasang atau Tiga Belas Yatim. Minimal 3 fan; Tujuh Pasang hanya tersedia pada aturan lama.</p><p><b>Latihan:</b> tangan ini tinggal butuh 1 ubin. Ubin mana yang membuatnya menang?</p><div class="ex" style="--tw:28px">${chow('d', 2)}${gap}${chow('b', 5)}${gap}${pung('c', 8)}${gap}${pung('w', 1)}${gap}${ts(T('d', 9))}</div><div class="quiz">${tileHTML(T('d', 9), '', `data-mj-action="quiz" data-value="true"`)}${tileHTML(T('b', 1), '', `data-mj-action="quiz" data-value="false"`)}${tileHTML(T('g', 1), '', `data-mj-action="quiz" data-value="false"`)}</div><p class="cap" id="quizmsg">Klik salah satu ubin di atas.</p>` },
   { t: 'Skor', h: `<p>Hong Kong memakai acuan HKMA: minimal <b>3 fan</b>, batas <b>10 fan</b>. Tidak ada bonus menang dasar otomatis.</p>${hongKongCheat({name:'pemain di sebelah kiri'},true)}<p>Aturan lama tetap 1 fan = 10 poin. Joker dan bonus bunga adalah variasi meja yang diberi label; bukan preset HKMA.</p>` },
   { t: 'Siap main', h: `<p>Beberapa tips: buang dulu ubin huruf yang cuma 1 lembar dan ubin 1 atau 9 yang sendirian. Simpan ubin tengah (3 sampai 7). Jangan terlalu rajin klaim. Perhatikan buangan lawan, terutama yang sudah membuka 2 set.</p><p>Jika host menyalakan <b>Highlight set di tangan</b> di lobby, warna membantu mengenali set yang sudah lengkap dalam tanganmu sendiri: toska <b>C</b> untuk Chow, emas <b>P</b> untuk Pung/Kong, dan ungu <b>C/P</b> kalau ubin bisa menjadi keduanya. Bantuan ini tidak memakai buangan lawan dan tidak menandai calon klaim. Set dapat berbagi ubin yang sama, jadi tidak semua kemungkinan bisa dipakai sekaligus. Pilihan highlight dikunci selama permainan.</p><p>Kalau bingung, tekan <b>Petunjuk</b> di bawah tangan: buangan paling efisien ditandai hijau, pilihan aman ditandai biru.</p><p>Kalau koneksimu putus, buka lagi alamat yang sama di perangkat yang sama dan kamu otomatis kembali ke kursimu. Selama kamu offline, bot memainkan kursimu.</p><p>Selamat bermain!</p>` }
 ];
@@ -410,13 +410,62 @@ let step = 0, tutOpen = false;
 function openTutorial() { step = 0; tutOpen = true; renderTut(); }
 function renderTut() {
   const ov = $('overlay'); const s = STEPS[step]; const lastS = step === STEPS.length - 1;
-  ov.innerHTML = `<div class="modal tutorial" role="dialog" aria-modal="true" aria-labelledby="tutorial-title"><div class="tutorial-top"><span class="cap" role="status">Panduan ${step + 1} dari ${STEPS.length}</span><button type="button" class="btn ghost tutorial-skip" onclick="closeTut()">Lewati panduan</button></div><h2 id="tutorial-title">${s.t}</h2>${s.h}<div class="steps" aria-hidden="true">${STEPS.map((_, i) => `<i class="${i === step ? 'on' : ''}"></i>`).join('')}</div>
- <div class="nav"><button type="button" class="btn ghost" onclick="tutStep(-1)" ${step === 0 ? 'disabled' : ''}>Sebelumnya</button><button type="button" class="btn ${lastS ? 'primary' : ''}" onclick="${lastS ? 'closeTut()' : 'tutStep(1)'}">${lastS ? 'Selesai' : 'Berikutnya'}</button></div></div>`;
+  ov.innerHTML = `<div class="modal tutorial" role="dialog" aria-modal="true" aria-labelledby="tutorial-title"><div class="tutorial-top"><span class="cap" role="status">Panduan ${step + 1} dari ${STEPS.length}</span><button type="button" class="btn ghost tutorial-skip" data-mj-action="tutorial-close">Lewati panduan</button></div><h2 id="tutorial-title">${s.t}</h2>${s.h}<div class="steps" aria-hidden="true">${STEPS.map((_, i) => `<i class="${i === step ? 'on' : ''}"></i>`).join('')}</div>
+ <div class="nav"><button type="button" class="btn ghost" data-mj-action="tutorial-back" ${step === 0 ? 'disabled' : ''}>Sebelumnya</button><button type="button" class="btn ${lastS ? 'primary' : ''}" data-mj-action="${lastS ? 'tutorial-close' : 'tutorial-next'}">${lastS ? 'Selesai' : 'Berikutnya'}</button></div></div>`;
   ov.style.display = 'flex'; ov.scrollTop = 0;
 }
 function tutStep(d) { step = Math.max(0, Math.min(STEPS.length - 1, step + d)); renderTut(); }
 function closeTut() { tutOpen = false; ls.set('mejakita.mahjong.tut', '1'); $('overlay').style.display = 'none'; UI.resultShown = null; if (S) handleResult(); }
 function quizPick(el, ok) { document.querySelectorAll('.quiz .tile').forEach(x => x.classList.remove('ok', 'bad')); el.classList.add(ok ? 'ok' : 'bad'); $('quizmsg').textContent = ok ? 'Benar: 9 Bulatan melengkapi bentuk 4 set + 1 pasang. Pada Hong Kong, Hu juga harus memenuhi minimal 3 fan.' : 'Belum tepat. Keempat set sudah lengkap; yang kurang hanya pasangan untuk 9 Bulatan.'; }
+
+// CSP-safe delegates survive native innerHTML rerenders without eval or inline handlers.
+const mahjongActions = {
+  create: () => doCreate(), join: () => doJoin(), tutorial: () => openTutorial(),
+  'copy-invite': () => copyInvite(), start: () => doStart(), leave: () => doLeave(),
+  'confirm-leave': () => confirmLeave(), chat: () => sendChat(),
+  emoji: el => sendEmoji(el.dataset.value), undo: () => undoDiscard(),
+  discard: () => discardSel(), sort: () => sortOnce(), clue: () => toggleClue(),
+  'tutorial-close': () => closeTut(), 'tutorial-back': () => tutStep(-1),
+  'tutorial-next': () => tutStep(1), quiz: el => quizPick(el, el.dataset.value === 'true'),
+  'next-round': () => sendMsg({type:'next'}), again: () => sendMsg({type:'again'}),
+  win: () => act({action:'win'}),
+  host: el => { const seat = Number(el.dataset.seat); const player = (S || lobby)?.players[seat]; if (player) makeHost(seat, player.name); },
+  tile: el => tapTile(Number(el.dataset.id)), pick: el => togglePick(Number(el.dataset.id)),
+  claim: el => claim(el.dataset.value),
+  kong: el => act({action:'kong',kind:el.dataset.kind,arg:Number(el.dataset.id)}),
+  sound: el => setSound(el.dataset.value === 'true'), big: el => setBig(el.dataset.value === 'true'),
+  autosort: el => setAutoSort(el.dataset.value === 'true'), pool: el => setPool(el.dataset.value)
+};
+document.addEventListener('click', event => {
+  const el = event.target.closest('[data-mj-action]');
+  if (!el || el.matches(':disabled,[aria-disabled="true"]')) return;
+  mahjongActions[el.dataset.mjAction]?.(el);
+});
+document.addEventListener('change', event => {
+  const el = event.target.closest('[data-mj-change]');
+  if (!el || el.disabled) return;
+  if (el.dataset.mjChange === 'ruleset') chooseHKRuleset();
+  else if (el.dataset.mjChange === 'settings') updateLobbySettings();
+});
+document.addEventListener('keydown', event => {
+  if (event.key !== 'Enter' && event.key !== ' ') return;
+  const el = event.target.closest('[data-mj-action="tile"][role="button"], [data-mj-action="quiz"][role="button"]');
+  if (!el || el.matches('[aria-disabled="true"]')) return;
+  event.preventDefault(); mahjongActions[el.dataset.mjAction](el);
+});
+document.addEventListener('dragstart', event => {
+  const el = event.target.closest('[data-mj-drag]');
+  if (el) dragStart(event, Number(el.dataset.mjDrag));
+});
+document.addEventListener('dragover', event => {
+  if (event.target.closest('[data-mj-drop]')) event.preventDefault();
+});
+document.addEventListener('drop', event => {
+  const el = event.target.closest('[data-mj-drop]');
+  if (!el) return;
+  if (el.dataset.mjDrop === 'pick') dropPick(event);
+  else if (el.dataset.mjDrop === 'tile') dropOn(event, Number(el.dataset.dropId));
+});
 
 // ---------- Mulai ----------
 (function init() {

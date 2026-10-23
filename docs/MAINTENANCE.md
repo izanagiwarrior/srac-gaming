@@ -142,3 +142,8 @@ Required user report:
 | Pending to deploy version | Candidate/build, or None | Only not-yet-installed runtime changes; list pending Git/docs publication separately |
 
 Never change Running merely because editing/building finished. After authorized deployment update this guide and private evidence; after authorized push record the real commit, rather than continuing to quote the old baseline.
+
+
+## Pending candidate — Mahjong controls, 23 October 2026
+
+Staging 2.0.1 / `2026-10-23-mahjong-csp-controls-1` replaces Mahjong inline HTML event handlers with explicit external-script delegates and declarative action data. Strict Workers script CSP remains unchanged. Includes tutorial next/back/skip/done/quiz, entry/lobby settings, round/result controls, tiles/claims and drag/drop bindings. Protocol v10, storage, rules and scoring unchanged. Preview under the same CSP reached all ten guide pages and exercised back/skip/reopen/done without console errors; no rooms/gameplay or automated tests. Gameplay bindings have source/syntax review only. Cloud still 2.0.0; this source patch is prepared for the Git publication authorized with “push” on 23 October. Verify the actual remote commit before reporting publication. Cloud deployment is still pending and requires separate approval. Other games retain legacy inline markup and need a separately scoped CSP compatibility review; do not infer all-game UI works from HTTP/WSS checks.
