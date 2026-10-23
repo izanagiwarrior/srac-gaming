@@ -4,7 +4,7 @@ Satu landing page untuk **Capsa Banting, Mahjong, Poker Texas Hold’em, Catur, 
 
 Repository: [izanagiwarrior/srac-gaming](https://github.com/izanagiwarrior/srac-gaming).
 
-Baseline cloud terpasang 23 Oktober 2026: **2.0.0 / `2026-10-23-cloudflare-hosting-1`**. [Main online](https://srac-gaming.faiz-triputra.workers.dev/). Periksa `/health` untuk status aktual. Rilis source 2.0.0 mencakup panduan agent; lihat [status dan panduan maintenance](docs/MAINTENANCE.md).
+Baseline cloud terpasang 23 Oktober 2026: **2.0.1 / `2026-10-23-mahjong-csp-controls-1`**. [Main online](https://srac-gaming.faiz-triputra.workers.dev/). Periksa `/health` untuk status aktual. Rilis source mencakup panduan agent dan validasi skor HKMA; lihat [status dan panduan maintenance](docs/MAINTENANCE.md).
 
 Terbaru: dua belas emote chat tersedia di enam game, dengan efek transparan di meja yang terlihat seluruh room. Lobby Mahjong punya Manual bebas, Manual terbantu, serta Fast. Manual bebas membiarkan pemain mencoba klaim tanpa pemeriksaan awal; server menilai saat klaim dikirim. Panduan dapat dilewati dan panel sidebar tetap dapat dilipat.
 
@@ -124,6 +124,8 @@ render.yaml         # Konfigurasi Render Free
 Tidak menyertakan sesi pemain, token, data kantor, credential, atau node_modules. GitHub memakai repository `srac-gaming` di akun personal `izanagiwarrior`.
 
 ## Pemeriksaan
+
+Validasi skor HKMA pada 23 Oktober: **106 tes lokal lulus, 0 gagal**, termasuk 95 tes scoring/server Hong Kong serta 1.000 sampel bentuk tangan. [Cakupan, sumber resmi, dan batas validasi](docs/MAHJONG-SCORING-VALIDATION.md). Ini bukan pengujian lengkap pertandingan cloud atau sertifikasi seluruh aturan turnamen.
 
 Build UI-polish sebelumnya (`2026-10-15-ui-polish-1`) mencakup pemeriksaan UI enam game pada lebar 320, 390, 768, 1024 dan 1440 CSS pixel serta interaksi practice dengan nilai rupiah 0. Sebelas tes regresi komponen/sesi tersedia: `npm run test:ui`. Jalankan tes hanya ketika pengguna meminta verifikasi, sesuai AGENTS.md. Cakupan, perbaikan dan batas pemeriksaan ada di [UI-QUALITY.md](docs/UI-QUALITY.md). Tidak ada klaim bahwa seluruh cabang permainan sudah bebas bug.
 

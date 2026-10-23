@@ -6,14 +6,14 @@ Last reconciled: **23 October 2026**. Read root [AGENTS.md](../AGENTS.md) first.
 
 | Target | Last confirmed state | Role |
 | --- | --- | --- |
-| Cloudflare | 2.0.0 / `2026-10-23-cloudflare-hosting-1`, deployed 23 October | Public six-game host at https://srac-gaming.faiz-triputra.workers.dev/ |
-| Owner's staging checkout | Source release includes deployed 2.0.0 plus this documentation; predecessor Git base `a4fbac6` | Only development/Git publication checkout |
+| Cloudflare | 2.0.1 / `2026-10-23-mahjong-csp-controls-1`, deployed and checked 23 October | Public six-game host at https://srac-gaming.faiz-triputra.workers.dev/ |
+| Owner's staging checkout | Deployed runtime source `70236ca` plus this validation/documentation release | Only development/Git publication checkout |
 | Owner's sibling live folder | Installed Node 1.8.0 / `2026-10-15-dissolve-room-1`, offline at last inspection | Preserved legacy hosting source and private saves; cloud does not use it |
-| GitHub | 2.0.0 source publication authorized 23 October; predecessor `a4fbac6` | This release includes HK/name/Workers and maintenance docs; verify actual remote commit |
+| GitHub | 2.0.1 runtime published as `70236ca` | Follow-up validation/tests and reconciled docs authorized for publication; verify actual remote commit |
 
 Cloud service is `srac-gaming`, class `GamingHub`, binding `GAMING_HUB`, actor `office-hub-v1`, SQLite migration `v1`. These are identity/storage boundaries, not disposable labels. Initial cloud release started empty; Node rooms and recovery credentials were not migrated. The first deployed version ID was `caa0924d-92d9-41b7-9577-ec0a88de0d67`.
 
-There is **no runtime candidate pending cloud installation at this handoff**. This documentation update does not change the deployed application. Future edits must update this statement. No automatic Git-to-cloud deployment is configured or authorized.
+There is **no runtime candidate pending cloud installation at this handoff**. This documentation/test update does not change application code or require a runtime version bump. Future edits must update this statement. No automatic Git-to-cloud deployment is configured or authorized.
 
 The owner previously lost an active game after an unapproved restart. Preserving running matches and obtaining specific release approval is essential. Do not infer permission from “fix it”, “prepare it”, “push it”, silence, an old approval or a previous session.
 
@@ -118,7 +118,7 @@ No zero-interruption promise: deploy/eviction can close sockets, clients reconne
 
 ## 7. Git publication
 
-Canonical remote: `git@github.com:izanagiwarrior/srac-gaming.git`. Develop/publish from staging only; owner GitHub Desktop should open staging. Preserve SSH configuration and personal identity; do not change author/email without telling the owner. An allowed Cloudflare account is not permission to use office Git identity.
+Canonical remote: `https://github.com/izanagiwarrior/srac-gaming.git`. Owner staging uses this HTTPS transport with a repo-local exception to a global HTTPS-to-SSH rewrite, allowing Desktop personal authentication. Do not change office/global SSH configuration to push this repo. Develop/publish from staging only; owner GitHub Desktop should open staging. Preserve the working personal transport and identity; do not change author/email without telling the owner. An allowed Cloudflare account is not permission to use office Git identity.
 
 A fresh clone gets only published source. The 2.0.0 source release includes the deployed behavior and this guide; confirm the remote branch actually contains that release before claiming publication. Never use `git pull` in legacy live to deploy, or reset/clean/checkout to hide local edits. Review status/branch/remote, intended diff, new files and ignore rules; stage only reviewed source/docs, no secrets/runtime. Commit/push only when requested, push normally without force, and confirm remote branch contains the intended commit before reporting success. Remote divergence needs inspection, not overwriting.
 
@@ -126,9 +126,9 @@ A fresh clone gets only published source. The 2.0.0 source release includes the 
 
 Last cloud release checks on 23 October: 89 source files matched the release manifest; 45 JS syntax checks, whitespace review, build/dry-run passed; 52 public assets, bundle 272.07 KiB / gzip 76.29 KiB. Local empty-entry preview was stopped. Production root and all six entries returned HTTP 200; health matched build; all six empty WSS connections succeeded; directory was empty; Blackjack entry showed connected with no browser console errors. No room was created/joined/started for cloud checks.
 
-**Not yet verified:** full cloud matches and winning settlements, reconnect/cold recovery with actual rooms, timer/action races, storage failure/cap behavior, joker performance, real-group usage and Free quota consumption. Earlier UI regression results concern older releases and do not prove these paths. A separate Node Mahjong bot demonstration completed one drawn hand with eight flowers and claims; it was not a cloud payout test. An all-bot spectator result can wait for an absent host to advance; confirm desired behavior before changing that edge.
+**Not yet verified in production cloud:** full matches and winning settlements, reconnect/cold recovery with actual rooms, timer/action races, storage failure/cap behavior, joker performance, real-group usage and Free quota consumption. Subsequent local validation covers native winning settlements, fan/payments, Pao and flower/joker fixtures; see the validation report. It does not prove production durability or races. Earlier UI regression results concern older releases and do not prove these paths. A separate Node Mahjong bot demonstration completed one drawn hand with eight flowers and claims; it was not a cloud payout test. An all-bot spectator result can wait for an absent host to advance; confirm desired behavior before changing that edge.
 
-The owner authorized commit, push and redeploy of this release on 23 October with “commit push deploy”. That authorization applies to this release only. Verify actual Git/cloud operation results in the final operator record; the instruction itself is not proof of success. Suggested future work (needs scope/authorization): the verification gaps above, operational quota observation and a private cloud backup/restore procedure. These are not promised completed features or permission to run tests.
+Initial 2.0.0 publication and the later 2.0.1 release were separately authorized and completed on 23 October; follow-up test/docs publication and redeploy were then explicitly authorized. That authorization applies to this release only. Verify actual Git/cloud operation results in the final operator record; the instruction itself is not proof of success. Suggested future work (needs scope/authorization): the verification gaps above, operational quota observation and a private cloud backup/restore procedure. These are not promised completed features or permission to run tests.
 
 ## 9. Finish every work session
 
@@ -144,6 +144,11 @@ Required user report:
 Never change Running merely because editing/building finished. After authorized deployment update this guide and private evidence; after authorized push record the real commit, rather than continuing to quote the old baseline.
 
 
-## Pending candidate — Mahjong controls, 23 October 2026
+## Installed release — Mahjong controls, 23 October 2026
 
-Staging 2.0.1 / `2026-10-23-mahjong-csp-controls-1` replaces Mahjong inline HTML event handlers with explicit external-script delegates and declarative action data. Strict Workers script CSP remains unchanged. Includes tutorial next/back/skip/done/quiz, entry/lobby settings, round/result controls, tiles/claims and drag/drop bindings. Protocol v10, storage, rules and scoring unchanged. Preview under the same CSP reached all ten guide pages and exercised back/skip/reopen/done without console errors; no rooms/gameplay or automated tests. Gameplay bindings have source/syntax review only. Cloud still 2.0.0; this source patch is prepared for the Git publication authorized with “push” on 23 October. Verify the actual remote commit before reporting publication. Cloud deployment is still pending and requires separate approval. Other games retain legacy inline markup and need a separately scoped CSP compatibility review; do not infer all-game UI works from HTTP/WSS checks.
+Cloud **2.0.1 / `2026-10-23-mahjong-csp-controls-1`**, source commit `70236ca`, was installed on 23 October (deployment `e8a7e495-c7ca-409b-adfe-60371666cff8`). It replaces Mahjong inline HTML event handlers with explicit external-script delegates and declarative action data. Strict Workers script CSP remains unchanged. Includes tutorial next/back/skip/done/quiz, entry/lobby settings, round/result controls, tiles/claims and drag/drop bindings. Protocol v10, storage, rules and scoring unchanged. Isolated preview reached all ten tutorial pages and exercised back/skip/reopen/done without console errors. Production tutorial Next advanced from page 1 to 2; public health, root/six entries and six empty WSS connections passed. Actual in-match browser controls were not exercised by those checks. Other games retain legacy inline markup and need a separately scoped CSP compatibility review; do not infer all-game UI works from HTTP/WSS checks. No runtime candidate remains pending.
+
+
+## Scoring validation — 23 October 2026
+
+The user requested HKMA validation after the 2.0.1 cloud release. [Validation report](MAHJONG-SCORING-VALIDATION.md) records 106 passing local tests (95 HK scoring/server + 11 existing session/UI), official reference mapping, test-fixture corrections and remaining limits. No runtime/scoring change, push or deployment was performed for this validation. The owner subsequently authorized this validation/test/documentation release with “pastiin … agent.md … push … deploy”. The runtime remains 2.0.1; verify actual Git/deploy results in the final operator record, rather than treating this authorization as proof of success.

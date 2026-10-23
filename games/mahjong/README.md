@@ -1,4 +1,4 @@
-# Hong Kong Mahjong — kandidat 1.9.0 / protokol v10
+# Hong Kong Mahjong — protokol v10 (hub 2.0.1)
 
 ## Aturan yang digunakan
 
@@ -33,7 +33,7 @@ Tabel fan HKMA yang dirujuk tidak memuat bonus fan bunga. Karena itu **bonus bun
 
 Save lama tanpa `ruleset` dipulihkan sebagai `legacy`, mempertahankan fan/pembayaran dan kursi acak sebelumnya. Tidak mengonversi ronde/saldo lama ke HKMA. Pilihan profil, bunga, bonus bunga, joker, animasi dan bantuan dikunci setelah mulai. Protokolv10 meminta refresh browser setelah deployment yang diizinkan.
 
-Patch hanya disiapkan di staging. Pemeriksaan sintaks/source dan authoring preview terpisah; tidak menambah/menjalankan tes otomatis/gameplay tanpa permintaan. Detail bukti/batas pengujian akhir ada pada catatan patch operator. Riwayat fitur sebelum 1.9.0 di bawah berlaku pada profil legacy, kecuali sudah digantikan bagian ini.
+Aturan HK ini sudah terpasang di cloud; kontrol Mahjong mendapat perbaikan CSP pada hub 2.0.1. Validasi atas permintaan pengguna menghasilkan 106 tes lokal lulus (95 skor/server HK), tanpa perubahan runtime/scoring. Lihat [laporan validasi](../../docs/MAHJONG-SCORING-VALIDATION.md) untuk sumber, fixture dan batas; belum memvalidasi pertandingan cloud/recovery/race secara penuh. Pengujian berikutnya tetap memerlukan permintaan pengguna. Riwayat fitur sebelum 1.9.0 di bawah berlaku pada profil legacy, kecuali sudah digantikan bagian ini.
 
 ---
 
