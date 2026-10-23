@@ -41,11 +41,12 @@ function onMsg(m) {
   if(m.type==='replaced'){replaced=true;clearTimeout(reconnectTimer);leaveLocal(false);toast('Sesi dibuka di tab lain. Tab ini berhenti menyambung ulang.');return;}
   if (m.type === 'error') { toast(m.msg); if (m.fatal) { leaveLocal(); } return; }
   if (m.type === 'joined') { mySeat = m.seat; isSpectator = !!m.spectator; myCode = m.code; myToken = m.token; ls.set('mejakita.mahjong.room', m.code); ls.set('mejakita.mahjong.token', m.token); pendingRejoin = false; history.replaceState(null, '', '?room=' + m.code); if (isSpectator) toast('Meja sudah penuh atau sedang berjalan, kamu masuk sebagai penonton.'); return; }
-  if (m.type === 'lobby') { window.MahjongHu.cancel();UI.resultShown=null;UI.huPending=null; if (m.v !== CLIENT_VERSION && !UI.warnedLobby) { UI.warnedLobby = true; alert('Versi halaman dan server berbeda. Muat ulang halaman Mahjong. Jika masih sama, beri tahu host.'); } lobby = m; S = null; isSpectator = !!m.spectator; if (m.chat) { chatLog = m.chat; renderChat(); } show('lobby'); renderLobby(); return; }
+  if (m.type === 'lobby') { window.MahjongHu.cancel();UI.resultShown=null;UI.huPending=null; if (m.v !== CLIENT_VERSION && !UI.warnedLobby) { UI.warnedLobby = true; window.MejaRoom.requireRefresh('Versi halaman Mahjong berbeda dari server. Refresh untuk menyambung ke sesi yang sama.'); } lobby = m; S = null; isSpectator = !!m.spectator; if (m.chat) { chatLog = m.chat; renderChat(); } show('lobby'); renderLobby(); return; }
   if (m.type === 'chat') { chatLog.push(m.msg); if (chatLog.length > 100) chatLog.shift(); if (m.msg.emoji && m.msg.seat >= 0) { UI.bubbles[m.msg.seat] = { text: m.msg.text, until: Date.now() + 2600 }; if (S) renderGame(); setTimeout(() => { if (S) renderGame(); }, 2700); } renderChat(); return; }
   if (m.type === 'chat_history') { chatLog = m.chat || []; renderChat(); return; }
   if (m.type === 'state') {
     UI.stale = m.v !== CLIENT_VERSION;
+    if(UI.stale)window.MejaRoom.requireRefresh('Versi halaman Mahjong berbeda dari server. Refresh untuk menyambung ke sesi yang sama.');
     const prev = S; S = m; isSpectator = !!S.spectator;
     if (screen !== 'game') show('game');
     reconcileOrder();

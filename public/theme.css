@@ -77,3 +77,7 @@ html[data-theme="light"] .chat-form button[type="submit"] { background:var(--mk-
   html[data-theme] .mk-room-tools>details>summary { min-height:50px; padding-right:123px; }
   html[data-theme="light"] :is(.hand-actions,.action-panel:has(.action-buttons),.bj-panel:has(.bj-buttons),.play-controls .control-actions,.table>.actions:has(button)) { background:var(--mk-surface); color:var(--mk-ink); }
 }
+
+/* Theme controls use their own row; room invitation buttons must never sit under them. */
+html[data-theme] .mk-room-tools>.mk-theme-switch{position:static;width:max-content;margin:0 0 10px auto}
+html[data-theme] .mk-room-tools>details>summary{padding-right:0}

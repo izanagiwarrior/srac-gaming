@@ -91,3 +91,9 @@ Clock Catur menyimpan anggaran `remaining` per warna dan increment. Export mengu
 ## Mahjong Hong Kong snapshots (v10)
 
 Room snapshots now optionally retain settings.ruleset/flowers/flowerBonus/jokers/animateDeal, public flowers per person, Pao, dealer rotation count, wall order/physical slots (private save only), and opening phase/progress. Missing ruleset maps to legacy; never rewrite old scoring or balances to HKMA. Resume opening only after the existing explicit host recovery action; no bot/discard can run during it. All opening timer handles remain in room.timers and are excluded from serialization. Joker IDs and wall contents remain private; only occupancy positions/counts are public.
+
+## Installed shared room-control UI (2.3.0)
+
+The shared room toolbar has a visible invite/code/leave bar above folded preferences. Backup, host lock/dissolve and queue/rotation stay in management; original server authorization and explicit leave acknowledgement remain required. Recovery/required-refresh status is outside folded details. Customize panels preserve their open state per room instance.
+
+The previously prepared session-refresh draft is included in this pending source: a page opened on the same saved room URL can rejoin directly; a different invitation still offers continue versus leave-and-switch. A10-second resume/leave wait ends in a retryable error, preserving credentials; version mismatch offers a user-clicked cache-busting refresh on the same room URL. None of this proves a disconnected seat is expired. Unavailable/left confirmations retain their existing credential cleanup. These changes were installed in2.3.0 after explicit user authorization and public health/asset/WSS checks. Those checks do not prove full recovery/timeout races.

@@ -2,7 +2,15 @@
 
 Last reconciled: **23 October 2026**. Read root [AGENTS.md](../AGENTS.md) first. This document records context and procedures; it does not authorize push, deployment, interruption, gameplay tests or data migration. Dates below are historical evidence. Recheck actual source and service before acting.
 
-## 1. Current handoff
+## Current release2.3.0
+
+**2.3.0 / 2026-10-23-lobby-consistency-1** is installed on Cloudflare following the user’s explicit “push dan deploy”. Same Worker/SQLite identities, room data and Free plan preserved. Health/root/six entries200, six empty WSSconnected and12changed assets matched source; no production room actions. No runtime installation is pending. Personal Git publication of the same source/docs is authorized; verify the remote commit before claiming push success. This release includes the previously documented2.2.1session-refresh draft. Future releases need new authorization.
+
+Room invite/code/leave shortcuts are always visible, preferences fold separately. Common lobby controls are ordered duration → money → simple choices → Customize. Real Mahjong presets remain server-owned; other complex lobbies keep their existing defaults/values and place chip/blind/rule details inside Customize. Simple Catur/Domino/Blackjack settings move from the sidebar to above the board; shared sidebar order remains Chat/Cheat/Recap/Log. No accounting/rules/save migration, namespace/identity change or cloud operation.
+
+Evidence: syntax/build/whitespace, six isolated empty lobby previews, copy feedback, Customize persistence after an acknowledged Poker setting, Dark/Light/390px Catur control layout. No Start, gameplay or automated tests. Prior session draft timeout and recovery races are not verified by this authoring check. No claim of bug-free full gameplay. See root AGENTS and [layout conventions](GAME-CONVENTIONS.md).
+
+## 1. Previous2.2.0 handoff (historical)
 
 Installed **2.2.0 / 2026-10-23-mahjong-presets-hu-1**, Mahjong v12. Cloud deployment and public checks succeeded on23October2026. No runtime candidate is pending. Personal Git publication of this same source/docs is authorized; verify actual remote before reporting push success. Public health/root/six entries200, six empty WSSconnected, five changed Mahjong asset hashes match source. Syntax/build, isolated empty lobby preset interactions and Hu visual/skip/reduced-motion fixture reviewed; no production room actions or full matches. Preview stopped. Recheck /health and remote for later work.
 

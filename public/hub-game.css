@@ -71,3 +71,5 @@
 .mk-emoji-popover .mk-emoji-bar{margin:0;grid-template-columns:repeat(4,minmax(0,1fr))}
 .mk-emoji-popover [data-mk-emoji]{min-width:44px;min-height:44px;padding:4px;font:22px/1 "Apple Color Emoji","Segoe UI Emoji",sans-serif}
 @media(max-width:700px){.mk-panel form .mk-emoji-toggle,#chat-form .mk-emoji-toggle{flex-basis:44px;min-width:44px;width:44px;min-height:44px}.mk-emoji-popover [data-mk-emoji-close]{width:44px;height:44px}}
+
+.mk-primary-settings{margin-bottom:16px;font-size:14px}.mk-primary-settings label{font-size:13px}.mk-primary-settings :is(input,select){min-height:44px;font-size:14px}.mk-primary-settings :is(small,.mk-note){font-size:12px}

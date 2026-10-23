@@ -6,7 +6,7 @@
   const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const defaults={sound:false,volume:.35,reduced:matchMedia('(prefers-reduced-motion: reduce)').matches};
   let prefs={...defaults,...read('mejakita.preferences',{})},profile=read('mejakita.profile',{name:''}),seats=read('mejakita.saved-seats',{}),meta=null,sender=null,ownSeat=null,previous=null,context=null,unlocked=false;
-  let toolbar,details,body,status,tickQueued=false,lastMotion=false,folds=read('mejakita.panel-folds',{});
+  let toolbar,details,body,status,quickActions,sessionHealth,refreshRequired=false,refreshMessage='',tickQueued=false,lastMotion=false,folds=read('mejakita.panel-folds',{});
   let dissolveDialog=null,dissolveChoice=null,dissolveBusy=false,dissolveWait=null;
   const initialRoom=(new URLSearchParams(location.search).get('room')||'').trim().toUpperCase();
   let sessionSeat=null,sessionOnline=false,sessionAttached=false,sessionOpened=false,sessionEntry=null,sessionChoice=null,sessionDialog=null,sessionNotice=null,resuming=false,sessionWait=null;
@@ -17,7 +17,7 @@
   function sessionConnected(seat,send,onEntry){
     sender=send;sessionEntry=onEntry;sessionOnline=true;sessionAttached=false;
     if(typeof seat?.code==='string'&&typeof seat?.token==='string'&&seat.code&&seat.token)sessionSeat={...seat,code:seat.code.toUpperCase()};
-    if(!sessionOpened){sessionOpened=true;if(sessionSeat){askSession(initialRoom);return;}}
+    if(!sessionOpened){sessionOpened=true;if(sessionSeat){if(initialRoom&&initialRoom===sessionSeat.code)resumeSession();else askSession(initialRoom);return;}}
     if(sessionChoice&&!sessionChoice.action){renderSession();return;}
     if(sessionSeat)resumeSession();else renderSession();
   }
@@ -30,11 +30,11 @@
   function mountSession(){
     if(sessionDialog)return;
     sessionDialog=document.createElement('dialog');sessionDialog.className='mk-session-dialog';sessionDialog.setAttribute('aria-labelledby','mk-session-title');sessionDialog.setAttribute('aria-describedby','mk-session-description');
-    sessionDialog.innerHTML='<div class="mk-session-kicker">SESI SEBELUMNYA</div><h2 id="mk-session-title">Lanjutkan atau ganti room?</h2><p id="mk-session-description"></p><p class="mk-session-explain">Kalau hanya terputus, lanjutkan sesi yang sama. Untuk pindah room, keluar dari sesi lama dulu.</p><p class="mk-session-warning"></p><p class="mk-session-progress" role="status" aria-live="polite"></p><div class="mk-session-actions"><button type="button" data-mk-session="continue"></button><button type="button" data-mk-session="leave"></button></div><button type="button" class="mk-session-later" data-mk-session="later">Tutup dulu</button>';
+    sessionDialog.innerHTML='<div class="mk-session-kicker">SESI SEBELUMNYA</div><h2 id="mk-session-title">Lanjutkan atau ganti room?</h2><p id="mk-session-description"></p><p class="mk-session-explain">Kalau hanya terputus, lanjutkan sesi yang sama. Untuk pindah room, keluar dari sesi lama dulu.</p><p class="mk-session-warning"></p><p class="mk-session-progress" role="status" aria-live="polite"></p><div class="mk-session-actions"><button type="button" data-mk-session="continue"></button><button type="button" data-mk-session="leave"></button></div><button type="button" class="mk-session-refresh" data-mk-session="refresh" hidden>Refresh halaman & coba lagi</button><button type="button" class="mk-session-later" data-mk-session="later">Tutup dulu</button>';
     document.body.append(sessionDialog);
     sessionNotice=document.createElement('div');sessionNotice.className='mk-session-notice';sessionNotice.hidden=true;sessionNotice.innerHTML='<span></span><button type="button">Pilih sesi</button>';sessionNotice.querySelector('button').onclick=()=>{renderSession();sessionDialog.showModal();};
     (toolbar||document.body).append(sessionNotice);
-    sessionDialog.addEventListener('click',e=>{const action=e.target.closest('[data-mk-session]')?.dataset.mkSession;if(!action)return;if(action==='later'){sessionDialog.close();return;}if(!sessionOnline||!sessionChoice||['resume','leave'].includes(sessionChoice.phase))return;
+    sessionDialog.addEventListener('click',e=>{const action=e.target.closest('[data-mk-session]')?.dataset.mkSession;if(!action)return;if(action==='refresh'){reloadSession();return;}if(action==='later'){sessionDialog.close();return;}if(!sessionOnline||!sessionChoice||['resume','leave'].includes(sessionChoice.phase))return;
       sessionChoice.action=action;sessionChoice.error='';
       if(action==='continue'&&sessionAttached){finishChoice();return;}
       if(action==='leave'&&sessionAttached)leaveSession();else resumeSession();
@@ -45,6 +45,7 @@
   function renderSession(){
     if(!sessionDialog)return;
     if(!sessionChoice){sessionNotice.hidden=true;if(sessionDialog.open)sessionDialog.close();return;}
+    sessionDialog.querySelector('[data-mk-session="refresh"]').hidden=!refreshRequired&&sessionChoice.phase!=='error';
     const {code,target,phase,error}=sessionChoice,busy=['resume','leave'].includes(phase),other=target&&target!==code;
     sessionDialog.querySelector('#mk-session-description').textContent=other?`Kamu membuka room ${target}, tetapi ada sesi tersimpan di room ${code}.`:`Ada sesi tersimpan di room ${code}. Mau melanjutkan sesi ini?`;
     sessionDialog.querySelector('.mk-session-warning').textContent=meta?.spectator?'Keluar akan mengakhiri sesi menontonmu.':slug==='catur'?'Jika partai masih berjalan, keluar dihitung menyerah.':slug==='poker'?'Jika tangan masih berjalan, kartu akan check/fold saat kamu keluar. Stack dan buy-in tetap tercatat di rekap.':'Jika ronde masih berjalan, kursimu diteruskan bot saat keluar. Hasil dan saldo yang sudah tercatat tetap ada di rekap.';
@@ -54,7 +55,7 @@
     stay.textContent='Lanjutkan room '+code;leave.textContent=other?'Keluar dulu & pindah ke '+target:'Keluar dari sesi lama';stay.disabled=leave.disabled=!sessionOnline||busy;
     sessionNotice.hidden=false;sessionNotice.querySelector('span').textContent=`Sesi room ${code} ${busy?'sedang diproses.':'masih tersimpan.'}`;sessionNotice.querySelector('button').textContent=busy?'Lihat proses':'Pilih sesi';
   }
-  function waitForSession(){clearTimeout(sessionWait);sessionWait=setTimeout(()=>{if(sessionChoice){sessionChoice.error='Belum ada balasan server. Sesi tetap disimpan. Muat ulang jika koneksi tetap macet.';renderSession();}},10000);}
+  function waitForSession(){clearTimeout(sessionWait);sessionWait=setTimeout(()=>{resuming=false;sessionError('Belum ada balasan server. Sesi tetap disimpan. Klik Lanjutkan untuk mencoba lagi, atau Refresh halaman.');},10000);}
   function resumeSession(){
     if(!sessionSeat||!sessionOnline)return;
     if(sessionChoice)sessionChoice.phase='resume';
@@ -76,7 +77,7 @@
   }
   function sessionMessage(message){
     if(message.type==='joined'&&message.token){
-      sessionSeat={code:message.code,token:message.token};sessionAttached=true;resuming=false;clearTimeout(sessionWait);
+      announce('');refreshRequired=false;refreshMessage='';renderSessionHealth();sessionSeat={code:message.code,token:message.token};sessionAttached=true;resuming=false;clearTimeout(sessionWait);
       if(sessionChoice?.action==='leave'){queueMicrotask(leaveSession);}else finishChoice();
     }
     if(message.type==='left'){
@@ -142,12 +143,12 @@
     const sequence=kind==='turn'?[660,880]:kind==='result'?[523,659,784]:kind==='chat'?[940]:[260];
     sequence.forEach((frequency,index)=>{const oscillator=context.createOscillator(),gain=context.createGain(),at=context.currentTime+index*.09;oscillator.type=kind==='play'?'sine':'triangle';oscillator.frequency.value=frequency;gain.gain.setValueAtTime(0,at);gain.gain.linearRampToValueAtTime(prefs.volume*.12,at+.008);gain.gain.exponentialRampToValueAtTime(.0001,at+.09);oscillator.connect(gain);gain.connect(context.destination);oscillator.start(at);oscillator.stop(at+.1);});
   }
-  function mount(){if(toolbar)return;toolbar=document.createElement('section');toolbar.className='mk-room-tools';toolbar.setAttribute('aria-label','Meja dan preferensi');toolbar.innerHTML='<details><summary><span data-mk-summary>Meja & preferensi</span><span class="mk-tools-hint">Suara · animasi · sesi</span></summary><div class="mk-room-controls"></div><fieldset class="mk-preferences"><legend>Preferensi perangkatmu</legend><label><input type="checkbox" data-mk-sound> Suara permainan</label><label>Volume <input type="range" min="0" max="100" step="5" data-mk-volume aria-label="Volume permainan"></label><label><input type="checkbox" data-mk-motion> Kurangi animasi</label><small>Suara mulai setelah interaksi. Semua pengaturan ini hanya berlaku di perangkatmu.</small></fieldset></details><p class="mk-tools-status" role="status"></p>';
-    const anchor=document.querySelector('.hubbar')||document.querySelector('.header');if(anchor)anchor.after(toolbar);else document.body.prepend(toolbar);details=toolbar.querySelector('details');body=toolbar.querySelector('.mk-room-controls');status=toolbar.querySelector('[role="status"]');if(sessionNotice)toolbar.append(sessionNotice);applyPrefs();renderControls();
+  function mount(){if(toolbar)return;toolbar=document.createElement('section');toolbar.className='mk-room-tools';toolbar.setAttribute('aria-label','Meja dan preferensi');toolbar.innerHTML='<div class="mk-quick-actions" hidden></div><div class="mk-session-health" hidden></div><details><summary><span data-mk-summary>Preferensi perangkat</span><span class="mk-tools-hint">Suara · animasi · pengelolaan</span></summary><div class="mk-room-controls"></div><fieldset class="mk-preferences"><legend>Preferensi perangkatmu</legend><label><input type="checkbox" data-mk-sound> Suara permainan</label><label>Volume <input type="range" min="0" max="100" step="5" data-mk-volume aria-label="Volume permainan"></label><label><input type="checkbox" data-mk-motion> Kurangi animasi</label><small>Suara mulai setelah interaksi. Semua pengaturan ini hanya berlaku di perangkatmu.</small></fieldset></details><p class="mk-tools-status" role="status"></p>';
+    const anchor=document.querySelector('.hubbar')||document.querySelector('.header');if(anchor)anchor.after(toolbar);else document.body.prepend(toolbar);details=toolbar.querySelector('details');body=toolbar.querySelector('.mk-room-controls');status=toolbar.querySelector('[role="status"]');sessionHealth=toolbar.querySelector('.mk-session-health');quickActions=toolbar.querySelector('.mk-quick-actions');if(sessionNotice)toolbar.append(sessionNotice);applyPrefs();renderControls();
     toolbar.addEventListener('change',e=>{if(e.target.matches('[data-mk-sound]')){setPrefs({sound:e.target.checked});unlock();tone('turn');}if(e.target.matches('[data-mk-motion]'))setPrefs({reduced:e.target.checked});});
     toolbar.addEventListener('input',e=>{if(e.target.matches('[data-mk-volume]'))setPrefs({volume:Number(e.target.value)/100});});
-    toolbar.addEventListener('click',e=>{const action=e.target.closest('[data-mk-room]')?.dataset.mkRoom;if(!action||!meta)return;
-      if(action==='copy'){navigator.clipboard?.writeText(location.origin+'/'+slug+'/?room='+meta.code).then(()=>announce('Link undangan tersalin.')).catch(()=>announce(location.origin+'/'+slug+'/?room='+meta.code));return;}
+    toolbar.addEventListener('click',e=>{const action=e.target.closest('[data-mk-room]')?.dataset.mkRoom;if(action==='refresh'){reloadSession();return;}if(!action||!meta)return;
+      if(action==='copy'||action==='copy-code'){const value=action==='copy-code'?meta.code:location.origin+'/'+slug+'/?room='+encodeURIComponent(meta.code);if(navigator.clipboard?.writeText)navigator.clipboard.writeText(value).then(()=>announce(action==='copy-code'?'Kode room tersalin.':'Link undangan tersalin.')).catch(()=>announce('Salin ini: '+value));else announce('Salin ini: '+value);return;}
       if(action==='backup'){downloadRecovery();return;}
       if(action==='switch'){askSession('');return;}
       if(action==='dissolve'){openDissolve();return;}
@@ -158,21 +159,48 @@
       if(action==='next')command({type:'hub-next',boundary:meta.boundary});
     });
   }
+  function reloadSession(){
+    // Keep the same room URL and all seat tokens. A cache-busting document URL is not a new room.
+    const url=new URL(location.href);url.searchParams.set('_mk_refresh',String(Date.now()));location.replace(url.href);
+  }
+  function requireRefresh(message){
+    refreshRequired=true;refreshMessage=message||'Halaman ini memakai versi lama. Refresh untuk menyambung lagi ke room yang sama; kursi dan saldo tetap disimpan.';
+    resuming=false;clearTimeout(sessionWait);if(sessionChoice)sessionError(refreshMessage);renderSessionHealth();
+  }
+  function renderSessionHealth(){
+    if(!sessionHealth)return;
+    const focused=sessionHealth.querySelector(':focus')?.dataset.mkRoom;
+    sessionHealth.hidden=!refreshRequired&&!meta?.recovering;
+    if(refreshRequired)sessionHealth.innerHTML=`<div class="mk-recovery" role="status"><b>Game sudah diperbarui · halaman perlu refresh</b><p>${esc(refreshMessage)}</p><button type="button" data-mk-room="refresh">Refresh & sambung ke room yang sama</button><p>Kursi tidak dihapus. Setelah tersambung, host mungkin perlu melanjutkan sesi yang dijeda.</p></div>`;
+    else if(meta?.recovering){
+      const missing=meta.missing||[];
+      sessionHealth.innerHTML=`<div class="mk-recovery" role="status"><b>Room ${esc(meta.code)} tersambung · permainan sedang dijeda</b><p>Sesi disimpan setelah koneksi server dipulihkan. Refresh tidak otomatis melanjutkan permainan.</p><p>${missing.length?'Menunggu pemain menyambung kembali: '+esc(missing.join(', '))+'.':'Semua pemain sudah kembali.'}</p>${meta.host?`<button type="button" data-mk-room="resume" ${missing.length?'disabled':''}>Lanjutkan permainan</button><p>${missing.length?'Minta pemain di atas membuka link room dan menyambung kembali.':'Klik Lanjutkan permainan untuk meneruskan kartu, giliran, dan saldo yang tersimpan.'}</p>`:'<p>Minta host menekan Lanjutkan permainan setelah semua pemain kembali.</p>'}<button type="button" data-mk-room="switch">Keluar / ganti room</button></div>`;
+    }else sessionHealth.replaceChildren();
+    if(focused)sessionHealth.querySelector('[data-mk-room="'+CSS.escape(focused)+'"]')?.focus({preventScroll:true});
+  }
+  const customViews=new Map();
+  const customKey=key=>[slug,meta?.roomId||meta?.code||'entry',key].join(':');
+  function customize(key,label,content){return `<details class="mk-customize" data-mk-custom="${esc(key)}" ${customViews.get(customKey(key))?'open':''}><summary>${esc(label)}</summary><div class="mk-customize-body">${content}</div></details>`;}
+  document.addEventListener('toggle',event=>{const panel=event.target;if(panel.matches?.('[data-mk-custom]')&&panel.isConnected)customViews.set(customKey(panel.dataset.mkCustom),panel.open);},true);
   function announce(text){if(status)status.textContent=text;}
   function command(message){if(!sender||sender(message)===false){announce('Tunggu koneksi atau aksi sebelumnya selesai.');return false;}return true;}
-  function renderControls(){if(!toolbar)return;toolbar.querySelector('[data-mk-summary]').textContent=meta?'Meja '+meta.code+(meta.locked?' · terkunci':''):'Meja & preferensi';
-    document.documentElement.dataset.mkRecovering=String(!!meta?.recovering);
+  function renderControls(){if(!toolbar)return;toolbar.querySelector('[data-mk-summary]').textContent=meta?'Preferensi & pengelolaan room':'Preferensi perangkat';
+    const quickFocus=quickActions.querySelector(':focus')?.dataset.mkRoom;quickActions.hidden=!meta;
+    quickActions.innerHTML=meta?`<div class="mk-room-identity"><small>ROOM ${esc(slug==='catur'?'CATUR':slug.toUpperCase())}</small><strong>${esc(meta.code)}</strong><span>${meta.locked?'Akses terkunci':'Bagikan undangan untuk bermain bersama'}</span></div><div class="mk-quick-buttons"><button type="button" data-mk-room="copy">Salin link undangan</button><button type="button" data-mk-room="copy-code">Salin kode</button><button type="button" data-mk-room="switch">Keluar / ganti room</button></div>`:'';
+    if(quickFocus)quickActions.querySelector('[data-mk-room="'+CSS.escape(quickFocus)+'"]')?.focus({preventScroll:true});
+    document.documentElement.dataset.mkRecovering=String(!!meta?.recovering);renderSessionHealth();
     if(dissolveChoice&&(!meta?.host||meta.code!==dissolveChoice.code||meta.roomId!==dissolveChoice.roomId))closeDissolve();
     if(!meta){body.replaceChildren();return;}
     const preserved=body.querySelector(':focus')?.dataset.mkRoom;
-    body.innerHTML=`${meta.recovering?`<div class="mk-recovery"><b>Sesi tersimpan berhasil dipulihkan · dijeda</b><p>Kartu, giliran dan saldo disimpan. ${meta.missing.length?'Menunggu '+esc(meta.missing.join(', '))+' kembali.':'Semua pemain sudah kembali.'}</p>${meta.host?`<button data-mk-room="resume" ${meta.missing.length?'disabled':''}>Lanjutkan sesi</button>`:'<p>Host akan melanjutkan setelah semua pemain kembali.</p>'}</div>`:''}<div class="mk-room-row"><span>${meta.spectator?'Kamu menonton':'Kamu punya kursi'} · ${meta.saveError?'⚠ Penyimpanan bermasalah, hubungi host':meta.savedAt?'Tersimpan '+new Date(meta.savedAt).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'}):'Menyiapkan save…'}</span><button data-mk-room="copy">Salin undangan ↗</button><button data-mk-room="backup">Simpan file pemulihan ↓</button><button data-mk-room="switch">Keluar / ganti room</button>${meta.host?`<button data-mk-room="lock">${meta.locked?'Buka akses room':'Kunci room'}</button><button type="button" class="mk-danger" data-mk-room="dissolve">Bubarkan ruang</button>`:''}</div><p class="mk-room-note">File pemulihan bersifat pribadi untuk mengambil kembali kursimu, termasuk jika link Cloudflare berubah. Bagikan link undangan untuk teman.</p><div class="mk-room-row">${meta.spectator?`<button data-mk-room="queue">${meta.queued?'Batalkan antrean':'Antre kursi ronde berikutnya'}</button>`:`<button data-mk-room="yield">${meta.yielding?'Tetap pegang kursi':'Beri kursi ronde berikutnya'}</button>`}${meta.canNext?'<button class="mk-next" data-mk-room="next">Main lagi & rotasi ↻</button>':''}</div><p class="mk-room-note">${meta.yielding?'Kamu memberi kursi bila ada penonton yang antre. Saldo tetap tercatat. ':''}${meta.queue.length?'Antrean: '+meta.queue.map((p,i)=>`${i+1}. ${esc(p.name)}${p.you?' (kamu)':''}${!p.connected?' · offline':''}`).join(' · '):'Belum ada antrean.'} Penonton menggantikan bot atau kursi yang diberikan saat ronde selesai.</p>${meta.bank.length?`<details class="mk-retired"><summary>Saldo pemain di luar kursi (${meta.bank.length})</summary>${meta.bank.map(p=>`<p>${esc(p.name)}${p.bot?' · bot':''} <b>${p.points>0?'+':''}${p.points} · ${money(p.net)}</b></p>`).join('')}</details>`:''}`;
+    body.innerHTML=`<div class="mk-room-row"><span>${meta.spectator?'Kamu menonton':'Kamu punya kursi'} · ${meta.saveError?'⚠ Penyimpanan bermasalah, hubungi host':meta.savedAt?'Tersimpan '+new Date(meta.savedAt).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'}):'Menyiapkan save…'}</span><button data-mk-room="backup">Simpan file pemulihan ↓</button>${meta.host?`<button data-mk-room="lock">${meta.locked?'Buka akses room':'Kunci room'}</button><button type="button" class="mk-danger" data-mk-room="dissolve">Bubarkan ruang</button>`:''}</div><p class="mk-room-note">File pemulihan bersifat pribadi untuk mengambil kembali kursimu, termasuk jika link Cloudflare berubah. Bagikan link undangan untuk teman.</p><div class="mk-room-row">${meta.spectator?`<button data-mk-room="queue">${meta.queued?'Batalkan antrean':'Antre kursi ronde berikutnya'}</button>`:`<button data-mk-room="yield">${meta.yielding?'Tetap pegang kursi':'Beri kursi ronde berikutnya'}</button>`}${meta.canNext?'<button class="mk-next" data-mk-room="next">Main lagi & rotasi ↻</button>':''}</div><p class="mk-room-note">${meta.yielding?'Kamu memberi kursi bila ada penonton yang antre. Saldo tetap tercatat. ':''}${meta.queue.length?'Antrean: '+meta.queue.map((p,i)=>`${i+1}. ${esc(p.name)}${p.you?' (kamu)':''}${!p.connected?' · offline':''}`).join(' · '):'Belum ada antrean.'} Penonton menggantikan bot atau kursi yang diberikan saat ronde selesai.</p>${meta.bank.length?`<details class="mk-retired"><summary>Saldo pemain di luar kursi (${meta.bank.length})</summary>${meta.bank.map(p=>`<p>${esc(p.name)}${p.bot?' · bot':''} <b>${p.points>0?'+':''}${p.points} · ${money(p.net)}</b></p>`).join('')}</details>`:''}`;
     if(preserved)body.querySelector('[data-mk-room="'+CSS.escape(preserved)+'"]')?.focus({preventScroll:true});
-    if(meta.recovering||meta.canNext||meta.queued||meta.saveError)details.open=true;
+    if(meta.canNext||meta.queued||meta.saveError)details.open=true;
     toolbar.classList.toggle('mk-save-error',!!meta.saveError);
   }
   let lastEmoteAt=0;
   function emote(text){if(!sender||!sessionOnline||!meta?.code||sessionChoice||!window.MejaTools?.isEmote(text)||Date.now()-lastEmoteAt<900)return false;const sent=sender({type:'chat',text,emoji:true});if(sent!==false)lastEmoteAt=Date.now();return sent;}
   function receive(message,send){sender=send;
+    if(message.type==='error'&&message.versionMismatch){requireRefresh(message.message||message.msg);return true;}
     if(message.type==='room-dissolved'||message.type==='error'&&message.dissolved&&message.sessionUnavailable){
       const code=meta?.code||sessionSeat?.code||ownSeat?.code;
       if(message.code!==code)return true;
@@ -225,5 +253,5 @@
   document.addEventListener('visibilitychange',()=>{if(document.hidden)context?.suspend().catch(()=>{});else if(unlocked&&prefs.sound)context?.resume().catch(()=>{});});
   document.addEventListener('DOMContentLoaded',()=>{mount();queueEnhance();const observer=new MutationObserver(changes=>{if(changes.some(c=>!toolbar.contains(c.target)))queueEnhance();});observer.observe(document.body,{childList:true,subtree:true});});
   applyPrefs();
-  window.MejaRoom={emote,bank:()=>meta?.bank||[],receive,name,saved,remember,outgoing,connected:sessionConnected,disconnected:sessionDisconnected,preferences:()=>({...prefs}),setPrefs,unlock,tone,esc};
+  window.MejaRoom={customize,requireRefresh,emote,bank:()=>meta?.bank||[],receive,name,saved,remember,outgoing,connected:sessionConnected,disconnected:sessionDisconnected,preferences:()=>({...prefs}),setPrefs,unlock,tone,esc};
 })();

@@ -105,3 +105,13 @@ New rooms use the documented HKMA core scoring/deal profile; old snapshots witho
 ## Cloud runtime adapter (2.0.0)
 
 Keep game rules authoritative in the existing six factories. Cloud-only transport/filesystem/timer adapters live under cloudflare/, bound by scripts/build-cloudflare.mjs; never import them into the ordinary Node target. The room service accepts optional synchronous persistence and a disabled periodic-save interval for the cloud target. Preserve Set/shared references and private per-viewer messages; only whitelisted public assets go into Workers Assets. Keep one small hub actor, owned timer cleanup, checkpoint-before-publish, closed-code reservations and paused recovery on cold restore. See CLOUDFLARE-WORKERS.md for limits and release rules.
+
+## Lobby order and visible room controls
+
+- Keep the room identity and primary actions visible outside collapsed panels: room code, **Salin link undangan**, **Salin kode**, **Keluar / ganti room**. Use the shared room-client component; do not require opening an ambiguous “Meja CODE” section to invite a friend. Preserve the native confirmation/leave acknowledgement. Clipboard unavailable/denied must show the text/link to copy.
+- Theme controls occupy a separate row. They must not cover invitation or leave controls. Preferences/host management can fold under a clear title; recovery status and required recovery action remain visible.
+- Order stable/simple settings before expanding content: **duration/clock → point/chip value → simple play/bot choice → Customize details**. Expanding a variant should grow below those primary controls. Do not recreate or reset a room to change a visual section.
+- Put lobby settings in the main area before the board; the sidebar keeps Chat → Cheat sheet → Recap → Log. After Start, rule controls remain locked by the server.
+- For complex games show the current ready-to-use configuration and a Customize disclosure. Mahjong has real server presets; do not pretend a client-only UI disclosure is a new authoritative preset. Existing Poker/Capsa/Blackjack values remain valid when Customize closes. All controls still exist in the DOM so Start reads their complete values.
+- Reuse MejaRoom.customize(key,label,trustedInternalHTML) for per-room open-state preservation across native rerenders. Never pass player text as raw HTML. Preserve focus/drafts on settings/chat acknowledgements. Labels explain units and any house-rule variation.
+- No new automatic deploy/push or automatic reset to default settings follows from these conventions.

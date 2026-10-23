@@ -303,6 +303,10 @@ input.code{text-transform:uppercase;letter-spacing:.3em;font-weight:700;font-fam
     <h2>Pemain</h2>
     <div class="seats" id="seats"></div>
     <p class="cap" id="spect"></p>
+    <div class="row">
+      <label class="f">Durasi permainan<select class="in" id="rounds" data-mj-change="settings"><option value="1">Quick Play · 1 ronde</option><option value="4" selected>4 ronde (sekitar 20 menit)</option><option value="8">8 ronde</option><option value="12">12 ronde</option></select></label>
+    </div>
+    <label class="f">Nilai 1 poin dalam rupiah<input class="in" id="mahjong-point-value" type="number" min="0" max="1000000" step="1" value="0" data-mj-change="settings"></label><p class="cap">0 = latihan. Skor memakai tabel fan aturan meja; rupiah = poin hasil settlement × nilai ini. Terkunci saat mulai.</p>
     <fieldset class="mj-presets"><legend>Pilih gaya bermain</legend>
       <div class="mj-preset-grid">
         <button type="button" data-mj-action="preset" data-preset="easy" aria-pressed="true"><b>Easy</b><small>Hong Kong santai · Hu mulai 0 fan · highlight set · bot Easy</small></button>
@@ -311,10 +315,6 @@ input.code{text-transform:uppercase;letter-spacing:.3em;font-weight:700;font-fam
         <button type="button" data-mj-action="preset" data-preset="custom" aria-pressed="false"><b>Customize</b><small>Atur sendiri bantuan, bot, bunga, joker, dan pembukaan</small></button>
       </div><p class="cap" id="mj-preset-copy">Easy adalah default untuk meja baru. Hu 0 fan bernilai 0 poin.</p>
     </fieldset>
-    <div class="row">
-      <label class="f">Durasi permainan<select class="in" id="rounds" data-mj-change="settings"><option value="1">Quick Play · 1 ronde</option><option value="4" selected>4 ronde (sekitar 20 menit)</option><option value="8">8 ronde</option><option value="12">12 ronde</option></select></label>
-    </div>
-    <label class="f">Nilai 1 poin dalam rupiah<input class="in" id="mahjong-point-value" type="number" min="0" max="1000000" step="1" value="0" data-mj-change="settings"></label><p class="cap">0 = latihan. Skor memakai tabel fan aturan meja; rupiah = poin hasil settlement × nilai ini. Terkunci saat mulai.</p>
     <div id="mj-custom-settings" hidden><h3>Pengaturan Customize</h3><label class="f">Tingkat bot<select class="in" id="botlevel" data-mj-change="settings"><option value="easy">Easy (kadang asal buang, jarang klaim)</option><option value="normal" selected>Normal (efisien)</option><option value="hard">Hard (efisien + bertahan)</option></select></label>
     <label class="f">Mode klaim<select class="in" id="claim-mode" data-mj-change="settings" aria-describedby="claim-mode-copy"><option value="manual">Manual bebas · coba klaim sendiri</option><option value="assisted" selected>Manual terbantu · cek pilihan klaim</option><option value="fast">Fast · otomatis lewat tanpa klaim</option></select></label>
     <p class="cap" id="claim-mode-copy">Semua pemain menjawab sendiri. Aplikasi memeriksa pilihan klaim; tanpa klaim sah, hanya Lewat yang tersedia.</p>

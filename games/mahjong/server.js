@@ -5,7 +5,7 @@ const { randomInt, randomBytes } = require('node:crypto');
 const E = require('./engine');
 const HK = require('./hong-kong');
 const {tableSettings}=require('../shared/table-settings');
-const BUILD = '2026-10-23-mahjong-presets-hu-1', CLIENT_VERSION = 12;
+const BUILD = '2026-10-23-lobby-consistency-1', CLIENT_VERSION = 12;
 const TABLE_PRESETS = {
   easy: {ruleset:'hkma',winMode:'casual',highlightSets:true,botLevel:'easy'},
   normal: {ruleset:'hkma',winMode:'casual',highlightSets:false,botLevel:'normal'},
@@ -523,7 +523,7 @@ wss.on('connection', ws => {
     if(hub?.handle(ws,msg))return;
     const rp = ws.roomPlayer;
     if (rp && ['create','join','rejoin'].includes(msg.type)) return send(ws,{ type:'error',msg:'Keluar dari room ini sebelum pindah.' });
-    if (['create','join','rejoin'].includes(msg.type) && msg.v !== CLIENT_VERSION) return send(ws,{ type:'error',msg:'Mahjong sudah diperbarui: preset Easy, Normal, Hard, dan Customize. Muat ulang halaman Mahjong.',versionMismatch:true });
+    if (['create','join','rejoin'].includes(msg.type) && msg.v !== CLIENT_VERSION) return send(ws,{ type:'error',msg:'Mahjong sudah diperbarui: preset Easy, Normal, Hard, dan Customize. Muat ulang halaman Mahjong.',versionMismatch:true,build:BUILD,expectedVersion:CLIENT_VERSION });
     if (msg.type === 'create') {
       if (rooms.size >= 200) return send(ws,{ type:'error',msg:'Server penuh. Coba lagi nanti.' });
       const room = new Room(makeCode()); rooms.set(room.code, room);

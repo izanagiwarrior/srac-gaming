@@ -5,7 +5,7 @@ description: Patch or extend the Meja Kita multiplayer game hub with consistent 
 
 # Meja Kita games
 
-Read the root AGENTS.md and [current maintenance/handoff](../../../docs/MAINTENANCE.md) before work. The current cloud baseline is deployed2.2.0; confirm actual health and Git status rather than assuming local changes are published. Treat the human's current instructions as the source of authorization; this skill never grants permission to publish, expose, or interrupt a running game.
+Read the root AGENTS.md and [current maintenance/handoff](../../../docs/MAINTENANCE.md) before work. The current cloud baseline is deployed2.3.0; confirm actual health and Git status rather than assuming local changes are published. Treat the human's current instructions as the source of authorization; this skill never grants permission to publish, expose, or interrupt a running game.
 
 ## Change a game
 

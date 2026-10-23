@@ -7,3 +7,20 @@ html[data-mk-reduced=true] *,html[data-mk-reduced=true] *::before,html[data-mk-r
 @media(max-width:700px){.play-controls .control-actions,.table>.actions:has(button){position:sticky;bottom:env(safe-area-inset-bottom,0);z-index:20;background:#15372c;padding:10px;border-radius:10px;box-shadow:0 -6px 20px #0002}.control-actions button,.table>.actions button{min-height:44px}.bt-hand .hand-spread .playing-card{--card-w:56px;--card-h:82px}.bt-hand .hand-spread .card-corner{font-size:13px}.bt-hand .hand-spread .card-center{font-size:30px}.me .hand .tile{width:44px;height:60px;min-width:44px;flex:0 0 44px}.me .hand{display:flex;flex-wrap:wrap;gap:6px}.me .hand .tile:focus-visible{outline:3px solid #edc46f;outline-offset:3px}.action-panel:has(.action-buttons){padding-bottom:max(12px,env(safe-area-inset-bottom))!important}}
 
 .mk-room-tools button.mk-danger,.mk-dissolve-dialog button.mk-danger{background:#592d2a;color:#ffded4;border-color:#c98b7e}.mk-dissolve-dialog [data-mk-dissolve-status]{min-height:2em}.mk-dissolve-dialog .mk-session-actions button{min-height:46px}html[data-theme="light"] .mk-room-tools button.mk-danger,html[data-theme="light"] .mk-dissolve-dialog button.mk-danger{background:#f9e6df;color:#7b3026;border-color:#b97969}
+
+/* Session health stays visible even when preferences are folded. */
+.mk-session-health[hidden],.mk-session-refresh[hidden]{display:none!important}
+.mk-session-health .mk-recovery{margin:0 0 12px;border-width:2px}
+.mk-session-health b{display:block;font-size:15px}
+.mk-session-health button{min-height:44px;margin:4px 8px 4px 0}
+html[data-theme="light"] .mk-session-health .mk-recovery{background:#f6eed9;border-color:#a68b4c;color:#253c2e}
+.mk-session-refresh{min-height:44px;margin:8px 0;width:100%}
+
+/* Essential room actions never depend on an expanded preferences panel. */
+.mk-quick-actions{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:4px 0 14px;margin-bottom:8px;border-bottom:1px solid #c8d4b92b}
+.mk-quick-actions[hidden]{display:none!important}
+.mk-room-identity{display:grid;gap:2px;min-width:0}.mk-room-identity small{letter-spacing:.12em;font-size:10px;color:#b7c8b4}.mk-room-identity strong{font:700 25px/1.2 ui-monospace,monospace;letter-spacing:.12em}.mk-room-identity span{font-size:12px;color:#b7c8b4}
+.mk-quick-buttons{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}.mk-quick-buttons button:first-child{background:#d6b975;color:#173329;font-weight:700}.mk-quick-buttons button{min-height:44px}
+.mk-customize{margin:16px 0;border:1px solid var(--line,#c5d1b455);border-radius:10px;min-width:0;background:transparent;color:inherit}.mk-customize>summary{padding:14px;cursor:pointer;font:600 14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;list-style:revert}.mk-customize>summary:focus-visible{outline:2px solid var(--gold,#dfc58d);outline-offset:2px}.mk-customize-body{padding:0 14px 14px;min-width:0}.mk-customize-body label{min-width:0}.mk-customize-body input,.mk-customize-body select{max-width:100%}
+html[data-theme="light"] .mk-room-identity :is(small,span){color:#526652}html[data-theme="light"] .mk-quick-actions{border-color:#c5cebd}
+@media(max-width:700px){.mk-quick-actions{align-items:flex-start;flex-direction:column;gap:12px}.mk-quick-buttons{display:grid;grid-template-columns:1fr 1fr;width:100%;justify-content:stretch}.mk-quick-buttons button:first-child{grid-column:1/-1}.mk-quick-buttons button{white-space:normal;padding:10px}.mk-customize>summary{font-size:14px}}
