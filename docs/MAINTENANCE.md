@@ -2,20 +2,15 @@
 
 Last reconciled: **23 October 2026**. Read root [AGENTS.md](../AGENTS.md) first. This document records context and procedures; it does not authorize push, deployment, interruption, gameplay tests or data migration. Dates below are historical evidence. Recheck actual source and service before acting.
 
-## 1. Where the project stands
+## 1. Current handoff
 
-| Target | Last confirmed state | Role |
-| --- | --- | --- |
-| Cloudflare | 2.0.1 / `2026-10-23-mahjong-csp-controls-1`, deployed and checked 23 October | Public six-game host at https://srac-gaming.faiz-triputra.workers.dev/ |
-| Owner's staging checkout | Deployed runtime source `70236ca` plus this validation/documentation release | Only development/Git publication checkout |
-| Owner's sibling live folder | Installed Node 1.8.0 / `2026-10-15-dissolve-room-1`, offline at last inspection | Preserved legacy hosting source and private saves; cloud does not use it |
-| GitHub | 2.0.1 runtime published as `70236ca` | Follow-up validation/tests and reconciled docs authorized for publication; verify actual remote commit |
+Installed **2.2.0 / 2026-10-23-mahjong-presets-hu-1**, Mahjong v12. Cloud deployment and public checks succeeded on23October2026. No runtime candidate is pending. Personal Git publication of this same source/docs is authorized; verify actual remote before reporting push success. Public health/root/six entries200, six empty WSSconnected, five changed Mahjong asset hashes match source. Syntax/build, isolated empty lobby preset interactions and Hu visual/skip/reduced-motion fixture reviewed; no production room actions or full matches. Preview stopped. Recheck /health and remote for later work.
 
-Cloud service is `srac-gaming`, class `GamingHub`, binding `GAMING_HUB`, actor `office-hub-v1`, SQLite migration `v1`. These are identity/storage boundaries, not disposable labels. Initial cloud release started empty; Node rooms and recovery credentials were not migrated. The first deployed version ID was `caa0924d-92d9-41b7-9577-ec0a88de0d67`.
+New lobby presents Easy (default), Normal, Hard, Customize; duration and Rp remain outside the advanced settings. Server owns preset application and pre-start locking. Easy/Normal permit0fan Hu;0fan=0points,1/2fan=8/16discardpoints (house variation),3–10followHKMA. Hard uses HKMA Hong Kong minimum3fan, **not MCR Chinese Official minimum8points**. See [Mahjong README](../games/mahjong/README.md) for exact defaults and compatibility.
 
-There is **no runtime candidate pending cloud installation at this handoff**. This documentation/test update does not change application code or require a runtime version bump. Future edits must update this statement. No automatic Git-to-cloud deployment is configured or authorized.
+Hu animation is local presentation before results, with skip/reduced motion, bounded particles, literal winner text and transient cleanup. No payout is delayed or repeated. Existing room rules/money are preserved: missing preset maps to Customize; old casual rooms retain0fan=4unless explicitly changed in lobby. No production-room actions or gameplay/automated tests are authorized merely for release checks; old106-test evidence covers2.0.1.
 
-The owner previously lost an active game after an unapproved restart. Preserving running matches and obtaining specific release approval is essential. Do not infer permission from “fix it”, “prepare it”, “push it”, silence, an old approval or a previous session.
+Cloud remains https://srac-gaming.faiz-triputra.workers.dev/ ; service srac-gaming, class GamingHub, binding GAMING_HUB, actor office-hub-v1, SQLite migration v1. Keep all identities/data stable. No Node save upload, tunnel, plan or credential change. Owner staging is development/Git; sibling live remains offline legacy1.8.0 and is not updated by a cloud release. No automatic Git deploy.
 
 ## 2. First ten minutes for a new agent
 
@@ -68,7 +63,7 @@ Cloud guardrails: **64 sockets, 24 retained rooms total, 2 MiB private snapshot 
 | Game | Preserve / consult |
 | --- | --- |
 | Capsa Banting | Opening is any **legal combination containing 3♦**, not single-only. Rank 3 through A then 2; suits ♦ < ♣ < ♥ < ♠. Official four players; non-official 3–8 distributes the full deck; 1/2 humans get bots. Turn timer 60 seconds. Easy Mode hints/undo are opt-in with warning; undo at most twice per player/round. |
-| Mahjong | New rooms use documented HKMA core 3–10 fan/payment ladder, flowers/replacements and default animated skippable four-wall/dice/deal opening. Four jokers and flower fan bonuses are explicitly optional house variants, OFF by default. Old saves without ruleset remain legacy. Protocol v10. Read [Mahjong rules](../games/mahjong/README.md) before changing scoring; do not claim every physical tournament rule is implemented. |
+| Mahjong | New rooms use documented HKMA core 3–10 fan/payment ladder, flowers/replacements and default animated skippable four-wall/dice/deal opening. Four jokers and flower fan bonuses are explicitly optional house variants, OFF by default. Old saves without ruleset remain legacy. Protocol v12. Read [Mahjong rules](../games/mahjong/README.md) before changing scoring; do not claim every physical tournament rule is implemented. |
 | Mahjong assistance | Manual free offers unfiltered claim controls, validates only submitted actions; assisted is default; Fast auto-passes. Highlight shows completed sets in own hand, not discard opportunities. These choices lock before play. |
 | Poker | NL Hold'em, private hole cards, side pots, buy-in/rebuy accounting. Percentages describe exclusive best-hand categories at river using own/public cards, not opponent win equity. Preflop sampled, flop/turn/river enumerated. |
 | Domino | Gaple score uses remaining **pips**, not tile count. Blocked table compares pip totals. Hub opening/stock/tied winner details are documented table variants. |
@@ -152,3 +147,17 @@ Cloud **2.0.1 / `2026-10-23-mahjong-csp-controls-1`**, source commit `70236ca`, 
 ## Scoring validation — 23 October 2026
 
 The user requested HKMA validation after the 2.0.1 cloud release. [Validation report](MAHJONG-SCORING-VALIDATION.md) records 106 passing local tests (95 HK scoring/server + 11 existing session/UI), official reference mapping, test-fixture corrections and remaining limits. No runtime/scoring change, push or deployment was performed for this validation. The owner subsequently authorized this validation/test/documentation release with “pastiin … agent.md … push … deploy”. The runtime remains 2.0.1; verify actual Git/deploy results in the final operator record, rather than treating this authorization as proof of success.
+
+
+## Casual winning candidate 2.1.0
+
+See [Mahjong rules](../games/mahjong/README.md): new rooms default Santai, no minimum fan; optional HKMA retains 3 fan. Flowers/animation stay available. Casual extends payout below 3 fan with 4/8/16 discard points for 0/1/2 fan (local variation); Zimo each opponent pays half. Existing saves missing winMode restore HKMA. Lobby lock/server eligibility/scoring use the same selected mode. Protocol v11. User explicitly confirmed deploy now on23October; push is separate and not authorized for this patch. Source/syntax/build and private lobby authoring review only; no new automated/gameplay tests.
+
+
+### Installed casual release
+
+User confirmation “Tetap deploy sekarang” authorized2.1.0. Deployment/public health and Mahjong asset hashes matched2026-10-23-mahjong-casual-win-1; fresh public entry loaded without console errors and without joining/creating a production room. Private lobby3024 confirmed defaultSantai and HKMA↔Santai changes. Preview stopped. No automated/gameplay tests run; earlier106-test evidence remains2.0.1. Current2.1.0 source remains uncommitted/unpushed on basecbdd547; publication requires separate approval. Older baseline tables above describe2.0.1 history; current cloud is2.1.0.
+
+## Release-history note
+
+Earlier2.0/2.1 sections below are dated historical evidence; current defaults/status are in section1 and root AGENTS. The current0fan=0policy applies to newly configured presets, not stored old casual balances.

@@ -3,6 +3,8 @@
   'use strict';
   const E = typeof module !== 'undefined' && module.exports ? require('./engine') : root.Engine;
   const PAYMENT = [0, 0, 0, 32, 64, 96, 128, 192, 256, 384, 512];
+  // House extension below the official 3-fan threshold, used only in Casual.
+  const CASUAL_PAYMENT = [0, 8, 16, ...PAYMENT.slice(3)];
   const ORPHANS = [0,8,9,17,18,26,27,28,29,30,31,32,33];
   const FLOWERS = ['Plum','Orchid','Chrysanthemum','Bamboo','Spring','Summer','Autumn','Winter'];
   const isFlower = t => t?.s === 'f';
@@ -63,7 +65,9 @@
     if (!win.jokers&&ctx.kongChain>=2&&ctx.zimo) add('Hu setelah Kong beruntun',10);
     fans.push(...flowerFans(ctx.flowers||[],ctx.seat,ctx.flowerBonus===true));
     const rawTotal=fans.reduce((sum,f)=>sum+f[1],0),total=Math.min(10,rawTotal);
-    return {fans,rawTotal,total,minimum:3,qualified:total>=3,chuck:PAYMENT[total]||0,selfEach:(PAYMENT[total]||0)/2};
+    const casual=ctx.winMode==='casual',minimum=casual?0:3,ladder=casual?CASUAL_PAYMENT:PAYMENT;
+    const chuck=casual&&total===0&&ctx.casualZero===false?4:(ladder[total]||0);
+    return {fans,rawTotal,total,minimum,winMode:casual?'casual':'hkma',qualified:total>=minimum,chuck,selfEach:chuck/2};
   }
   // Enumerate distinct standard decompositions; scoring chooses the highest,
   // rather than accepting the first possible split of an ambiguous hand.
@@ -106,7 +110,7 @@
     return best;
   }
   function settlement(score,winner,from,zimo,pao=null) {
-    if(!score?.qualified)throw Error('Hu memerlukan minimal 3 fan.');
+    if(!score?.qualified)throw Error('Hu belum memenuhi syarat aturan menang meja.');
     const delta=[0,0,0,0],payments=[];
     if(zimo){
       if(Number.isInteger(pao)&&pao>=0&&pao<4&&pao!==winner){const points=score.selfEach*3;delta[pao]-=points;delta[winner]+=points;payments.push({from:pao,to:winner,points,reason:'Pao: seluruh pembayaran Zimo'});}
@@ -117,6 +121,6 @@
     }
     return {delta,payments};
   }
-  const HK={PAYMENT,FLOWERS,isFlower,isJoker,evaluate,settlement,flowerFans};
+  const HK={PAYMENT,CASUAL_PAYMENT,FLOWERS,isFlower,isJoker,evaluate,settlement,flowerFans};
   if(typeof module!=='undefined'&&module.exports)module.exports=HK;else root.HongKong=HK;
 })(typeof globalThis!=='undefined'?globalThis:this);

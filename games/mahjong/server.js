@@ -5,7 +5,13 @@ const { randomInt, randomBytes } = require('node:crypto');
 const E = require('./engine');
 const HK = require('./hong-kong');
 const {tableSettings}=require('../shared/table-settings');
-const BUILD = '2026-10-23-mahjong-hong-kong-1', CLIENT_VERSION = 10;
+const BUILD = '2026-10-23-mahjong-presets-hu-1', CLIENT_VERSION = 12;
+const TABLE_PRESETS = {
+  easy: {ruleset:'hkma',winMode:'casual',highlightSets:true,botLevel:'easy'},
+  normal: {ruleset:'hkma',winMode:'casual',highlightSets:false,botLevel:'normal'},
+  hard: {ruleset:'hkma',winMode:'hkma',highlightSets:false,botLevel:'hard'}
+};
+const PRESET_COMMON = {casualZero:true,claimMode:'assisted',autoPass:false,flowers:true,flowerBonus:false,jokers:false,animateDeal:true};
 const CLAIM_MODES = ['manual','assisted','fast'];
 const claimMode = settings => CLAIM_MODES.includes(settings.claimMode) ? settings.claimMode : settings.autoPass === true ? 'fast' : 'assisted';
 
@@ -28,7 +34,7 @@ function hasClaimChoice(o) { return !!(o && (o.win || o.pung || o.kong || (o.cho
 
 class Room {
   constructor(code) {
-    this.code = code; this.players = []; this.spectators = []; this.chat = []; this.history = []; this.ledger = []; this.state = 'lobby'; this.settings = { rounds: 4, turnSeconds: 0, claimSeconds: 0, botLevel: 'normal', pointValue:0, claimMode:'assisted', autoPass: false, highlightSets: true, ruleset:'hkma', flowers:true, flowerBonus:false, jokers:false, animateDeal:true }; this.G = null; this.timers = {}; this.lastActivity = Date.now();
+    this.code = code; this.players = []; this.spectators = []; this.chat = []; this.history = []; this.ledger = []; this.state = 'lobby'; this.settings = { rounds: 4, turnSeconds: 0, claimSeconds: 0, botLevel: 'easy', tablePreset:'easy', casualZero:true, pointValue:0, claimMode:'assisted', autoPass: false, highlightSets: true, ruleset:'hkma', winMode:'casual', flowers:true, flowerBonus:false, jokers:false, animateDeal:true }; this.G = null; this.timers = {}; this.lastActivity = Date.now();
   }
   humans() { return this.players.filter(p => !p.bot); }
   hostSeat() { const h = this.players.find(p => !p.bot && p.connected && p.token === this.hostToken) || this.players.find(p => !p.bot && p.connected) || this.players.find(p => !p.bot); return h ? h.seat : -1; }
@@ -78,7 +84,11 @@ class Room {
     if (seat !== this.hostSeat() || !settings || typeof settings !== 'object') return false;
     if (this.state !== 'lobby'){send(this.players[seat]?.ws,{type:'error',msg:'Pengaturan dikunci sejak permainan dimulai. Buat ruangan baru untuk memilih mode lain.'});return false;}
     try{
-      const next=tableSettings(settings,this.settings);
+      const preset=settings.tablePreset ?? this.settings.tablePreset ?? 'custom';
+      if(!['easy','normal','hard','custom'].includes(preset))throw Error('Pilih Easy, Normal, Hard, atau Customize.');
+      settings={...settings,...(TABLE_PRESETS[preset]?{...PRESET_COMMON,...TABLE_PRESETS[preset]}:{})};
+      const next=tableSettings(settings,this.settings);next.tablePreset=preset;
+      if(typeof settings.casualZero==='boolean')next.casualZero=settings.casualZero;
       if(settings.claimMode!==undefined&&!CLAIM_MODES.includes(settings.claimMode))throw Error('Pilih Manual bebas, Manual terbantu, atau Fast.');
       if(settings.claimMode===undefined&&settings.autoPass!==undefined&&typeof settings.autoPass!=='boolean')throw Error('Mode lewat tidak valid.');
       next.claimMode=settings.claimMode ?? (typeof settings.autoPass==='boolean' ? settings.autoPass?'fast':'assisted' : claimMode(this.settings));
@@ -86,6 +96,7 @@ class Room {
       if(settings.rounds!==undefined){if(![1,4,8,12].includes(Number(settings.rounds)))throw Error('Pilih Quick Play 1 ronde, 4, 8, atau 12 ronde.');next.rounds=Number(settings.rounds);}
       if (typeof settings.highlightSets === 'boolean') next.highlightSets = settings.highlightSets;
       if(settings.ruleset!==undefined){if(!['hkma','legacy'].includes(settings.ruleset))throw Error('Pilih acuan HKMA atau aturan lama.');next.ruleset=settings.ruleset;}
+      if(settings.winMode!==undefined){if(!['casual','hkma'].includes(settings.winMode))throw Error('Pilih Santai atau Hong Kong HKMA untuk aturan menang.');next.winMode=settings.winMode;}
       for(const key of ['flowers','flowerBonus','jokers','animateDeal'])if(settings[key]!==undefined){if(typeof settings[key]!=='boolean')throw Error('Pilihan '+key+' tidak valid.');next[key]=settings[key];}
       if(!next.flowers)next.flowerBonus=false;
       this.settings=next;
@@ -122,7 +133,7 @@ class Room {
   evaluateHongKong(p,hand,zimo,tile) {
     const G=this.G,P=this.players[p];
     return HK.evaluate(hand,P.melds,{seat:this.wind(p),roundWind:Math.floor((G.dealerRotations||0)/4)%4,zimo,
-      winningIndex:tile?E.idxOf(tile):-1,jokers:this.settings.jokers,flowers:P.flowers||[],flowerBonus:this.settings.flowerBonus,
+      winMode:this.settings.winMode||'hkma',casualZero:this.settings.casualZero!==false,winningIndex:tile?E.idxOf(tile):-1,jokers:this.settings.jokers,flowers:P.flowers||[],flowerBonus:this.settings.flowerBonus,
       afterKong:zimo&&G.drawKind==='kong',kongChain:zimo?G.kongChain||0:0,lastWall:zimo&&G.wall.length===0,
       robbedKong:!!(G.robKong||G.robbedKong),concealedRob:G.robKong?.kind==='conc',
       heaven:zimo&&p===G.dealer&&!G.discardCount&&!G.kongDeclarations,
@@ -329,7 +340,7 @@ class Room {
     const c = msg.claim; const P = this.players[seat];
     if(msg.claimId!==pend.id)return send(P.ws,{type:'error',msg:'Buangan sudah berubah. Pilih klaim untuk buangan yang sedang tampil.'});
     if (!['win', 'set', 'pass'].includes(c)) return send(P.ws, { type: 'error', msg: 'Pilih Klaim, Hu, atau Lewat.' });
-    if (c === 'win') { const win=this.winningHand(seat,[...P.hand,G.last.tile],false,G.last.tile);if (!win) return send(P.ws, { type: 'error', msg: this.settings.ruleset==='hkma'?'Hu belum sah: perlu bentuk lengkap dan minimal 3 fan. Kamu masih bisa klaim lain atau Lewat.':'Ubin ini tidak membuat tanganmu menang. Kamu masih bisa memilih klaim lain atau Lewat.' }); pend.claims.push({ p: seat, type: 'win', win }); }
+    if (c === 'win') { const win=this.winningHand(seat,[...P.hand,G.last.tile],false,G.last.tile);if (!win) return send(P.ws, { type: 'error', msg: this.settings.ruleset==='hkma'?'Hu belum sah untuk aturan meja ini. Santai perlu bentuk lengkap; HKMA juga perlu 3 fan. Kamu masih bisa klaim lain atau Lewat.':'Ubin ini tidak membuat tanganmu menang. Kamu masih bisa memilih klaim lain atau Lewat.' }); pend.claims.push({ p: seat, type: 'win', win }); }
     else if (c === 'set') {
       const v = this.validateSet(seat, msg.tiles || []); if (v.error) return send(P.ws, { type: 'error', msg: v.error });
       pend.claims.push({ p: seat, ...v.claim });
@@ -395,7 +406,7 @@ class Room {
       if(settlement)delta.splice(0,4,...settlement.delta);
       else if (zimo) { for (let q = 0; q < 4; q++) if (q !== winner) delta[q] -= pts; delta[winner] += 3 * pts; } else { delta[from] -= 3 * pts; delta[winner] += 3 * pts; }
       this.players.forEach((Q, i) => Q.score += delta[i]);
-      r = { winner, zimo, from, tile, fans: sc.fans, total: sc.total, rawTotal:sc.rawTotal,delta,payments:settlement?.payments,chuck:sc.chuck,selfEach:sc.selfEach,ruleset:this.settings.ruleset,pao:P.pao,flowers:P.flowers||[],jokers:this.settings.jokers };
+      r = { winner, zimo, from, tile, fans: sc.fans, total: sc.total, rawTotal:sc.rawTotal,delta,payments:settlement?.payments,chuck:sc.chuck,selfEach:sc.selfEach,ruleset:this.settings.ruleset,winMode:sc.winMode||'hkma',pao:P.pao,flowers:P.flowers||[],jokers:this.settings.jokers };
       this.log(`${P.name} menang${zimo ? ' (Zimo)' : ' dari buangan ' + this.players[from].name}!`);
     }
     r.compare = this.players.map((P, i) => {
@@ -427,7 +438,7 @@ class Room {
     if (G.pending) return;
     if (G.current !== seat || G.phase !== 'discard') return;
     if (msg.action === 'discard') { const t = P.hand.find(x => x.id === msg.id); if (t) this.discardTile(seat, t); }
-    else if (msg.action === 'win') { if (P.drawn) { const w = this.winningHand(seat,P.hand,true,P.drawn); if (w) this.endHand(seat, P.drawn, true, w);else send(P.ws,{type:'error',msg:'Hu belum sah: perlu bentuk lengkap dan minimal 3 fan.'}); } }
+    else if (msg.action === 'win') { if (P.drawn) { const w = this.winningHand(seat,P.hand,true,P.drawn); if (w) this.endHand(seat, P.drawn, true, w);else send(P.ws,{type:'error',msg:'Hu belum sah untuk aturan meja ini. Santai perlu bentuk lengkap; HKMA juga perlu 3 fan.'}); } }
     else if (msg.action === 'kong') { this.doKong(seat, msg.kind === 'add' ? 'add' : 'conc', msg.arg | 0); }
   }
 
@@ -483,7 +494,7 @@ class Room {
 }
 
 // ---------- HTTP statis ----------
-const assets = { '/':'public/index.html', '/index.html':'public/index.html', '/engine.js':'engine.js', '/hong-kong.js':'hong-kong.js', '/opening.js':'public/opening.js', '/hong-kong.css':'public/hong-kong.css', '/client.js':'public/client.js', '/tiles.js':'public/tiles.js', '/hand-help.js':'public/hand-help.js' };
+const assets = { '/':'public/index.html', '/index.html':'public/index.html', '/engine.js':'engine.js', '/hong-kong.js':'hong-kong.js', '/hu.js':'public/hu.js', '/hu.css':'public/hu.css', '/opening.js':'public/opening.js', '/hong-kong.css':'public/hong-kong.css', '/client.js':'public/client.js', '/tiles.js':'public/tiles.js', '/hand-help.js':'public/hand-help.js' };
 const server = http.createServer((req, res) => {
   if (!['GET','HEAD'].includes(req.method)) { res.writeHead(405); return res.end(); }
   let url;
@@ -512,7 +523,7 @@ wss.on('connection', ws => {
     if(hub?.handle(ws,msg))return;
     const rp = ws.roomPlayer;
     if (rp && ['create','join','rejoin'].includes(msg.type)) return send(ws,{ type:'error',msg:'Keluar dari room ini sebelum pindah.' });
-    if (['create','join','rejoin'].includes(msg.type) && msg.v !== CLIENT_VERSION) return send(ws,{ type:'error',msg:'Mahjong sudah diperbarui: aturan Hong Kong, bunga, joker dan animasi pembagian. Muat ulang halaman Mahjong.',versionMismatch:true });
+    if (['create','join','rejoin'].includes(msg.type) && msg.v !== CLIENT_VERSION) return send(ws,{ type:'error',msg:'Mahjong sudah diperbarui: preset Easy, Normal, Hard, dan Customize. Muat ulang halaman Mahjong.',versionMismatch:true });
     if (msg.type === 'create') {
       if (rooms.size >= 200) return send(ws,{ type:'error',msg:'Server penuh. Coba lagi nanti.' });
       const room = new Room(makeCode()); rooms.set(room.code, room);
@@ -570,7 +581,7 @@ async function close() {
 }
 return { server,wss,rooms,close,
   setRoomService(value){hub=value;},capacity:()=>4,
-  restoreRoom(saved){const room=Object.assign(new Room(saved.code),saved);room.settings.ruleset ||= 'legacy';for(const p of room.players)p.flowers ||= [];room.settings.claimMode=claimMode(room.settings);room.settings.autoPass=room.settings.claimMode==='fast';room.timers={};if(room.G){room.G.gen++;room.G.undo=null;room.G.turnDeadline=null;if(room.G.pending&&!room.G.pending.id)room.G.pending.id=randomBytes(12).toString('hex');}return room;},
+  restoreRoom(saved){const room=Object.assign(new Room(saved.code),saved);room.settings.ruleset ||= 'legacy';room.settings.winMode ||= 'hkma';room.settings.tablePreset ||= 'custom';if(room.settings.casualZero===undefined)room.settings.casualZero=false;for(const p of room.players)p.flowers ||= [];room.settings.claimMode=claimMode(room.settings);room.settings.autoPass=room.settings.claimMode==='fast';room.timers={};if(room.G){room.G.gen++;room.G.undo=null;room.G.turnDeadline=null;if(room.G.pending&&!room.G.pending.id)room.G.pending.id=randomBytes(12).toString('hex');}return room;},
   setSpectator(p,value){p.spectator=value;if(value)p.seat=-1;},
   admit(room,p,index){p.seat=index;p.hand=[];p.melds=[];p.discards=[];p.drawn=null;p.score??=0;},
   broadcastRoom(room){if(room.state==='lobby')room.broadcastLobby();else room.broadcastState();},

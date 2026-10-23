@@ -5,6 +5,7 @@
 <meta charset="utf-8"><meta name="theme-color" content="#102e25"><meta name="color-scheme" content="dark light"><script src="/theme.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Mahjong P2P</title>
+<link rel="stylesheet" href="/mahjong/hu.css">
 <style>
 :root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
 --bg:#d8ddd1;--ink:#1d1f1a;--muted:#5f665b;--card:#f7f6f0;--line:#c9cfc0;
@@ -302,25 +303,35 @@ input.code{text-transform:uppercase;letter-spacing:.3em;font-weight:700;font-fam
     <h2>Pemain</h2>
     <div class="seats" id="seats"></div>
     <p class="cap" id="spect"></p>
+    <fieldset class="mj-presets"><legend>Pilih gaya bermain</legend>
+      <div class="mj-preset-grid">
+        <button type="button" data-mj-action="preset" data-preset="easy" aria-pressed="true"><b>Easy</b><small>Hong Kong santai · Hu mulai 0 fan · highlight set · bot Easy</small></button>
+        <button type="button" data-mj-action="preset" data-preset="normal" aria-pressed="false"><b>Normal</b><small>Hong Kong santai · Hu mulai 0 fan · tanpa highlight · bot Normal</small></button>
+        <button type="button" data-mj-action="preset" data-preset="hard" aria-pressed="false"><b>Hard</b><small>Hong Kong HKMA · minimum 3 fan · tanpa highlight · bot Hard</small></button>
+        <button type="button" data-mj-action="preset" data-preset="custom" aria-pressed="false"><b>Customize</b><small>Atur sendiri bantuan, bot, bunga, joker, dan pembukaan</small></button>
+      </div><p class="cap" id="mj-preset-copy">Easy adalah default untuk meja baru. Hu 0 fan bernilai 0 poin.</p>
+    </fieldset>
     <div class="row">
       <label class="f">Durasi permainan<select class="in" id="rounds" data-mj-change="settings"><option value="1">Quick Play · 1 ronde</option><option value="4" selected>4 ronde (sekitar 20 menit)</option><option value="8">8 ronde</option><option value="12">12 ronde</option></select></label>
-      <label class="f">Tingkat bot<select class="in" id="botlevel" data-mj-change="settings"><option value="easy">Easy (kadang asal buang, jarang klaim)</option><option value="normal" selected>Normal (efisien)</option><option value="hard">Hard (efisien + bertahan)</option></select></label>
     </div>
     <label class="f">Nilai 1 poin dalam rupiah<input class="in" id="mahjong-point-value" type="number" min="0" max="1000000" step="1" value="0" data-mj-change="settings"></label><p class="cap">0 = latihan. Skor memakai tabel fan aturan meja; rupiah = poin hasil settlement × nilai ini. Terkunci saat mulai.</p>
+    <div id="mj-custom-settings" hidden><h3>Pengaturan Customize</h3><label class="f">Tingkat bot<select class="in" id="botlevel" data-mj-change="settings"><option value="easy">Easy (kadang asal buang, jarang klaim)</option><option value="normal" selected>Normal (efisien)</option><option value="hard">Hard (efisien + bertahan)</option></select></label>
     <label class="f">Mode klaim<select class="in" id="claim-mode" data-mj-change="settings" aria-describedby="claim-mode-copy"><option value="manual">Manual bebas · coba klaim sendiri</option><option value="assisted" selected>Manual terbantu · cek pilihan klaim</option><option value="fast">Fast · otomatis lewat tanpa klaim</option></select></label>
     <p class="cap" id="claim-mode-copy">Semua pemain menjawab sendiri. Aplikasi memeriksa pilihan klaim; tanpa klaim sah, hanya Lewat yang tersedia.</p>
     <p class="cap">Manual bebas tidak memberi tahu apakah klaim tersedia; kesalahan ditolak tanpa kehilangan ubin. Fast lebih cepat, tetapi pemain yang diminta menjawab bisa tertebak punya pilihan. Default: Manual terbantu.</p>
     <label class="fast-toggle"><input type="checkbox" id="handhighlight" checked data-mj-change="settings"><span><b>Highlight set di tangan</b><small id="handhighlight-copy">Aktif: tandai Chow/Pung yang sudah lengkap di tangan sendiri, serta ubin yang bisa menjadi keduanya.</small></span></label>
     <p class="cap">Host memilih mode klaim dan highlight set untuk seluruh meja di lobby. Terkunci setelah Mulai permainan, termasuk ronde berikutnya dan main lagi. Buat ruangan baru untuk mengganti mode. Tidak ada batas waktu.</p>
 <div class="hk-setting-group"><h3>Aturan & pembukaan meja</h3>
-<label class="f">Acuan skor<select class="in" id="hk-ruleset" data-mj-change="ruleset"><option value="hkma">Hong Kong · acuan HKMA (3–10 fan)</option><option value="legacy">Aturan lama · 1 fan = 10 poin</option></select></label>
-<p class="hk-rule-copy" id="hk-rules-copy">HKMA: minimal 3 fan untuk Hu, maksimal 10. Buangan: pembuang membayar seluruh nilai tabel. Zimo: masing-masing lawan membayar setengah nilai tabel. Pao berlaku.</p>
+<label class="f">Profil meja<select class="in" id="hk-ruleset" data-mj-change="ruleset"><option value="hkma">Hong Kong · bunga & pembukaan meja</option><option value="legacy">Aturan lama · 1 fan = 10 poin</option></select></label>
+<label class="f">Aturan menang<select class="in" id="mahjong-win-mode" data-mj-change="settings"><option value="casual" selected>Santai · 4 set + 1 pasang (default)</option><option value="hkma">Hong Kong HKMA · minimal 3 fan</option></select></label>
+<p class="hk-rule-copy" id="hk-rules-copy">Santai: bentuk 4 set + 1 pasang sudah boleh Hu, tanpa minimum fan. Bunga dan animasi tetap tersedia. Pilih HKMA untuk syarat minimal 3 fan.</p>
 <label class="fast-toggle"><input type="checkbox" id="hk-flowers" checked data-mj-change="settings"><span><b>Bunga & musim · 8 ubin</b><small>Dibuka di depan pemain dan diganti dari ujung tembok; tidak masuk 13/14 ubin atau set.</small></span></label>
 <label class="fast-toggle"><input type="checkbox" id="hk-flower-bonus" data-mj-change="settings"><span><b>Bonus fan bunga · variasi meja HKOS</b><small>Bukan tabel HKMA: tanpa bunga +1, bunga/musim sesuai kursi +1, satu set lengkap +2 menggantikan bonus bunga kursi.</small></span></label>
 <label class="fast-toggle"><input type="checkbox" id="hk-jokers" data-mj-change="settings"><span><b>Joker opsional · variasi meja</b><small>OFF secara default. Empat joker liar hanya melengkapi tangan tertutup, bukan untuk Pung/Chow/Kong terbuka atau pola limit. Joker yang dibuang tidak dapat diklaim.</small></span></label>
 <label class="fast-toggle"><input type="checkbox" id="hk-animation" checked data-mj-change="settings"><span><b>Animasi pembukaan · default ON</b><small>Empat sisi tembok → tiga dadu → potong tembok → bagi 4–4–4–1 dan ubin dealer → penggantian bunga. Host dapat menekan Skip & mulai.</small></span></label>
 <p class="cap">Aturan dikunci saat mulai. Durasi Quick Play dan bantuan klaim adalah fitur meja santai; bukan sertifikasi pertandingan resmi HKMA.</p>
 </div>
+<label class="fast-toggle"><input type="checkbox" id="casual-zero" checked data-mj-change="settings"><span><b>Hu 0 fan = 0 poin</b><small>Nonaktif mempertahankan variasi lama: Hu 0 fan = 4 poin buangan. Hanya berlaku untuk Santai.</small></span></label></div>
     <button class="btn primary" id="startbtn" data-mj-action="start">Mulai permainan</button>
     <p class="cap" id="waitmsg"></p>
   </div>
@@ -351,6 +362,7 @@ input.code{text-transform:uppercase;letter-spacing:.3em;font-weight:700;font-fam
 <script src="/mahjong/opening.js"></script>
 <script src="/mahjong/tiles.js"></script>
 <script src="/mahjong/hand-help.js"></script>
+<script src="/mahjong/hu.js"></script>
 <script src="/mahjong/client.js"></script>
 </body>
 </html>

@@ -7,19 +7,15 @@
 3. [Game conventions](docs/GAME-CONVENTIONS.md) and [sessions/storage](docs/SOCIAL-SESSIONS.md).
 4. For hosting, [Cloudflare Workers](docs/CLOUDFLARE-WORKERS.md); for game changes, that game's README. [Quick Tunnel](docs/CLOUDFLARE.md) is a separate legacy option.
 
-## Current baseline — 23 October 2026
+## Installed release — 23 October 2026
 
-- Public hosting is **Cloudflare Workers + SQLite Durable Object**, package **2.0.1**, build **2026-10-23-mahjong-csp-controls-1**: https://srac-gaming.faiz-triputra.workers.dev/ . It does not need a laptop, Node origin or tunnel.
-- This is the last confirmed deployment, not proof of current availability. Check actual public /health before reporting live status. A commit hash alone does not identify the currently dirty development source or a deployed bundle.
-- The owner's `SRAC-Gaming/staging` is the development/Git checkout. Sibling `live` is legacy Node hosting-only (last installed 1.8.0); preserve it and its private runtime. Cloud deployment does not update it. Do not pull, merge, commit or push there, or bypass its Git hooks. Other contributors use their own development checkout and cloud account.
-- The published 2.0.1 behavior includes Hong Kong Mahjong, game-entry names, Workers hosting and CSP-safe Mahjong controls. Source commit `70236ca` was deployed and checked on 23 October. This follow-up source release adds scoring validation/tests and reconciles the handoff; it changes no runtime code. Inspect actual Git status and remote history to confirm publication; do not discard local changes. Documentation changes do not require a runtime version bump or deployment.
-
-## Verified status and remaining work
-
-- [Scoring validation](docs/MAHJONG-SCORING-VALIDATION.md): 106 local tests passed (95 Hong Kong scoring/server plus 11 session/UI), including 1,000 seeded shape checks. No scoring mismatch found in tested cases; not exhaustive certification of every hand or cloud recovery.
-- Mahjong remains protocol v10. Strict Workers script CSP is unchanged; controls use external listeners, not inline HTML event attributes or eval. Follow this pattern for future UI. Other games still need a separate CSP interaction audit; HTTP/WSS success is not proof their controls work.
-- No runtime patch is pending after the 2.0.1 installation. This documentation/test release was explicitly authorized for push and redeploy; confirm operation results before claiming publication. Detailed final Git/deployment IDs belong in private records.
-- Owner staging remote now uses HTTPS to the same personal repo, with a repo-local exception to a global SSH rewrite. GitHub Desktop authenticates as izanagiwarrior. Preserve this working personal transport; do not restore office SSH routing or change global Git/key settings. Other contributors use their own approved credentials.
+- Cloud is deployed and checked: **2.2.0 / 2026-10-23-mahjong-presets-hu-1 / Mahjong v12** at https://srac-gaming.faiz-triputra.workers.dev/ . Git publication of this same release is explicitly authorized; confirm the remote commit before claiming push complete. No runtime deployment remains pending. Deployment can disconnect clients; old Mahjong pages require refresh.
+- Four lobby presets: Easy default (casual 0-fan Hu, completed-set highlight, easy bots); Normal (casual, no highlight, normal bots); Hard (HKMA Hong Kong minimum3fan, no highlight, hard bots); Customize (all existing options). Presets are applied by the server, lock before play, and keep duration/Rp independent. Assisted claims, eight flowers, skippable opening ON and no joker/flower fan bonus are common preset settings. All bots retain at least3second delays.
+- This is **Hong Kong**, not Chinese Official/MCR. The referenced playmahjong.io/chinese-official-rules describes MCR minimum8points; no MCR engine was added. HKMA remains the strict scoring reference. Casual payout0/1/2fan=0/8/16 discard points is a labeled house variation;3–10usesHKMA. Hu0fan settles zero points/Rp.
+- Existing saves without tablePreset become Customize, without casualZero retain prior0fan=4payout; existing strict/legacy rules and settled balances remain unchanged. Never silently turn an active room into Easy. New clients refresh to v12.
+- Hu celebration runs before the result panel only on an observed live winning transition, with skip/reduced motion and cancellation on leave/disconnect/new round. It never changes settlement or replays on initial recovery/history. No full-match/automated tests were requested for this release. Syntax/build passed; isolated empty-lobby preset changes and Hu visual/skip/reduced motion were reviewed. Public health/root/six entries and six empty WSS passed; five changed Mahjong assets matched source hashes. No production room was created/joined/started. Detailed evidence is private; the earlier106testpass concerns2.0.1.
+- Staging is the sole development/Git checkout. Sibling live remains legacy offline1.8.0 with private saves, untouched. Workers + SQLite is the default online target without laptop/tunnel. Preserve worker/binding/actor/migrations, room identities and accounting.
+- Personal Git: izanagiwarrior/srac-gaming over the existing HTTPS transport; repo-local exception prevents office SSH rewrite. Preserve personal commit identity and never change global keys/config. Cloud account permission is separate.
 
 ## Authorization and active players
 

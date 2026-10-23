@@ -1,10 +1,33 @@
-# Hong Kong Mahjong — protokol v10 (hub 2.0.1)
+# Current Mahjong setup — 2.2.0 / protocol v12
+
+| Preset | Hu requirement | Completed-set highlight | Bots |
+| --- | --- | --- | --- |
+| Easy (default, new rooms) | Hong Kong casual, 0 fan allowed | ON | Easy |
+| Normal | Hong Kong casual, 0 fan allowed | OFF | Normal |
+| Hard | Hong Kong HKMA, minimum3fan | OFF | Hard |
+| Customize | Host selects existing rule/bot/help options | Host chooses | Host chooses |
+
+All named presets use assisted manual claims (no auto-pass), eight flowers with replacements, no extra flower fan, no joker, animated/skippable opening, no turn/claim deadline. Duration (including1round) and Rp remain independent. Presets are server-enforced and host-only in lobby; all settings lock at Start. Customize initially retains the current choices and exposes the existing controls, including Manual bebas/Fast, legacy profile, flower bonus, joker and opening. Easy/Normal are house variants, not official tournament rules. Hard is implemented HKMA core, not a certification of all physical tournament rules.
+
+**Chinese Official/MCR is a different ruleset.** The user's reference https://playmahjong.io/chinese-official-rules requires8points and has different scoring/payment rules. This game continues to use Hong Kong as explicitly requested in the preset definitions; it does not implement MCR.
+
+Casual accepts valid4sets+pair (or Thirteen Orphans) without a minimum fan. It still scores the actual hand: **0fan=0points**,1/2fan=8/16discardpoints (house extension),3–10useHKMA; Zimo each opponent pays half the table. No automatic basic-win fan is invented. Rp=netpoints×rate. Optional bonus flowers/jokers remain labeled variations. Seven Pairs remains legacy-only.
+
+Saved rooms without tablePreset restore as Customize, preserving their settings. Missing casualZero restores false (the preceding2.1.0 casual0fan=4house payout); new rooms/presets use true. Existing strict/legacy rooms and all settled history/money remain unchanged. In Customize the host can explicitly change that policy before Start. Reconnect requires v12 clients/page refresh.
+
+A fresh observed Hu plays a2.7second celebration before the results panel, with a Lihat hasil skip button; reduced motion is a brief static card. Initial recovery/history does not replay it. Leave/disconnect/new round cancels it; hidden tab/preference changes finish it. At most48particles; names are textContent, no server-only information is exposed. Settlement completes once on the server independently of this effect.
+
+Verification for this release: syntax/source review, cloud build and isolated lobby/visual authoring; no new automated/gameplay tests requested. The106-test scoring report describes2.0.1, not the new presets/0fan policy or cloud multiplayer races. Following sections retain detailed rules/history; where historical defaults differ, this section is current.
+
+---
+
+# Hong Kong Mahjong — protokol v11 (hub 2.1.0)
 
 ## Aturan yang digunakan
 
-Room baru memakai **acuan Hong Kong Mahjong Association (HKMA)** untuk inti bentuk Hu, fan, dan pembayaran. Sumber primer: [halaman aturan HKMA](https://www.hkmahjong.org/rules?lang=en) dan [Hong Kong Mahjong (English)](https://docs.google.com/document/d/1a66AhGRZE6IJmA_nd-C7gIQfSJ7sXo_2-c4XgVnMpTQ/edit). Implementasi ini bukan salinan buku aturan atau sertifikasi turnamen: fitur bantuan, undo, manual/fast, bot dan durasi terbatas adalah fasilitas meja santai. Penalti wasit fisik/turnamen tidak disimulasikan.
+Room baru memakai profil Hong Kong dengan **Santai sebagai aturan menang default**: empat set + satu pasang atau Thirteen Orphans sah tanpa minimum fan. Host dapat memilih **Hong Kong HKMA (minimal 3 fan)** di lobby. Keduanya mempertahankan bunga, joker opsional dan animasi; pilihan dikunci setelah mulai. Mode HKMA memakai acuan asosiasi untuk bentuk Hu, fan, dan pembayaran. Sumber primer: [halaman aturan HKMA](https://www.hkmahjong.org/rules?lang=en) dan [Hong Kong Mahjong (English)](https://docs.google.com/document/d/1a66AhGRZE6IJmA_nd-C7gIQfSJ7sXo_2-c4XgVnMpTQ/edit). Implementasi ini bukan salinan buku aturan atau sertifikasi turnamen: fitur bantuan, undo, manual/fast, bot dan durasi terbatas adalah fasilitas meja santai. Penalti wasit fisik/turnamen tidak disimulasikan.
 
-- Hu memerlukan empat set dan satu pasang atau Thirteen Orphans, **minimal 3 fan**, **batas 10 fan**. Tidak ada fan menang dasar otomatis. Tujuh Pasang hanya pada profil legacy.
+- Hu memerlukan empat set dan satu pasang atau Thirteen Orphans, **minimal 3 fan pada opsi HKMA**, **batas skor 10 fan**. Tidak ada fan menang dasar otomatis. Tujuh Pasang hanya pada profil legacy.
 - Mesin menilai seluruh pemisahan set yang sah dan memilih fan tertinggi. Closed Hand hanya bila tidak ada meld, termasuk tidak ada Kong tertutup. Angin kursi dan angin ronde dapat dihitung terpisah pada set yang sama.
 - Fan: semua Chow 1; tertutup 1; Zimo 1; tiap Pung naga/angin relevan 1; terminal+huruf 1; rebut Kong 1; pengganti Kong 1; ubin terakhir 1. Semua Pung dan campur satu warna 3; naga kecil 3 ditambah dua Pung naga; naga besar 5 ditambah tiga Pung naga; satu warna penuh 7. Pola limit diberi 10 dan total dibatasi 10.
 - Limit: semua huruf, angin kecil/besar, empat Pung tertutup tanpa Kong (Hu buangan harus melengkapi pasangan), empat Kong, semua terminal, Heaven/Earth, Thirteen Orphans, Hu dari Kong beruntun, Nine Gates. Nine Gates dari buangan mensyaratkan bentuk tunggu sembilan sisi sebelum ubin menang. Joker tidak membentuk pola limit.
@@ -31,7 +54,7 @@ Tabel fan HKMA yang dirujuk tidak memuat bonus fan bunga. Karena itu **bonus bun
 
 ## Kompatibilitas dan batas pemeriksaan
 
-Save lama tanpa `ruleset` dipulihkan sebagai `legacy`, mempertahankan fan/pembayaran dan kursi acak sebelumnya. Tidak mengonversi ronde/saldo lama ke HKMA. Pilihan profil, bunga, bonus bunga, joker, animasi dan bantuan dikunci setelah mulai. Protokolv10 meminta refresh browser setelah deployment yang diizinkan.
+Save lama tanpa `ruleset` dipulihkan sebagai `legacy`, mempertahankan fan/pembayaran dan kursi acak sebelumnya. Tidak mengonversi ronde/saldo lama ke HKMA. Pilihan profil, bunga, bonus bunga, joker, animasi dan bantuan dikunci setelah mulai. Protokol v11 meminta refresh browser setelah deployment yang diizinkan.
 
 Aturan HK ini sudah terpasang di cloud; kontrol Mahjong mendapat perbaikan CSP pada hub 2.0.1. Validasi atas permintaan pengguna menghasilkan 106 tes lokal lulus (95 skor/server HK), tanpa perubahan runtime/scoring. Lihat [laporan validasi](../../docs/MAHJONG-SCORING-VALIDATION.md) untuk sumber, fixture dan batas; belum memvalidasi pertandingan cloud/recovery/race secara penuh. Pengujian berikutnya tetap memerlukan permintaan pengguna. Riwayat fitur sebelum 1.9.0 di bawah berlaku pada profil legacy, kecuali sudah digantikan bagian ini.
 
@@ -164,3 +187,10 @@ Chat biasa juga melayang transparan di pinggir meja (1.5.2), dengan nama pengiri
 ## Quick Play
 
 Durasi lobby mencakup **Quick Play · 1 ronde**, 4, 8, atau 12 ronde. Quick Play terpisah dari Manual bebas/Manual terbantu/Fast; tidak mengubah auto-lewat. Sesi mencapai rekap final setelah satu ronde termasuk ronde seri.
+
+
+## Santai — variasi meja 2.1.0
+
+Santai menghilangkan minimum fan untuk bentuk Hu sah. Fan tetap ditampilkan dan menjadi ukuran poin. Pembayaran buangan untuk 0/1/2 fan adalah **4/8/16 poin**; Zimo dibayar setengah nilai tersebut oleh masing-masing tiga lawan. Mulai 3 fan tabel sama seperti HKMA. Ini perluasan lokal, bukan tabel resmi HKMA. Pao dan aturan pengganti bunga tetap berlaku. Joker/bonus bunga tetap opsi terpisah. Tujuh Pasang tetap hanya profil legacy.
+
+Room tersimpan yang belum mempunyai settings.winMode dipulihkan sebagai **hkma**, sehingga deploy tidak menurunkan syarat Hu atau mengubah skor pertandingan lama. Room baru default casual; host hanya bisa mengganti sebelum mulai. Tidak mengubah saldo/hasil yang sudah diselesaikan. Klien v10 harus refresh ke v11. Validasi106tes sebelumnya mengacu2.0.1; perubahan Santai2.1.0 belum menjalani gameplay/tesotomatis baru.
