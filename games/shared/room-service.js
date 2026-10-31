@@ -123,6 +123,7 @@ function installRoomService(app,{slug,dataDir,persistence=null,saveInterval=5000
   function handle(ws,msg) {
     if(typeof msg.type!=='string')return false;
     const {room,person}=entityFor(ws);
+    if(msg.type==='hub-account-list'&&!accountMode){ws.send(JSON.stringify({type:'account-room-offer',legacy:true,seats:[]}));return true;}
     if((!room||!person)&&['join','resume','rejoin'].includes(msg.type)&&closedCodes.has(String(msg.code||'').trim().toUpperCase())){
       const resume=['resume','rejoin'].includes(msg.type);
       ws.send(JSON.stringify({type:'error',message:'Room tidak ditemukan. Buat room baru atau cek kode.',msg:'Room tidak ditemukan. Buat room baru atau cek kode.',code:String(msg.code).trim().toUpperCase(),sessionUnavailable:resume,fatal:resume,dissolved:resume}));return true;
@@ -131,7 +132,7 @@ function installRoomService(app,{slug,dataDir,persistence=null,saveInterval=5000
       const target=app.rooms.get(String(msg.code||'').trim().toUpperCase());
       const owner=target&&everyone(target).find(p=>p.token&&p.token===msg.token);
       if(owner?.accountId&&owner.accountId!==ws.account.id){error(ws,'Kursi ini milik akun lain. Masuk dengan akun pemiliknya.');return true;}
-      if(msg.type==='join'&&target&&everyone(target).some(p=>p.accountId===ws.account.id&&!p.left&&!p.bot)){error(ws,'Akunmu sudah ada di room ini. Lanjutkan sesi tersimpan.');return true;}
+      if(msg.type==='join'&&target&&everyone(target).some(p=>p.accountId===ws.account.id&&!p.left&&!p.bot&&!p.accountReleased)){error(ws,'Akunmu sudah ada di room ini. Lanjutkan sesi tersimpan.');return true;}
     }
     if(msg.type==='join') {
       const target=app.rooms.get(String(msg.code||'').trim().toUpperCase());

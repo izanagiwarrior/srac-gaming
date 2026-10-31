@@ -22,6 +22,29 @@ test('AccountStore authentication, permissions, purchases, audit and reward inva
  await t.test('admin bootstrap and self-removal protection hold',async()=>{assert.equal((await call('/api/account/admin/roles',{method:'DELETE',session:admin.cookie,data:{email:'hendy.wijaya@shopee.com'}})).status,403);assert.equal((await call('/api/account/admin/roles',{method:'DELETE',session:admin.cookie,data:{email:'admin@example.invalid'}})).status,403);assert.equal((await call('/api/account/admin/roles',{method:'POST',session:admin.cookie,data:{email:'qa@example.invalid'}})).status,200);assert.equal((await call('/api/account/admin/overview',{session:signup.cookie})).status,403);});
  await t.test('reward threshold, win bonus, duplicate delivery and daily cap',async()=>{const ns=await mf.getDurableObjectNamespace('ACCOUNTS','account-tests'),stub=ns.get(ns.idFromName('accounts-v1'));const before=(await call('/api/account/me',{session:player.cookie})).body.user;async function reward(id,seconds,won){const r=await stub.fetch(new Request('https://internal/internal/reward',{method:'POST',body:JSON.stringify({id,game:'mahjong',room:'QA',players:[{userId:target.id,seconds,won}]})}));assert.equal(r.status,200);await r.text();}await reward('short',59,true);assert.equal((await call('/api/account/me',{session:player.cookie})).body.user.xp,before.xp);await reward('first',60,true);await reward('first',60,true);assert.equal((await call('/api/account/me',{session:player.cookie})).body.user.xp,before.xp+50);for(let i=0;i<24;i++)await reward('cap-'+i,61,true);const after=(await call('/api/account/me',{session:player.cookie})).body.user;assert.equal(after.xp,before.xp+1000);assert.equal(after.coins,before.coins+1000);});
  await t.test('actor and recipient audit survive normal profile views',async()=>{const logs=(await call('/api/account/admin/logs',{session:admin.cookie})).body.events;assert(logs.some(e=>e.kind==='admin.user_adjusted'));const history=(await call('/api/account/history',{session:player.cookie})).body.events;assert(history.some(e=>e.kind==='account.adjusted'));assert(!JSON.stringify(logs).includes('unique-long-test-password'));});
+ await t.test('JSON primitives and oversized bodies fail explicitly',async()=>{
+  for(const body of ['null','[]','"text"']){const r=await mf.dispatchFetch(origin+'/api/account/profile',{method:'PATCH',headers:{Origin:origin,'Content-Type':'application/json',Cookie:player.cookie},body});assert.equal(r.status,400);}
+  const large=await mf.dispatchFetch(origin+'/api/account/profile',{method:'PATCH',headers:{Origin:origin,'Content-Type':'application/json',Cookie:player.cookie},body:JSON.stringify({name:'x'.repeat(9000)})});assert.equal(large.status,413);
+ });
+ await t.test('parallel purchases charge once and parallel edits do not overwrite',async()=>{
+  const before=(await call('/api/account/me',{session:player.cookie})).body.user;
+  await Promise.all([1,2].map(()=>call('/api/account/buy',{method:'POST',session:player.cookie,data:{item:'gold-frame'}})));
+  const after=(await call('/api/account/me',{session:player.cookie})).body.user;assert.equal(after.coins,before.coins-150);
+  const edits=await Promise.all(['One','Two'].map(name=>call('/api/account/admin/users/'+target.id,{method:'PATCH',session:admin.cookie,data:{...edit,requestId:crypto.randomUUID(),version:after.version,name,inventory:['jade','fox','crane','gold-frame'],skin:'crane',accessory:null}})));
+  assert.deepEqual(edits.map(r=>r.status).sort(),[200,409]);
+ });
+ await t.test('password-change/login race never leaves an old-password session alive',async()=>{
+  const p1='old-device-validation-password',p2='new-device-validation-password',email='race@example.invalid';
+  const created=await call('/api/account/signup',{method:'POST',data:{email,name:'Race QA',password:p1}});const cookie=created.cookie;
+  const [changed,login]=await Promise.all([call('/api/account/password',{method:'POST',session:cookie,data:{current:p1,password:p2}}),call('/api/account/login',{method:'POST',data:{email,password:p1}})]);
+  assert.equal(changed.status,200);if(login.status===200)assert.equal((await call('/api/account/me',{session:login.cookie})).body.user,null);else assert.equal(login.status,401);
+  assert((await call('/api/account/me',{session:cookie})).body.user);assert.equal((await call('/api/account/login',{method:'POST',data:{email,password:p1}})).status,401);assert.equal((await call('/api/account/login',{method:'POST',data:{email,password:p2}})).status,200);
+ });
+ await t.test('login caps the account at ten active devices',async()=>{
+  const logins=[];for(let i=0;i<12;i++)logins.push(await call('/api/account/preview',{method:'POST',data:{role:'admin'}}));
+  let valid=0;for(const r of logins)if((await call('/api/account/me',{session:r.cookie})).body.user)valid++;assert.equal(valid,10);
+ });
+
 });
 
 test('Six-game balance correction fixtures preserve totals, boundaries and rollback',async t=>{
@@ -63,4 +86,44 @@ test('Anonymous game sockets are rejected before factories/timers initialize',as
   const hub={env:{ACCOUNTS:{idFromName:n=>n,get:()=>({fetch:async()=>new Response('null')})}},init(){throw Error('Anonymous request started game factories');}};
   const r=await handler.call(hub,new Request('https://game.invalid/'+game+'/ws',{headers:{Upgrade:'websocket',Origin:'https://game.invalid'}}));assert.equal(r.status,401);
  }
+});
+
+
+test('Google return paths are same-origin game routes only',async()=>{
+ const code=buildSync({entryPoints:[path.join(root,'cloudflare/accounts/security.js')],bundle:true,write:false,format:'esm',platform:'node'}).outputFiles[0].text;
+ const {safeReturn}=await import('data:text/javascript;base64,'+Buffer.from(code).toString('base64'));
+ for(const input of ['https://evil.invalid/mahjong/','//evil.invalid/poker/','javascript:alert(1)','/admin/','/api/account/me'])assert.equal(safeReturn(input,'https://game.invalid'),'/account/');
+ assert.equal(safeReturn('/mahjong/?room=TEST','https://game.invalid'),'/mahjong/?room=TEST');
+});
+
+test('Socket does not send private output after its pre-send guard closes it',()=>{
+ const {WebSocketServer}=require('../cloudflare/compat/ws.cjs'),server=new WebSocketServer(),sent=[];
+ const socket=server.accept({send:m=>sent.push(m),close(){}},new Request('https://game.invalid/mahjong/ws'),fn=>fn());server.beforeSend=s=>s.close(1008,'Expired');socket.send('private hand');assert.equal(sent.length,0);
+});
+
+test('Cloud entry ignores a stale browser seat when the database has no owned seat',async()=>{
+ const vm=require('node:vm'),fs=require('node:fs'),writes=new Map(),sent=[],entries=[];
+ const doc={documentElement:{dataset:{}},addEventListener(){},querySelectorAll(){return [];},querySelector(){return null;}};
+ const context={window:{},document:doc,localStorage:{getItem:k=>writes.get(k)||null,setItem:(k,v)=>writes.set(k,v)},location:{pathname:'/blackjack/',search:'?room=NEWROOM',origin:'https://game.invalid'},matchMedia:()=>({matches:false}),URL,URLSearchParams,Intl,setTimeout,clearTimeout,queueMicrotask,history:{replaceState(){}}};
+ vm.createContext(context);vm.runInContext(fs.readFileSync(path.join(root,'public/room-client.js'),'utf8'),context);
+ context.window.MejaRoom.connected({code:'OTHER',token:'another-account-browser-cache'},m=>{sent.push(m);return true;},target=>entries.push(target));
+ assert.equal(sent[0].type,'hub-account-list');const message={type:'account-room-offer',seats:[]};context.window.MejaRoom.receive(message,m=>{sent.push(m);return true;});await new Promise(r=>queueMicrotask(r));assert.equal(message.type,'left');assert.equal(sent.filter(m=>['resume','rejoin'].includes(m.type)).length,0);assert.deepEqual(entries,['NEWROOM']);
+});
+
+test('Legacy bearer recovery is offered only for a matching unbound seat',async()=>{
+ const code=buildSync({entryPoints:[path.join(root,'cloudflare/accounts/room-access.js')],bundle:true,write:false,format:'esm',platform:'node'}).outputFiles[0].text;
+ const {AccountRooms}=await import('data:text/javascript;base64,'+Buffer.from(code).toString('base64'));
+ const room={code:'TEST',social:{id:'legacy'},players:[{token:'legacy-secret',name:'Legacy',connected:false}],spectators:[]},messages=[];
+ const hub={apps:new Map([['blackjack',{rooms:new Map([['TEST',room]])}]]),services:new Map([['blackjack',{roomFor:()=>({})}]])},guard=new AccountRooms(hub),socket={account:{id:'owner'},send:t=>messages.push(JSON.parse(t))};
+ guard.before(socket,{type:'hub-account-list',code:'TEST',token:'wrong'},'blackjack');assert.equal(messages.pop().legacyResume,false);
+ guard.before(socket,{type:'hub-account-list',code:'TEST',token:'legacy-secret'},'blackjack');assert.equal(messages.pop().legacyResume,true);
+ room.players[0].accountId='another-account';guard.before(socket,{type:'hub-account-list',code:'TEST',token:'legacy-secret'},'blackjack');assert.equal(messages.pop().legacyResume,false);
+});
+
+test('Failed handoff checkpoint preserves old seat token and host',async()=>{
+ const code=buildSync({entryPoints:[path.join(root,'cloudflare/accounts/room-access.js')],bundle:true,write:false,format:'esm',platform:'node'}).outputFiles[0].text;
+ const {AccountRooms}=await import('data:text/javascript;base64,'+Buffer.from(code).toString('base64'));
+ const person={accountId:'owner',token:'original',name:'Owner'},room={code:'TEST',social:{id:'room-id'},hostToken:'original',players:[person],spectators:[]},messages=[];
+ const hub={apps:new Map([['mahjong',{rooms:new Map([['TEST',room]])}]]),services:new Map([['mahjong',{roomFor:()=>({}),save:()=>false}]])};const guard=new AccountRooms(hub),socket={account:{id:'owner'},send:text=>messages.push(JSON.parse(text))};
+ guard.before(socket,{type:'hub-account-list'},'mahjong');const offer=messages.pop();assert.equal(guard.before(socket,{type:'hub-account-claim',roomId:'room-id',handoffId:offer.handoffId},'mahjong'),false);assert.equal(person.token,'original');assert.equal(room.hostToken,'original');assert.equal(messages.pop().type,'error');
 });

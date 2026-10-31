@@ -178,7 +178,7 @@ function connect() {
   ws.onclose = () => { window.MejaRoom.disconnected(); setConnection(false); if(!replaced)setTimeout(connect,1800); }; ws.onerror = () => ws.close();
 }
 function setConnection(value) {
-  connected = value; $('connection').classList.toggle('online',value); $('connection').innerHTML = '<i></i>' + (value ? 'Terhubung' : 'Menyambungkan…');
+  connected = value; $('connection').classList.toggle('online',value); $('connection').innerHTML = '<i></i>' + (replaced ? 'Kontrol perangkat dihentikan' : value ? 'Terhubung' : 'Menyambungkan…');
   document.querySelectorAll('[data-needs-connection]').forEach(b => { b.disabled = !value || b.dataset.blocked === 'true'; });
   document.querySelectorAll('[data-mk-emoji],[data-mk-emoji-toggle]').forEach(b=>b.disabled=!value);
   $('chat-input').disabled = !value; $('chat-form').querySelector('[type="submit"]').disabled = !value;

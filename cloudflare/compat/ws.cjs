@@ -4,7 +4,8 @@ class Socket extends EventEmitter {
   constructor(server,raw,run){super();this.owner=server;this.raw=raw;this.run=run;this.readyState=1;}
   send(text){
     if(this.readyState!==1||this.owner.disabled)return;
-    try{this.owner.beforeSend?.();}catch(error){this.owner.onFailure?.(error);throw error;}
+    try{this.owner.beforeSend?.(this);}catch(error){this.owner.onFailure?.(error);throw error;}
+    if(this.readyState!==1||this.owner.disabled)return;
     try{this.raw.send(text);}catch{this.finish();}
   }
   // Cloudflare owns protocol ping/pong; surface pong to the native liveness check.

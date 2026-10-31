@@ -7,6 +7,7 @@
   const defaults={sound:false,volume:.35,reduced:matchMedia('(prefers-reduced-motion: reduce)').matches};
   let prefs={...defaults,...read('mejakita.preferences',{})},profile=read('mejakita.profile',{name:''}),seats=read('mejakita.saved-seats',{}),meta=null,sender=null,ownSeat=null,previous=null,context=null,unlocked=false;
   let toolbar,details,body,status,quickActions,sessionHealth,refreshRequired=false,refreshMessage='',tickQueued=false,lastMotion=false,folds=read('mejakita.panel-folds',{});
+  let accountDialog=null,accountOffer=null,accountLookup=false,accountTimer=null,accountMoved=false;
   let dissolveDialog=null,dissolveChoice=null,dissolveBusy=false,dissolveWait=null;
   const initialRoom=(new URLSearchParams(location.search).get('room')||'').trim().toUpperCase();
   let sessionSeat=null,sessionOnline=false,sessionAttached=false,sessionOpened=false,sessionEntry=null,sessionChoice=null,sessionDialog=null,sessionNotice=null,resuming=false,sessionWait=null;
@@ -15,13 +16,41 @@
   function saved(game){seats=read('mejakita.saved-seats',{});return Object.values(seats[game]||{}).filter(p=>typeof p?.code==='string'&&typeof p?.token==='string'&&p.code&&p.token).sort((a,b)=>b.time-a.time)[0]||null;}
   function forgetSeat(seat){if(!seat)return;seats=read('mejakita.saved-seats',{});if(seats[slug]?.[seat.code]?.token===seat.token)delete seats[slug][seat.code];write('mejakita.saved-seats',seats);}
   function sessionConnected(seat,send,onEntry){
-    sender=send;sessionEntry=onEntry;sessionOnline=true;sessionAttached=false;
+    sender=send;sessionEntry=onEntry;sessionOnline=true;sessionAttached=false;accountMoved=false;
     if(typeof seat?.code==='string'&&typeof seat?.token==='string'&&seat.code&&seat.token)sessionSeat={...seat,code:seat.code.toUpperCase()};
+    accountLookup=true;clearTimeout(accountTimer);
+    if(sender({type:'hub-account-list',code:sessionSeat?.code,token:sessionSeat?.token})===false){accountLookup=false;continueLocalSession();return;}
+    accountTimer=setTimeout(()=>{accountLookup=false;showAccountError('Pemeriksaan sesi terlalu lama. Segarkan untuk mencoba lagi.');},10000);
+  }
+  function continueLocalSession(){
     if(!sessionOpened){sessionOpened=true;if(sessionSeat){if(initialRoom&&initialRoom===sessionSeat.code)resumeSession();else askSession(initialRoom);return;}}
     if(sessionChoice&&!sessionChoice.action){renderSession();return;}
     if(sessionSeat)resumeSession();else renderSession();
   }
-  function sessionDisconnected(){if(dissolveBusy){dissolveBusy=false;clearTimeout(dissolveWait);dissolveFeedback('Koneksi terputus. Menunggu status room saat tersambung kembali.');}window.MejaTools?.clearEmotes(true);sessionOnline=false;sessionAttached=false;resuming=false;clearTimeout(sessionWait);renderSession();}
+  function showAccountError(text){announce(text);if(accountDialog){accountDialog.querySelector('[data-account-status]').textContent=text;for(const b of accountDialog.querySelectorAll('button'))b.disabled=false;}}
+  function accountMessage(message){
+    if(message.type==='account-session-ended'){
+      clearTimeout(accountTimer);accountLookup=false;accountDialog?.close();
+      const notice=document.createElement('div');notice.className='mk-session-notice';notice.setAttribute('role','alert');notice.append(document.createTextNode('Sesi akun berakhir. Masuk ulang untuk melanjutkan kursimu. '));const link=document.createElement('a');link.href='/account/?next='+encodeURIComponent(location.pathname+location.search);link.textContent='Masuk akun';notice.append(link);document.body.prepend(notice);message.type='replaced';return false;
+    }
+    if(message.type!=='account-room-offer')return null;
+    const initial=accountLookup;accountLookup=false;clearTimeout(accountTimer);clearTimeout(sessionWait);resuming=false;
+    if(message.legacy||!message.seats?.length&&message.legacyResume){accountDialog?.close();accountOffer=null;continueLocalSession();return true;}
+    if(!message.seats?.length){accountDialog?.close();accountOffer=null;forgetSeat(sessionSeat);sessionSeat=null;sessionChoice=null;sessionOpened=true;message.type='left';returnToEntry(initialRoom,'');return false;}
+    if(initial&&sessionSeat&&message.seats.some(s=>s.game===slug&&s.code===sessionSeat.code&&!s.connected)&&initialRoom===sessionSeat.code){continueLocalSession();return true;}
+    sessionChoice=null;renderSession();accountOffer=message;
+    if(!accountDialog){accountDialog=document.createElement('dialog');accountDialog.className='mk-session-dialog';accountDialog.setAttribute('aria-label','Lanjutkan sesi akun');accountDialog.innerHTML='<div class="mk-session-kicker">SESI AKUN</div><h2>Lanjutkan permainanmu?</h2><p>Kursimu tersimpan di database. Lanjutkan di sini untuk memindahkan kontrol dari perangkat lama. Kartu, giliran, dan saldo tetap sama.</p><div data-account-seats class="mk-session-actions"></div><p data-account-status role="status"></p><div class="mk-session-actions"><button type="button" data-account-refresh>Segarkan daftar</button><button type="button" data-account-cancel>Tutup dulu</button></div>';document.body.append(accountDialog);
+      accountDialog.addEventListener('click',e=>{if(e.target.closest('[data-account-cancel]')){accountDialog.close();return;}if(e.target.closest('[data-account-refresh]')){sender({type:'hub-account-list'});return;}const button=e.target.closest('[data-account-seat]');if(!button||!accountOffer)return;const seat=accountOffer.seats[Number(button.dataset.accountSeat)];if(!seat)return;
+        if(seat.game!==slug){location.assign('/'+seat.game+'/?room='+encodeURIComponent(seat.code));return;}
+        for(const b of accountDialog.querySelectorAll('button'))b.disabled=true;accountDialog.querySelector('[data-account-status]').textContent='Memindahkan kontrol, menunggu konfirmasi server…';
+        if(sender({type:'hub-account-claim',handoffId:accountOffer.handoffId,roomId:seat.roomId})===false){showAccountError('Belum terkirim. Tunggu koneksi lalu coba lagi.');return;}
+        clearTimeout(accountTimer);accountTimer=setTimeout(()=>showAccountError('Belum ada balasan. Segarkan daftar; kursi tidak dihapus.'),10000);
+      });
+    }
+    const names={capsa:'Capsa',mahjong:'Mahjong',poker:'Poker',catur:'Catur',domino:'Domino',blackjack:'Blackjack'},list=accountDialog.querySelector('[data-account-seats]');list.replaceChildren();
+    message.seats.forEach((seat,i)=>{const b=document.createElement('button');b.type='button';b.dataset.accountSeat=String(i);b.textContent=(seat.game===slug?'Lanjutkan di sini':'Buka '+names[seat.game])+' · '+seat.code+(seat.connected?' · perangkat lain aktif':' · tersimpan');list.append(b);});showAccountError('Satu akun hanya mengontrol satu room. Untuk ganti room, lanjutkan sesi lama lalu pilih Keluar.');if(!accountDialog.open)accountDialog.showModal();return true;
+  }
+  function sessionDisconnected(){clearTimeout(accountTimer);accountLookup=false;showAccountError(accountMoved?'Kontrol di perangkat ini sudah dihentikan. Muat ulang untuk membuka pilihan sesi.':'Koneksi terputus. Tunggu tersambung kembali.');if(dissolveBusy){dissolveBusy=false;clearTimeout(dissolveWait);dissolveFeedback('Koneksi terputus. Menunggu status room saat tersambung kembali.');}window.MejaTools?.clearEmotes(true);sessionOnline=false;sessionAttached=false;resuming=false;clearTimeout(sessionWait);renderSession();}
   function askSession(target=''){
     if(!sessionSeat)return;
     sessionChoice={code:sessionSeat.code,target:String(target||'').trim().toUpperCase(),action:null,phase:'prompt',error:''};
@@ -87,6 +116,8 @@
       else if(switched)returnToEntry(target,target?'Sudah keluar dari room lama. Klik Gabung untuk masuk room '+target+'.':'Sudah keluar dari sesi lama. Kamu bisa bergabung atau membuat room baru.');
     }
     if(message.type==='replaced'){
+      accountMoved=true;
+      if(!document.querySelector('.mk-account-moved')){const notice=document.createElement('div');notice.className='mk-session-notice mk-account-moved';notice.setAttribute('role','status');notice.textContent='Kontrol di perangkat ini sudah dihentikan. Permainan dapat dilanjutkan dari perangkat lain. Muat ulang untuk membuka pilihan sesi.';document.body.prepend(notice);}
       // A second tab now owns the socket. Do not send a delayed leave from this tab.
       sessionOnline=false;sessionAttached=false;resuming=false;sessionSeat=null;finishChoice();meta=null;ownSeat=null;previous=null;renderControls();
     }
@@ -102,6 +133,9 @@
     return false;
   }
   function outgoing(message){
+    if(message.type?.startsWith('hub-account-'))return true;
+    if(accountDialog?.open||accountLookup)return false;
+    if(['create','join'].includes(message.type)&&accountOffer?.seats?.length){sender({type:'hub-account-list'});return false;}
     if(message.name)remember(message.name);
     if(['create','join'].includes(message.type)&&sessionSeat){if(sessionChoice&&['resume','leave'].includes(sessionChoice.phase)){sessionDialog.showModal();return false;}askSession(message.type==='join'?message.code:'');return false;}
     if(['resume','rejoin'].includes(message.type)){sessionSeat={code:message.code,token:message.token};resuming=true;return true;}
@@ -200,6 +234,10 @@
   let lastEmoteAt=0;
   function emote(text){if(!sender||!sessionOnline||!meta?.code||sessionChoice||!window.MejaTools?.isEmote(text)||Date.now()-lastEmoteAt<900)return false;const sent=sender({type:'chat',text,emoji:true});if(sent!==false)lastEmoteAt=Date.now();return sent;}
   function receive(message,send){sender=send;
+    const accountHandled=accountMessage(message);if(accountHandled===true)return true;
+    if(message.type==='joined'){clearTimeout(accountTimer);accountDialog?.close();accountOffer=null;}
+    if(message.type==='error'&&message.accountConflict&&resuming){forgetSeat(sessionSeat);sessionSeat=null;sessionChoice=null;resuming=false;renderSession();returnToEntry(initialRoom,message.message||message.msg);message.type='left';}
+
     if(message.type==='error'&&message.versionMismatch){requireRefresh(message.message||message.msg);return true;}
     if(message.type==='room-dissolved'||message.type==='error'&&message.dissolved&&message.sessionUnavailable){
       const code=meta?.code||sessionSeat?.code||ownSeat?.code;

@@ -25,8 +25,8 @@ function card(c,extra='') {
 function cards(cs,cls='',best=[]) {return `<div class="cards ${cls}">${cs.map(c=>card(c,c&&best.some(b=>b.r===c.r&&b.s===c.s)?'best':'')).join('')}</div>`;}
 function cs(text){return text.split(' ').map(c=>({r:'23456789TJQKA'.indexOf(c[0])+2,s:c[1]}));}
 function toast(message){$('#toast').textContent=message;$('#toast').classList.remove('hidden');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('#toast').classList.add('hidden'),5000);}
-function connectionStatus(){const el=$('#connection');el.classList.toggle('hidden',connected);el.textContent=S?'Connection lost. Reconnecting to your seat… Offline turns check or fold after 15 seconds.':'Connecting to your poker table…';}
-function send(message){if(!window.MejaRoom.outgoing(message))return false;if(!connected){toast('Waiting for the server connection.');return false;}if(pending)return false;pending=true;ws.send(JSON.stringify(message));setTimeout(()=>{if(pending){pending=false;render();}},4000);return true;}
+function connectionStatus(){const el=$('#connection');el.classList.toggle('hidden',connected);el.textContent=replaced?'Kontrol perangkat dihentikan. Muat ulang untuk memilih sesi.':S?'Connection lost. Reconnecting to your seat… Offline turns check or fold after 15 seconds.':'Connecting to your poker table…';}
+function send(message){if(!window.MejaRoom.outgoing(message))return false;if(!connected){toast('Waiting for the server connection.');return false;}if(message.type?.startsWith('hub-account-')){ws.send(JSON.stringify(message));return true;}if(pending)return false;pending=true;ws.send(JSON.stringify(message));setTimeout(()=>{if(pending){pending=false;render();}},4000);return true;}
 function connect(){
   clearTimeout(reconnectTimer);ws=new WebSocket(`${location.protocol==='https:'?'wss:':'ws:'}//${location.host}/poker/ws`);
   ws.onopen=()=>{connected=true;pending=false;reconnectAttempt=0;connectionStatus();render();window.MejaRoom.connected(session,send,target=>{enteredCode=target;render();});};

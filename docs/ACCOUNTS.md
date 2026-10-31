@@ -1,6 +1,6 @@
-# Accounts, progression and administration — included in candidate3.1.0
+# Accounts, progression and administration — release3.2.0
 
-Status:3.1.1 `2026-10-31-account-socket-guard-1` is deployed, including the [admin ownership/balance editor](ADMIN-CONTROLS.md). Google production credentials are configured and real local/public Google sign-in completed with verified admin identity. See root AGENTS for the release evidence and [validation](ACCOUNT-VALIDATION.md) for128passing tests and limits. Git publication is recorded separately; this guide never authorizes a future release.
+Status:3.2.0 `2026-10-31-account-safety-1` is deployed, including the [admin ownership/balance editor](ADMIN-CONTROLS.md). Google production credentials are configured and real local/public Google sign-in completed with verified admin identity. See root AGENTS for the release evidence and [account safety validation](ACCOUNT-SAFETY.md) for157passing tests and limits. Git publication is recorded separately; this guide never authorizes a future release.
 
 ## Scope and product rules
 
@@ -94,3 +94,8 @@ The project currently has Internal audience and shared consent branding `Smart D
 Google production secrets were installed with release3.1.0 in deployment71c2f303-58e7-4317-b6ea-25741ce1ebc1. Owner real Google sign-in completed on workers.dev; verified admin profile and dashboard were observed. No preview rows were uploaded. Production preview flag is false and demo endpoint404. Public setup details above remain current: Internal audience/shared branding were left intact. Google tokens/passwords are not in source; future secret uploads are deployment actions requiring fresh permission.
 
 Final3.1.1socket-guard release59095e81-d0a7-4a75-879d-7fa332eecaf4 retains the same Google secrets/SQLite actors. All six anonymous WebSocket paths return401 before game timers are initialized;128tests pass. No pending runtime patch remains.
+
+
+## Cross-device ownership and session hardening
+
+See [ACCOUNT-SAFETY.md](ACCOUNT-SAFETY.md) for3.2account-room recovery, confirmed controller transfer, one occupied room per account, logout/other-device controls, limits, legacy token migration, same-origin Google return paths and157targeted/regression tests. AccountStore and game snapshots remain separate SQLite state; browser/IP is not account authority. Latest root AGENTS gives actual deployed status.

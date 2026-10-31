@@ -5,7 +5,7 @@ description: Patch or extend the Meja Kita multiplayer game hub with consistent 
 
 # Meja Kita games
 
-Read the root AGENTS.md and [current maintenance/handoff](../../../docs/MAINTENANCE.md) before work. The current cloud baseline is deployed3.1.1; confirm actual health and Git status rather than assuming local changes are published. Treat the human's current instructions as the source of authorization; this skill never grants permission to publish, expose, or interrupt a running game.
+Read the root AGENTS.md and [current maintenance/handoff](../../../docs/MAINTENANCE.md) before work. The current cloud baseline is deployed3.2.0; confirm actual health and Git status rather than assuming local changes are published. Treat the human's current instructions as the source of authorization; this skill never grants permission to publish, expose, or interrupt a running game.
 
 ## Change a game
 
@@ -37,3 +37,7 @@ Return the repo, literal live URL, commit/build, and Running version / Pending t
 ## Account operations
 
 Read docs/ACCOUNTS.md, docs/ADMIN-CONTROLS.md and docs/ACCOUNT-VALIDATION.md before touching auth/admin/rewards. Preserve both SQLite actors and migrations; only verified Google ownership activates admin grants. Never enable ACCOUNT_PREVIEW publicly. Keep Google secrets in ignored private config/Cloudflare secrets. The existing Google project uses Internal audience/shared branding; changes affect other clients. `wrangler deploy --secrets-file .dev.vars` can install the two secrets with the authorized version; inspect key names only and never print values. New deployment/push still require new explicit user instructions.
+
+## Authenticated room ownership
+
+Read [account safety](../../../docs/ACCOUNT-SAFETY.md) before modifying cloud sessions. `cloudflare/accounts/room-access.js` gates all six factories: one occupied room/account, explicit cross-device handoff, rotating seat/host tokens checkpointed before resume. Browser recovery hints are not account ownership. Preserve AccountStore/accounts-v1 and GamingHub/office-hub-v1, session revocation checks, bounded input and token-free seat discovery. Test real Worker/SQLite adapters using tests/account-rooms.test.js; do not use production rooms as fixtures.

@@ -97,3 +97,8 @@ Room snapshots now optionally retain settings.ruleset/flowers/flowerBonus/jokers
 The shared room toolbar has a visible invite/code/leave bar above folded preferences. Backup, host lock/dissolve and queue/rotation stay in management; original server authorization and explicit leave acknowledgement remain required. Recovery/required-refresh status is outside folded details. Customize panels preserve their open state per room instance.
 
 The previously prepared session-refresh draft is included in this pending source: a page opened on the same saved room URL can rejoin directly; a different invitation still offers continue versus leave-and-switch. A10-second resume/leave wait ends in a retryable error, preserving credentials; version mismatch offers a user-clicked cache-busting refresh on the same room URL. None of this proves a disconnected seat is expired. Unavailable/left confirmations retain their existing credential cleanup. These changes were installed in2.3.0 after explicit user authorization and public health/asset/WSS checks. Those checks do not prove full recovery/timeout races.
+
+
+## Authenticated cloud sessions
+
+Cloud3.2separates a login session from a game seat. Recoverable seats are linked to AccountStore identity in GamingHub snapshots; a connected seat changes device only after a socket-bound confirmation, token checkpoint/rotation, and native resume. Only one occupied room/control per account across games; explicit leave releases occupancy. Session logout/revocation closes affected controllers but keeps the account seat recoverable. Legacy unbound seats require their exact old token for first binding. Read [account safety](ACCOUNT-SAFETY.md); preserve both database actors and settled ledgers.

@@ -9,7 +9,17 @@ export const response=(data,status=200,headers={})=>new Response(JSON.stringify(
 export function problem(message,status=400){const e=new Error(message);e.status=status;throw e;}
 export function email(value){const s=String(value||'').trim().toLowerCase();if(s.length>254||!/^\S+@[^\s@]+\.[^\s@]+$/.test(s))problem('Alamat email tidak valid.');return s;}
 export function displayName(value){const s=String(value||'').replace(/[\u0000-\u001f\u007f<>]/g,'').trim();if(s.length<1||s.length>24)problem('Nama harus 1–24 karakter.');return s;}
-export async function body(req){if(!req.headers.get('Content-Type')?.startsWith('application/json'))problem('Gunakan JSON.',415);if(Number(req.headers.get('Content-Length'))>8192)problem('Permintaan terlalu besar.',413);const raw=await req.text();if(raw.length>8192)problem('Permintaan terlalu besar.',413);try{return JSON.parse(raw);}catch{problem('JSON tidak valid.');}}
+export async function body(req){
+ if(!req.headers.get('Content-Type')?.startsWith('application/json'))problem('Gunakan JSON.',415);
+ if(Number(req.headers.get('Content-Length'))>8192)problem('Permintaan terlalu besar.',413);
+ const reader=req.body?.getReader(),chunks=[];let size=0;
+ if(reader)while(true){const {done,value}=await reader.read();if(done)break;size+=value.byteLength;if(size>8192){await reader.cancel();problem('Permintaan terlalu besar.',413);}chunks.push(value);}
+ const bytes=new Uint8Array(size);let offset=0;for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.byteLength;}
+ let parsed;try{parsed=JSON.parse(new TextDecoder().decode(bytes));}catch{problem('JSON tidak valid.');}
+ if(!parsed||typeof parsed!=='object'||Array.isArray(parsed))problem('Objek JSON diperlukan.');return parsed;
+}
+export function safeReturn(value,origin){try{const u=new URL(value||'/account/',origin);return u.origin===origin&&/^\/(capsa|mahjong|poker|catur|domino|blackjack)\//.test(u.pathname)?u.pathname+u.search:'/account/';}catch{return '/account/';}}
+
 export async function passwordHash(password,salt=random()){
  if(typeof password!=='string'||password.length<12||password.length>128)problem('Password harus 12–128 karakter.');
  const key=await crypto.subtle.importKey('raw',encoder.encode(password),'PBKDF2',false,['deriveBits']);

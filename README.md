@@ -163,8 +163,11 @@ Mahjong new rooms offer HKMA core scoring (3–10 fan and payment ladder), flowe
 
 The Workers + SQLite Durable Object adapter for all six games was deployed on 23 October 2026; it runs without a laptop. Build with `npm run build:cloudflare`; this does not deploy. See [setup, limits and safe deployment](docs/CLOUDFLARE-WORKERS.md). It includes Hong Kong Mahjong and game-entry nickname changes. The existing Node command and private saves remain separate. No Git push or public deployment is implied by a build.
 
-## Accounts, progression and administration (3.1.1)
+## Accounts, progression and administration (3.2.0)
 
-Cloud release3.1.1 includes database accounts, Google/email sign-in, avatar studio, XP/cosmetic coins, admin operations and audited possession/six-game balance controls. All128targeted/regression tests pass; see [verification limits](docs/ACCOUNT-VALIDATION.md), [setup and rollout](docs/ACCOUNTS.md), and [AI skin assets](docs/AVATAR-ASSETS.md). Google uses the owner-approved SRAC-AI client with Internal audience and the project’s existing shared consent branding. Secrets and player data are never part of this repo.
+Cloud release3.2.0 includes database accounts, Google/email sign-in, avatar studio, XP/cosmetic coins, admin operations and audited possession/six-game balance controls. All157targeted/regression tests pass; see [account safety and verification limits](docs/ACCOUNT-SAFETY.md), [setup and rollout](docs/ACCOUNTS.md), and [AI skin assets](docs/AVATAR-ASSETS.md). Google uses the owner-approved SRAC-AI client with Internal audience and the project’s existing shared consent branding. Secrets and player data are never part of this repo.
 
 Admin operations and accounting: [ADMIN-CONTROLS.md](docs/ADMIN-CONTROLS.md).
+
+
+Account/device ownership: [ACCOUNT-SAFETY.md](docs/ACCOUNT-SAFETY.md) describes confirmed cross-device recovery, one occupied room, revoked-session handling and targeted verification. See root AGENTS for current release status.
