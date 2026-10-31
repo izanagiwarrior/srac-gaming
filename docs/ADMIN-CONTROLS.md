@@ -12,7 +12,7 @@ User explicitly requested administrators can add/remove/set everything a player 
 - Grant/revoke catalog skins and accessories, grant all, return inventory to the starter, change equipped skin/accessory. Maintain the product invariant of one active owned skin; removing all skins is rejected. Equipment must belong to the resulting inventory.
 - Before confirmation show XP/coin totals and inventory count changes. A reason10–240characters is mandatory. Server authorization requires a current verified admin role and login within30minutes.
 
-Admin grants do not change password, Google verification or provider identity. Identity credentials are not possessions. Existing dedicated role management remains in Kelola admin. Do not add a client-only admin switch or allow a claimed email to bypass authentication.
+Possession grants do not change passwords, Google verification or provider identity. Dedicated password reset is separate (below). Existing dedicated role management remains in Kelola admin. Do not add a client-only admin switch or allow a claimed email to bypass authentication.
 
 ## Saldo meja — all six games
 
@@ -57,3 +57,11 @@ JavaScript syntax, whitespace, cloud build and dry-run checked. No automated/gam
 Only staging source and local preview data were changed. No public deployment, Git publication, production secret/account/plan change, legacy Node host or player-save migration. Publishing needs a fresh explicit instruction for this candidate and configured Google login, with mandatory-account/disconnect impact explained.
 
 Final layout inspection: account editor at319px reported document scrollWidth319 after wrapping the header; Dark view and possession controls were visually inspected. Broader Light/mobile game-balance/editor variants were not rechecked in this extension. The empty Blackjack preview tab was closed without Start; its private lobby record remains only in the emulator store for review. Production and Git stay unchanged.
+
+## Password reset —3.7.0
+
+Pemain → Kelola pemain → Reset password: enter new password, matching confirmation and reason; review confirmation before saving. Eye buttons only change visibility, never submit. Nonempty1–128characters, no strength rules. All existing target sessions end (including self-reset); Google sign-in/verification/roles remain intact.
+
+Server requires verified admin/recent login30minutes, same-origin mutation, fresh target revision and matching confirmation. Hashing yields, then authority is revalidated. Credential update/revision/session deletion and actor admin.password_reset plus recipient auth.password_reset_by_admin events are one transaction. Audit detail contains actor/recipient names/IDs, reason and revocation flag; event timestamp is server-owned. No plaintext/password-derived values are added to logs or mutation receipts. Reset uses a revision guard rather than possession-edit replay receipts; stale replay409produces no duplicate reset event. Socket notification addresses old-session IDs only.
+
+Local synthetic verification confirmed reset, old session/password rejection, new1character login, normal-user denial, confirmation rejection, stale replay, actor/recipient audit and credential exclusion. No production account was reset. Full race/failure injection is not exhaustively verified.

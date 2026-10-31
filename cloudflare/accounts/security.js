@@ -21,7 +21,7 @@ export async function body(req){
 export function safeReturn(value,origin){try{const u=new URL(value||'/account/',origin);return u.origin===origin&&/^\/(capsa|mahjong|poker|catur|domino|blackjack)\//.test(u.pathname)?u.pathname+u.search:'/account/';}catch{return '/account/';}}
 
 export async function passwordHash(password,salt=random()){
- if(typeof password!=='string'||password.length<12||password.length>128)problem('Password harus 12–128 karakter.');
+ if(typeof password!=='string'||password.length<1||password.length>128)problem('Isi password (maksimal 128 karakter).');
  const key=await crypto.subtle.importKey('raw',encoder.encode(password),'PBKDF2',false,['deriveBits']);
  return {salt,hash:b64(await crypto.subtle.deriveBits({name:'PBKDF2',salt:encoder.encode(salt),iterations:100000,hash:'SHA-256'},key,256))};
 }

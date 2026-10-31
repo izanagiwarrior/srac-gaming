@@ -3,6 +3,7 @@ import {uid,random,hash,cookies,cookie,response,problem,email,displayName,body,p
 import {applyUserEdit,possessions} from './admin.js';
 import {CATALOG,BOOTSTRAP,REWARDS} from './catalog.js';
 const DAY=86400000,SESSION=7*DAY;
+function confirmPassword(b,required=false){if((required||b.confirmPassword!==undefined)&&(typeof b.confirmPassword!=='string'||b.password!==b.confirmPassword))problem('Konfirmasi password tidak sama.');}
 // Separate SQLite namespace: never stores or migrates private game snapshots.
 export class AccountStore extends DurableObject {
  constructor(ctx,env){super(ctx,env);this.ctx=ctx;this.env=env;this.sql=ctx.storage.sql;
@@ -99,7 +100,7 @@ export class AccountStore extends DurableObject {
   if(path==='/api/account/signup'&&method==='POST'){
    await this.throttle(req,'signup',30);const b=parsed,address=email(b.email),name=displayName(b.name);
    if(BOOTSTRAP.includes(address))problem('Admin awal harus masuk dengan Google yang terverifikasi.',403);
-   const pw=await passwordHash(b.password);if(this.one('SELECT id FROM users WHERE email=?',address))problem('Tidak dapat membuat akun dengan email ini. Coba masuk.',409);
+   confirmPassword(b);const pw=await passwordHash(b.password);if(this.one('SELECT id FROM users WHERE email=?',address))problem('Tidak dapat membuat akun dengan email ini. Coba masuk.',409);
    const id=uid(),now=Date.now();this.ctx.storage.transactionSync(()=>{this.sql.exec('INSERT INTO users(id,email,name,password,salt,created,last_seen) VALUES(?,?,?,?,?,?,?)',id,address,name,pw.hash,pw.salt,now,now);this.sql.exec('INSERT INTO inventory VALUES(?,?,?)',id,'jade',now);this.log('auth.signup',id,{provider:'password'});});const user=this.one('SELECT * FROM users WHERE id=?',id);return response({user:this.publicUser(user)},201,{'Set-Cookie':await this.login(user,req,user.password)});
   }
   if(path==='/api/account/login'&&method==='POST'){
@@ -118,8 +119,8 @@ export class AccountStore extends DurableObject {
   if(path==='/api/account/logout-others'&&method==='POST'){if(Date.now()-u.session_created>1800000)problem('Masuk ulang untuk mengakhiri perangkat lain.',401);this.sql.exec('DELETE FROM sessions WHERE user_id=? AND hash<>?',u.id,u.session_hash);this.log('auth.sessions_revoked',u.id);await this.notifySessions({userId:u.id,all:true,keep:u.session_hash});return response({ok:true});}
   if(path==='/api/account/profile'&&method==='PATCH'){const b=parsed;const name=displayName(b.name);this.sql.exec('UPDATE users SET name=?,revision=revision+1 WHERE id=?',name,u.id);this.log('profile.updated',u.id);return response({ok:true});}
   if(path==='/api/account/password'&&method==='POST'){
-   await this.throttle(req,'password',8);const b=parsed;if(u.password){const old=await passwordHash(b.current,u.salt);if(!equal(old.hash,u.password))problem('Password saat ini tidak cocok.',401);}else if(Date.now()-u.session_created>1800000)problem('Masuk ulang sebelum membuat password.',401);
-   const pw=await passwordHash(b.password);if(!await this.session(req))problem('Sesi akun berakhir.',401);this.ctx.storage.transactionSync(()=>{const fresh=this.one('SELECT password FROM users WHERE id=?',u.id);if(fresh.password!==u.password)problem('Password sudah berubah. Masuk ulang.',409);this.sql.exec('UPDATE users SET password=?,salt=? WHERE id=?',pw.hash,pw.salt,u.id);this.sql.exec('DELETE FROM sessions WHERE user_id=? AND hash<>?',u.id,u.session_hash);this.log('auth.password_changed',u.id);});await this.notifySessions({userId:u.id,all:true,keep:u.session_hash});return response({ok:true});
+   await this.throttle(req,'password',8);const b=parsed;confirmPassword(b);if(u.password){const old=await passwordHash(b.current,u.salt);if(!equal(old.hash,u.password))problem('Password saat ini tidak cocok.',401);}else if(Date.now()-u.session_created>1800000)problem('Masuk ulang sebelum membuat password.',401);
+   const pw=await passwordHash(b.password);if(!await this.session(req))problem('Sesi akun berakhir.',401);this.ctx.storage.transactionSync(()=>{const fresh=this.one('SELECT password FROM users WHERE id=?',u.id);if(fresh.password!==u.password)problem('Password sudah berubah. Masuk ulang.',409);this.sql.exec('UPDATE users SET password=?,salt=?,revision=revision+1 WHERE id=?',pw.hash,pw.salt,u.id);this.sql.exec('DELETE FROM sessions WHERE user_id=? AND hash<>?',u.id,u.session_hash);this.log('auth.password_changed',u.id);});await this.notifySessions({userId:u.id,all:true,keep:u.session_hash});return response({ok:true});
   }
   if(path==='/api/account/buy'&&method==='POST'){
    const b=parsed,item=CATALOG.find(i=>i.id===b.item);if(!item)problem('Item tidak ditemukan.',404);
@@ -133,6 +134,25 @@ export class AccountStore extends DurableObject {
   if(path==='/api/account/history'&&method==='GET')return response({events:this.rows('SELECT id,time,kind,game,detail FROM events WHERE user_id=? ORDER BY time DESC LIMIT 50',u.id),rewards:this.rows('SELECT * FROM rewards WHERE user_id=? ORDER BY time DESC LIMIT 50',u.id)});
   if(path.startsWith('/api/account/admin')){
    if(!this.isAdmin(u))problem('Akses admin diperlukan.',403);
+   const resetTarget=/^\/api\/account\/admin\/users\/([a-zA-Z0-9-]{16,80})\/password$/.exec(path);
+   if(resetTarget&&method==='POST'){
+    if(Date.now()-u.session_created>1800000)problem('Masuk ulang untuk mereset password pemain.',401);
+    await this.throttle(req,'admin-password',12);const b=parsed;confirmPassword(b,true);
+    const reason=typeof b.reason==='string'?b.reason.trim():'';if(reason.length<10||reason.length>240)problem('Alasan harus 10–240 karakter.');
+    if(!Number.isSafeInteger(b.version)||b.version<0)problem('Versi pemain tidak valid.');
+    const target=this.one('SELECT * FROM users WHERE id=?',resetTarget[1]);if(!target)problem('Pemain tidak ditemukan.',404);
+    if(target.revision!==b.version)problem('Data pemain berubah. Muat ulang sebelum reset.',409);
+    const pw=await passwordHash(b.password),actor=await this.session(req);let revokedSessions=[];
+    if(!actor||!this.isAdmin(actor)||Date.now()-actor.session_created>1800000)problem('Masuk ulang sebagai admin sebelum reset.',401);
+    this.ctx.storage.transactionSync(()=>{
+     const fresh=this.one('SELECT * FROM users WHERE id=?',target.id);if(!fresh||fresh.revision!==b.version)problem('Data pemain berubah. Muat ulang sebelum reset.',409);
+     this.sql.exec('UPDATE users SET password=?,salt=?,revision=revision+1 WHERE id=?',pw.hash,pw.salt,target.id);
+     revokedSessions=this.rows('SELECT hash FROM sessions WHERE user_id=?',target.id).map(row=>row.hash);this.sql.exec('DELETE FROM sessions WHERE user_id=?',target.id);
+     this.log('admin.password_reset',actor.id,{targetId:target.id,targetName:target.name,reason,sessionsRevoked:true});
+     this.log('auth.password_reset_by_admin',target.id,{actorId:actor.id,actorName:actor.name,reason,sessionsRevoked:true});
+    });
+    await this.notifySessions({userId:target.id,sessionIds:revokedSessions});return response({ok:true});
+   }
    const target=/^\/api\/account\/admin\/users\/([a-zA-Z0-9-]{16,80})$/.exec(path);
    if(target&&method==='GET'){const user=this.one('SELECT * FROM users WHERE id=?',target[1]);if(!user)problem('Pemain tidak ditemukan.',404);return response({user:this.publicUser(user),possessions:possessions(this,user),catalog:CATALOG});}
    if(target&&method==='PATCH'){if(Date.now()-u.session_created>1800000)problem('Masuk ulang untuk mengubah milik pemain.',401);return response(applyUserEdit(this,u,parsed,target[1]));}

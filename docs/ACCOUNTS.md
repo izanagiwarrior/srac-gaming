@@ -1,6 +1,6 @@
-# Accounts, progression and administration — release3.5.1
+# Accounts, progression and administration — release3.7.0
 
-Status:3.5.1 `2026-10-31-office-login-note-1` is deployed, including the [admin ownership/balance editor](ADMIN-CONTROLS.md). Google production credentials are configured and real local/public Google sign-in completed with verified admin identity. See root AGENTS for the release evidence and [account safety validation](ACCOUNT-SAFETY.md) for historical3.2.0test evidence and current limits; [connection lifecycle](CONNECTIONS.md) documents the3.5.0changes, whose subsequent200-test native/SQLite validation is detailed in CONNECTION-VALIDATION.md. Git publication is recorded separately; this guide never authorizes a future release.
+Status:3.7.0 `2026-10-31-password-controls-1` is deployed, including the [admin ownership/balance editor](ADMIN-CONTROLS.md). Google production credentials are configured and real local/public Google sign-in completed with verified admin identity. See root AGENTS for the release evidence and [account safety validation](ACCOUNT-SAFETY.md) for historical3.2.0test evidence and current limits; [connection lifecycle](CONNECTIONS.md) documents the3.5.0changes, whose subsequent200-test native/SQLite validation is detailed in CONNECTION-VALIDATION.md. Git publication is recorded separately; this guide never authorizes a future release.
 
 ## Accepted Internal Google policy and user-facing explanation
 
@@ -22,7 +22,7 @@ This is the account feature requested in chat on 31 October, across all six game
 
 `cloudflare/accounts/store.js` exports **AccountStore**, a separate SQLite Durable Object namespace, binding `ACCOUNTS`, actor `accounts-v1`, migration `v2-accounts`. Existing `GAMING_HUB`/`GamingHub`/`office-hub-v1` and migration v1 remain unchanged. This is a Cloudflare SQL database, not localStorage; it does not need a separately provisioned D1 database.
 
-Tables: users, sessions, roles, inventory, events, rewards, oauth, limits, metadata. User/password/session/OAuth/accounting data stays server-side. Browser holds only an opaque HttpOnly, SameSite=Lax session cookie (Secure over HTTPS), not a JS-readable account token. Lifetime seven days. Passwords use per-user salted PBKDF2-SHA256, 100,000 iterations, 12–128 characters. No plaintext passwords; compare derived hashes without early equality exit. IP rate keys are salted hashes; raw IPs are not logged.
+Tables: users, sessions, roles, inventory, events, rewards, oauth, limits, metadata. User/password/session/OAuth/accounting data stays server-side. Browser holds only an opaque HttpOnly, SameSite=Lax session cookie (Secure over HTTPS), not a JS-readable account token. Lifetime seven days. Passwords use per-user salted PBKDF2-SHA256, 100,000 iterations,1–128characters without complexity/strength requirements. No plaintext passwords; compare derived hashes without early equality exit. IP rate keys are salted hashes; raw IPs are not logged.
 
 Google: authorization code + PKCE S256, one-use DB state tied to HttpOnly browser cookie, nonce, RS256 signature verification via Google JWKS, issuer/audience/expiry/verified-email checks, stable subject identity. Store provider subject and verified email; do not retain Google access/refresh/ID tokens because this app does not call Google APIs after login. Pending state/verifier/nonce expires after 10 minutes. The local Google secret remains a deployment secret, not source or a database row.
 
@@ -103,3 +103,11 @@ Final3.1.1socket-guard release59095e81-d0a7-4a75-879d-7fa332eecaf4 retains the s
 ## Cross-device ownership and session hardening
 
 See [ACCOUNT-SAFETY.md](ACCOUNT-SAFETY.md) for3.2account-room recovery, confirmed controller transfer, one occupied room per account, logout/other-device controls, limits, legacy token migration, same-origin Google return paths and157targeted/regression tests. AccountStore and game snapshots remain separate SQLite state; browser/IP is not account authority. Latest root AGENTS gives actual deployed status.
+
+## Password controls3.7.0
+
+New signup and self-change forms include password confirmation and accessible eye toggles; one-character/nonempty passwords accepted, maximum128kept as a resource bound. Login accepts existing/short passwords. Legacy signup/self-change requests can omit confirmPassword; supplied confirmation must match exactly. Admin reset requires it. Passwords are never trimmed, returned or logged. Hashing/throttling/cookie protection retained.
+
+Admin → Pemain → Kelola pemain → Reset password is a separate form. POST /api/account/admin/users/:id/password accepts password, confirmPassword, version, reason(10–240). Requires verified admin, login within30minutes, exact origin and fresh target revision; rechecks authority after async hashing. Transaction updates password/salt/revision, deletes existing target sessions, logs admin.password_reset for actor and auth.password_reset_by_admin for recipient. Logs contain IDs/names/reason/revocation flag plus normal timestamp, never password/confirmation/hash/salt. Old sockets receive revocation only for collected old-session IDs; a newly authenticated session is not inadvertently targeted. Stale/repeated request409; reload form before another reset. Google sign-in remains linked. Resetting own account also ends own session. No DB migration or production password reset was performed for release verification.
+
+Eleven targeted local Worker/SQLite checks and Light/Dark browser form/eye inspection passed; not a full regression suite or exhaustive security/race proof.

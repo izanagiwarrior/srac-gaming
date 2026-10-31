@@ -5,7 +5,7 @@ description: Patch or extend the Meja Kita multiplayer game hub with consistent 
 
 # Meja Kita games
 
-Read the root AGENTS.md and [current maintenance/handoff](../../../docs/MAINTENANCE.md) before work. The current cloud baseline is deployed3.6.0; confirm actual health and Git status rather than assuming local changes are published. Treat the human's current instructions as the source of authorization; this skill never grants permission to publish, expose, or interrupt a running game.
+Read the root AGENTS.md and [current maintenance/handoff](../../../docs/MAINTENANCE.md) before work. The current cloud baseline is deployed3.7.0; confirm actual health and Git status rather than assuming local changes are published. Treat the human's current instructions as the source of authorization; this skill never grants permission to publish, expose, or interrupt a running game.
 
 ## Change a game
 
@@ -43,3 +43,5 @@ Read docs/ACCOUNTS.md, docs/ADMIN-CONTROLS.md and docs/ACCOUNT-VALIDATION.md bef
 Read [account safety](../../../docs/ACCOUNT-SAFETY.md) before modifying cloud sessions. `cloudflare/accounts/room-access.js` gates all six factories: one occupied room/account, automatic authenticated cross-device handoff, rotating seat/host tokens checkpointed before resume. Browser recovery hints are not account ownership. Preserve AccountStore/accounts-v1 and GamingHub/office-hub-v1, session revocation checks, bounded input and token-free seat discovery. Test real Worker/SQLite adapters using tests/account-rooms.test.js; do not use production rooms as fixtures.
 
 For disconnect lifecycle, read docs/CONNECTIONS.md and games/shared/connection.js. Preserve the15second grace, transient proxy flag (never convert account ownership into permanent bot), cancellation/stale-callback guards, paused cold recovery and no-replay/reduced-motion UI.3.5.0public checks/build passed. Subsequent isolated validation:200tests pass, including six native grace/reconnect/full-round cases, authenticated handoffs, actual wall-clock Worker/SQLite Chess grace and six-game cold active recovery/closed-code checks plus Mahjong opening/claim/undo and Blackjack dealt/dealer/settled recovery. See docs/CONNECTION-VALIDATION.md for precise scope and remaining gaps; the user subsequently authorized their Git-only publication with “selesaikan”, with no runtime deployment. No claim of exhaustive races/settlements/security.
+
+Password3.7.0: owner chose nonempty1–128characters with no strength rules; signup/self-change confirmation+eye UI. Separate admin reset requires verified/recent role, target revision, confirmation and reason; atomically revoke old sessions and record actor/recipient audit without credentials. Preserve post-hash role revalidation and old-session-only socket notification. See docs/ACCOUNTS.md and ADMIN-CONTROLS.md.
