@@ -73,3 +73,9 @@
 @media(max-width:700px){.mk-panel form .mk-emoji-toggle,#chat-form .mk-emoji-toggle{flex-basis:44px;min-width:44px;width:44px;min-height:44px}.mk-emoji-popover [data-mk-emoji-close]{width:44px;height:44px}}
 
 .mk-primary-settings{margin-bottom:16px;font-size:14px}.mk-primary-settings label{font-size:13px}.mk-primary-settings :is(input,select){min-height:44px;font-size:14px}.mk-primary-settings :is(small,.mk-note){font-size:12px}
+
+/* Shared game columns contain text, help controls and recap content. */
+.mk-layout>*,.game-layout>*,.layout>*,.lobbywrap>*,.mk-sidebar>*,.game-side>*{min-width:0;max-width:100%;box-sizing:border-box}
+.mk-heading{align-items:center;flex-wrap:wrap;gap:8px}.mk-heading h3{margin-right:auto}.mk-panel :is(h3,p,label,small){overflow-wrap:anywhere}.mk-panel :is(input,select,textarea){box-sizing:border-box;min-width:0;max-width:100%}.mk-cards{max-width:100%;flex-wrap:wrap}.mk-panel table{max-width:100%}.mk-panel pre{white-space:pre-wrap;overflow-wrap:anywhere}.hubbar{gap:12px;flex-wrap:wrap}.hubbar>span{min-width:0;letter-spacing:1px}
+@media(min-width:951px) and (max-width:1150px){.mk-layout,.game-layout,.layout,.lobbywrap,.app-shell.in-room{grid-template-columns:minmax(0,1fr) 300px!important;gap:18px}}
+@media(max-width:600px){.hubbar{padding:9px 16px}.mk-panel{padding:16px}.mk-piece-grid{grid-template-columns:minmax(0,1fr)}.mk-panel [data-mk-chat] button{flex-shrink:0}}

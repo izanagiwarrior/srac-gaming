@@ -44,7 +44,7 @@ function createBlackjackServer({getAddresses=()=>[]}={}){
       if(v.bust)label='Bust';else if(dealer.natural){pay=natural?h.bet:0;label=natural?'Push':'Dealer Blackjack';}else if(natural){pay=h.bet*2.5;label='Blackjack 3:2';}else if(dealer.bust||v.total>dealer.total){pay=h.bet*2;label='Menang';}else if(v.total===dealer.total){pay=h.bet;label='Push';}else label='Kalah';
       p.stack+=pay;h.outcome=label;h.delta=pay-h.bet;h.done=true;delta+=h.delta;}
       rows.push({name:p.name,delta,amount:delta*r.settings.pointValue});}
-    hub?.recordResult(r,r.players.map((p,i)=>rows[i].delta>0),String(r.round));
+    hub?.recordResult(r,r.players.map((p,i)=>rows[i].delta>0),String(r.round),r.players.map(p=>p.hands.length>0),rows.map(row=>row.delta));
     r.house-=rows.reduce((n,p)=>n+p.delta,0);r.ledger.push({label:'Ronde '+r.round,time:Date.now(),rate:r.settings.pointValue,players:rows});r.ledger=r.ledger.slice(-200);r.phase='finished';note(r,'Hasil ronde dicatat. Dealer '+dealer.total+(dealer.bust?' · bust':'')+'.');change(r);
   }
   function arm(r){clearTimeout(r.timer);if(closing||r.recovering)return;const rev=r.revision;

@@ -1,0 +1,15 @@
+/* Decorative brand artwork does not grant a collectible or an admin role. */
+.mk-brand-dragon{display:inline-block;width:40px;height:40px;min-width:40px;object-fit:contain;vertical-align:middle;border:1px solid #c8aa6b;border-radius:12px;box-shadow:0 2px 9px #06150f33;flex:0 0 auto}.ac-brand .mk-brand-dragon{width:36px;height:36px;min-width:36px;border-radius:10px}.hubbar>span{display:flex;align-items:center;gap:8px}.hubbar .mk-brand-dragon{width:26px;height:26px;min-width:26px;border-radius:8px}.lb-top .brand{display:inline-flex;align-items:center;gap:10px}.ac-brand{gap:8px}
+@media(max-width:420px){.mk-brand-dragon{width:34px;height:34px;min-width:34px}.hubbar>span{font-size:8px;gap:5px}.hubbar .mk-brand-dragon{width:22px;height:22px;min-width:22px}}
+
+/* One transparent integrated dragon/club emblem, without separate icon tiles. */
+.mk-brand-emblem{display:block;flex:0 0 48px;width:48px;height:48px;min-width:48px;object-fit:contain;border:0;border-radius:0;background:transparent;filter:drop-shadow(0 2px 2px #0003)}
+:is(.header,footer,.lb-top) .brand{display:inline-flex;align-items:center;gap:10px}.ac-brand{display:flex;align-items:center;gap:9px}.ac-brand .mk-brand-emblem{width:44px;height:44px;min-width:44px;flex-basis:44px}.ac-sidebar .ac-brand{font-size:23px;gap:8px}.ac-sidebar .mk-brand-emblem{width:40px;height:40px;min-width:40px;flex-basis:40px}.hubbar .mk-brand-emblem{width:28px;height:28px;min-width:28px;flex-basis:28px}
+@media(max-width:420px){.mk-brand-emblem{width:42px;height:42px;min-width:42px;flex-basis:42px}.hubbar .mk-brand-emblem{width:24px;height:24px;min-width:24px;flex-basis:24px}}
+
+/* Creator credit belongs to the bottom of the document, never over the game. */
+.mk-game-credit{box-sizing:border-box;display:flex;justify-content:center;align-items:center;flex-wrap:wrap;gap:8px;width:100%;margin:28px auto 0;padding:18px 20px max(24px,env(safe-area-inset-bottom));font:11px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;letter-spacing:.6px;text-align:center;color:var(--mk-ui-muted,var(--muted,#afbfab));background:transparent;position:static;clear:both}
+.mk-game-credit .mk-brand-emblem{width:24px;height:24px;min-width:24px;flex-basis:24px;filter:none}
+.hubbar.mk-credit-in-footer.mk-game-topbar{grid-template-columns:minmax(0,1fr) auto}
+.hubbar.mk-credit-in-footer.mk-game-topbar>.mk-account-link{grid-column:2;grid-row:1}
+@media(max-width:640px){.mk-game-credit{font-size:10px;letter-spacing:.3px;padding-inline:16px}.mk-game-credit .mk-brand-emblem{width:22px;height:22px;min-width:22px;flex-basis:22px}}

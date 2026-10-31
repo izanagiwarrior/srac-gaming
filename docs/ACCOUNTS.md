@@ -115,3 +115,7 @@ Eleven targeted local Worker/SQLite checks and Light/Dark browser form/eye inspe
 ## Pending cosmetics3.8.0
 
 Twenty paid cosmetics (12skins/8frames), seven free skins and seven admin skins. Faiz/Hendy reserved dragon skins require their own verified administrator identity; five generic reserved avatars are available to other verified admins. Server grants entitled skins and equips a default only once, with audit. Administrator removal blocks use without deleting inventory; entitled reserved items are restored if removed. Shop prices use cosmetic coins, never lifetime XP or table balances. See [pending status](PROJECT-STATUS.md) and [asset provenance](COSMETICS-EXPANSION.md).
+
+## Local candidate3.11.0: durable leaderboards
+
+See [LEADERBOARD.md](LEADERBOARD.md). Additive AccountStore SQL tables `game_stats`/`game_result_receipts`, one-time XP/outcome backfill, explicit new settlement points/money only. Same actors/bindings/migration IDs; not yet cloud-deployed. Existing XP60s/daily cap and coins rules unchanged; leaderboard records completed short rounds without XP.

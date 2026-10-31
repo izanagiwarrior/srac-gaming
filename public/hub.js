@@ -10,7 +10,7 @@ fetch('/health',{ cache:'no-store' }).then(response => {
 }).catch(() => { document.getElementById('server-status').textContent = 'Coba muat ulang halaman'; });
 
 (function(){
-  const names={capsa:'Capsa Banting',mahjong:'Mahjong',poker:'Poker',catur:'Catur',domino:'Domino Gaple',blackjack:'Blackjack'},M=window.MejaRoom;
+  const names={capsa:'Capsa Banting',mahjong:'Mahjong',poker:'Poker',catur:'Catur',domino:'Domino Gaple',blackjack:'Blackjack',uno:'UNO',ludo:'Ludo',monopoli:'Monopoli',reversi:'Reversi / Othello'},M=window.MejaRoom;
   const list=document.getElementById('mk-directory-list');
   let loading=false;
   async function refresh(){if(loading||document.hidden)return;loading=true;const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),7000);

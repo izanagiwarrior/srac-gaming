@@ -9,10 +9,13 @@ const version=/const VERSION = '([^']+)'/.exec(source)?.[1];if(!version)throw Er
 await rm(out,{recursive:true,force:true});
 await mkdir(assets,{recursive:true});
 // Explicit source directories only; never copy a checkout, DATA_DIR or .git.
-const games={capsa:'capsa',mahjong:'mahjong',poker:'poker',catur:'chess',domino:'domino',blackjack:'blackjack'};
-async function copyPublic(from,to){await mkdir(to,{recursive:true});for(const file of await readdir(from,{withFileTypes:true})){if(!file.isFile()||!/^[-a-z0-9.]+\.(html|css|js|svg|png|webp|ico)$/.test(file.name))throw Error('Unexpected public asset: '+file.name);const input=path.join(from,file.name);if(/\.(png|webp|ico)$/.test(file.name)){const limit=/^(avatar|accessory)-/.test(file.name)?100*1024:300*1024;if((await stat(input)).size>limit)throw Error('Image exceeds '+limit/1024+' KiB budget: '+input+'. Compress before building; see docs/IMAGE-ASSETS.md.');}await cp(input,path.join(to,file.name));}}
+const games={capsa:'capsa',mahjong:'mahjong',poker:'poker',catur:'chess',domino:'domino',blackjack:'blackjack',uno:'uno',ludo:'ludo',monopoli:'monopoli',reversi:'reversi'};
+async function copyPublic(from,to){await mkdir(to,{recursive:true});for(const file of await readdir(from,{withFileTypes:true})){if(!file.isFile()||!/^[-a-z0-9.]+\.(html|css|js|svg|png|webp|ico)$/.test(file.name))throw Error('Unexpected public asset: '+file.name);const input=path.join(from,file.name);if(/\.(png|webp|ico)$/.test(file.name)){const limit=/^(avatar|accessory)-/.test(file.name)?100*1024:/^cast-/.test(file.name)?32*1024:/^brand-/.test(file.name)?8*1024:300*1024;if((await stat(input)).size>limit)throw Error('Image exceeds '+limit/1024+' KiB budget: '+input+'. Compress before building; see docs/IMAGE-ASSETS.md.');}await cp(input,path.join(to,file.name));}}
 await copyPublic(path.join(root,'public'),assets);
 await rm(path.join(assets,'account.html'),{force:true});
+await mkdir(path.join(assets,'leaderboard'),{recursive:true});
+await cp(path.join(root,'public/leaderboard.html'),path.join(assets,'leaderboard/index.html'));
+await rm(path.join(assets,'leaderboard.html'),{force:true});
 await mkdir(path.join(assets,'account'),{recursive:true});
 await cp(path.join(root,'public/account.html'),path.join(assets,'account/index.html'));
 for(const [slug,folder]of Object.entries(games)){await copyPublic(path.join(root,'games',folder,'public'),path.join(assets,slug));if(['capsa','mahjong','poker','blackjack'].includes(slug))await cp(path.join(root,'games',folder,'engine.js'),path.join(assets,slug,'engine.js'));}
@@ -33,4 +36,4 @@ const compat=name=>path.join(root,'cloudflare/compat',name+'.cjs');
 const nodeRequires={name:'static-node-requires',setup(b){b.onResolve({filter:/^(node:(buffer|crypto|events|path)|path)$/},args=>args.kind==='require-call'?{path:args.path==='path'?'node:path':args.path,namespace:'static-node'}:null);b.onLoad({filter:/.*/,namespace:'static-node'},args=>({contents:`import * as native from ${JSON.stringify(args.path)}; module.exports=native;`,loader:'js'}));}};
 await build({plugins:[nodeRequires],entryPoints:[path.join(root,'cloudflare/worker.js')],outfile:path.join(out,'worker.js'),bundle:true,format:'esm',platform:'neutral',mainFields:['module','main'],target:'es2022',minify:true,sourcemap:false,external:['cloudflare:workers','node:*','path'],inject:[path.join(root,'cloudflare/compat/globals.js')],alias:{ws:compat('ws'),'node:http':compat('http'),http:compat('http'),'node:fs':compat('fs'),fs:compat('fs'),'node:os':compat('os'),os:compat('os'),'node:v8':compat('v8')},define:{__SRAC_BUILD__:JSON.stringify(version),'process.env.NODE_ENV':'"production"','process.env.SPEED':'"1"','process.env.UNDO_MS':'"2000"',__dirname:'"/unused"'}});
 await writeFile(path.join(out,'BUILD.json'),JSON.stringify({version,games:Object.keys(games),runtime:'Workers + SQLite Durable Object'},null,2)+'\n');
-console.log('Cloudflare build ready: '+version+' (six games). No deployment performed.');
+console.log('Cloudflare build ready: '+version+' (ten games). No deployment performed.');

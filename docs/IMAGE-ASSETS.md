@@ -23,3 +23,27 @@ All34existing/new raster assets converted from full-size PNG to WebP: **61,681,7
 
 Included in deployed3.8.1 (with3.8.0cosmetics), deployment5b2212d2-7e44-44a0-ac8b-a5f7d882afae. User authorized Git publication; confirm remote after push. Static assets verified; database quota incident is documented in PROJECT-STATUS.md. Source syntax, all34decoded dimensions/metadata/file presence and asset build inspected; sample black dragon and transparent emerald frame visually inspected. No automated/gameplay tests or browser review for this compression follow-up; previous shop preview covered the uncompressed artwork. Earlier provenance tables record original generation outputs, not an instruction to ship PNG masters.
 
+
+## Character scenes3.10.1
+
+Reused portraits as decorative cast thumbnails: WebP≤384px, target24KiB, hard cap32KiB enforced for `cast-*.webp`. New scene hero1120×630/100236bytes, all11cast thumbnails175476bytes total/max22380. Original collectible image IDs/rights remain unchanged. Scene generation does not grant a user an admin skin. Keep master outside source.
+
+## Black-dragon branding3.11.1
+
+Reuse existing Faiz artwork, no regeneration: `brand-dragon.webp`96px/2700bytes (brand hard cap8KiB); `cast-admin-faiz.webp`384px/20660bytes (cast hard cap32KiB). Sharp strips metadata. Logo/login use decorative art only and do not grant the reserved admin cosmetic. Native map +shared HTML references updated.
+
+## Leaderboard3.11.3
+
+`leaderboard-dragons.webp`:480×320,35080bytes (34.26KiB). Built-in imagegen references existing avatar-jade.webp and avatar-admin-faiz.webp, recoloring Faiz white only for this new appreciation illustration; both thumbs-up. Sharp WebP quality76, strips metadata. Master stays outside source. Use object-fit:contain/aspect-ratio3:2; never circular crop faces/hands. Decorative only, no item grant.
+
+## Unified brand3.11.4
+
+`brand-emblem.webp`:96×96/5680bytes (5.55KiB), RGBA, transparent alpha retained; built-in imagegen from existing Faiz artwork combines black dragon and gold club in one silhouette. Sharp quality80/alpha90 and metadata stripping. Display contain without tile/border in header/footer/account/leaderboard/shared credits; decorative only. Existing brand-dragon.webp retained for compatibility, no longer referenced by current brand markup. No item grant or avatar replacement.
+
+## Faiz profile avatar3.11.6
+
+Stable cosmetic admin-faiz now uses avatar-admin-faiz-white.webp,512px/49286bytes (48.13KiB), from built-in imagegen matching leaderboard white Faiz. SharpWebP76, metadata stripped, master outside source. Display name Ivory Dragon. Old black avatar asset retained for provenance; black logo/login assets unchanged. Do not change ownership or grant defaults as part of this artwork swap.
+
+## Tab brand3.11.9
+
+Use the same integrated emblem for all HTML entry favicons: favicon-dragon-v1.png64pxRGBA/3729bytes, SharpPNG palette90/compression9 from96pxbrand-emblem.webp, metadata stripped. Each13entry explicitly references the new filename so old favicon.svg cache does not retain the club-only icon. Legacy favicon.svg now embeds same emblem. Preserve black logo/login and white Faiz profile distinction.

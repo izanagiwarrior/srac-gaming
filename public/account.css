@@ -20,3 +20,33 @@ input,select,textarea{min-width:0;max-width:100%}@media(max-width:380px){.ac-top
 #ac-admin-password-form textarea{display:block;width:100%;min-height:80px;padding:12px;background:var(--ac-bg);color:var(--ac-ink);border:1px solid var(--ac-line);border-radius:8px;font:inherit}
 
 :root[data-theme=light] .ac-btn.danger{color:#963b32}
+
+/* Faiz's existing black dragon welcomes players; no profile/inventory swap. */
+.ac-dragon-login{isolation:isolate;display:block;overflow:visible}.ac-dragon-login>img{position:relative;z-index:1;border:1px solid #bda065;box-shadow:0 12px 40px #050a0999;animation:dragon-welcome-float 8s ease-in-out infinite;will-change:transform}.ac-dragon-login .dragon-aura{position:absolute;inset:-10px;z-index:0;border:1px solid #caad6c66;border-radius:50%;box-shadow:0 0 35px #d7a94b28,inset 0 0 18px #d7a94b1a;animation:dragon-welcome-glow 8s ease-in-out infinite;pointer-events:none}.ac-dragon-login .ac-art-chip{z-index:2;right:-12px;bottom:12px}.ac-dragon-pause{position:absolute;z-index:3;top:0;right:0;width:34px;height:34px;min-height:34px;display:grid;place-items:center;border:1px solid var(--ac-line);border-radius:50%;padding:0;background:var(--ac-panel);color:var(--ac-ink);font:14px system-ui,sans-serif;cursor:pointer}.ac-dragon-login.is-paused>img,.ac-dragon-login.is-paused .dragon-aura{animation-play-state:paused}.ac-dragon-pause:focus-visible{outline:3px solid var(--ac-gold);outline-offset:3px}
+@keyframes dragon-welcome-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+@keyframes dragon-welcome-glow{0%,100%{opacity:.45;transform:scale(1)}50%{opacity:1;transform:scale(1.035)}}
+@media(max-width:760px){.ac-login-art.ac-dragon-login{display:block;width:156px;height:156px;margin:25px auto 30px}.ac-dragon-login .ac-art-chip{right:-28px;bottom:0;padding:8px 10px;font-size:9px}.ac-dragon-login .ac-art-chip strong{font-size:13px}.ac-dragon-pause{width:30px;height:30px;min-height:30px}}
+@media(prefers-reduced-motion:reduce){.ac-dragon-login>img,.ac-dragon-login .dragon-aura{animation:none!important;will-change:auto}.ac-dragon-pause{display:none}}
+@media(min-width:761px){.ac-login-visual:has(.ac-dragon-login){align-self:start}.ac-login-art.ac-dragon-login{width:240px;height:240px}}
+
+/* Let account grids shrink before controls or text can cross the content rail. */
+.ac-login-grid>*,.ac-profile-grid>*,.ac-admin-grid>*,.ac-settings-grid>*,.ac-inventory-editor>*,.ac-panel{min-width:0}
+.ac-topbar,.ac-topbar-right,.ac-panel-heading,.ac-pageheading{flex-wrap:wrap;gap:14px}.ac-brand{max-width:100%}.ac-userpill{min-width:0}.ac-userpill>span{min-width:0;overflow-wrap:anywhere}.ac-panel :is(h2,h3,p),.ac-item-body h3{overflow-wrap:anywhere}
+.ac-login-grid{grid-template-columns:minmax(0,1fr) minmax(0,440px)}.ac-auth-card{width:100%;min-width:0}.ac-inventory-editor{grid-template-columns:repeat(2,minmax(0,1fr))}.ac-adjust-amount{grid-template-columns:repeat(2,minmax(0,1fr))}.ac-adjust-amount>label{min-width:0}
+@media(min-width:761px) and (max-width:1000px){.ac-login{padding-inline:28px}.ac-login-grid{grid-template-columns:minmax(0,1fr) minmax(0,390px);gap:28px}.ac-login-visual h1{font-size:42px}.ac-auth-card{padding:26px}.ac-main{padding-inline:24px}}
+@media(max-width:760px){.ac-login-grid{display:block}.ac-inventory-editor,.ac-adjust-amount{grid-template-columns:minmax(0,1fr)}.ac-login header{gap:16px;flex-wrap:wrap}.ac-auth-card{padding:22px}.ac-stats{gap:8px}.ac-stat strong{font-size:clamp(20px,5vw,25px)}.ac-login-visual h1{font-size:clamp(32px,8vw,43px)}}
+
+.ac-sidebar .ac-brand{font-size:22px;gap:6px;white-space:nowrap}.ac-sidebar .ac-mark{width:28px;height:32px;flex:0 0 28px;font-size:20px}.ac-sidebar .mk-brand-dragon{width:28px;height:28px;min-width:28px;border-radius:8px}
+
+/* Lightweight black fire: decorative layers behind the portrait, no new image. */
+.ac-dragon-login .dragon-aura{inset:-12px;opacity:1;animation:none;overflow:visible;border-color:#b89b5744;box-shadow:0 0 26px #07090de0}
+.ac-dragon-login .dragon-aura::before,.ac-dragon-login .dragon-aura::after{content:"";position:absolute;inset:-10px;border-radius:46% 54% 42% 58% / 55% 44% 56% 45%;pointer-events:none;background:conic-gradient(from 20deg,transparent 0deg,#08090fee 22deg,#322833cc 37deg,transparent 51deg,#030509 70deg,#18131fee 96deg,transparent 112deg,#02040af5 138deg,#443344aa 151deg,transparent 177deg,#06080ded 203deg,#201724ee 225deg,transparent 242deg,#010308 269deg,#392b3bb8 289deg,transparent 318deg,#07090fee 345deg,transparent);filter:blur(5px);animation:dragon-black-flame 7s ease-in-out infinite;transform-origin:50% 56%}
+.ac-dragon-login .dragon-aura::after{inset:-15px -8px -4px;opacity:.75;filter:blur(8px);animation:dragon-black-flame-back 9s ease-in-out infinite;animation-delay:-3s}
+@keyframes dragon-black-flame{0%,100%{transform:translateY(3px) rotate(-9deg) scale(.97,1.02);border-radius:46% 54% 42% 58% / 55% 44% 56% 45%}35%{transform:translateY(-7px) rotate(8deg) scale(1.03,1.1);border-radius:39% 61% 49% 51% / 61% 38% 62% 39%}70%{transform:translateY(-3px) rotate(-4deg) scale(1.08,1.04);border-radius:57% 43% 60% 40% / 42% 59% 41% 58%}}
+@keyframes dragon-black-flame-back{0%,100%{transform:translateY(0) rotate(12deg) scale(1.02)}50%{transform:translateY(-13px) rotate(-10deg) scale(.98,1.12)}}
+.ac-dragon-login.is-paused .dragon-aura::before,.ac-dragon-login.is-paused .dragon-aura::after{animation-play-state:paused}
+@media(max-width:760px){.ac-dragon-login .dragon-aura{inset:-7px}.ac-dragon-login .dragon-aura::before{inset:-6px}.ac-dragon-login .dragon-aura::after{inset:-9px -5px -3px}}
+@media(prefers-reduced-motion:reduce){.ac-dragon-login .dragon-aura::before,.ac-dragon-login .dragon-aura::after{animation:none!important;opacity:.45}}
+
+.ac-dragon-login .dragon-aura::before{inset:-18px -14px -8px;filter:blur(5px)}
+@media(max-width:760px){.ac-dragon-login .dragon-aura::before{inset:-10px -8px -5px}}

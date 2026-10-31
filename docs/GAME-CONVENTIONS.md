@@ -125,3 +125,22 @@ Keep game rules authoritative in the existing six factories. Cloud-only transpor
 - Automatic enhancement must use narrow selectors and retain original dynamic node IDs. Dialogs/alerts/status and interactive explanation content are excluded. Inspect changed states in private preview; public rooms are not fixtures.
 
 - Help alignment: keep label text and `?` in one shared flex row; let only the text column wrap. Use the shared28px icon and8px gap at every breakpoint, with no per-game size overrides. Place dialog help inside its dialog top layer; keep primary actions as initial focus. Review long labels/checkboxes at390px, with tablet/desktop representatives.
+
+### Compact account/creator bar3.11.7
+
+On game pages mount account link in the existing .hubbar (.mk-game-topbar), not a separate top .mk-account-strip. Desktop back/credit/profile share a row; <=640px credit is a left subcaption and profile spans rows. Keep creator small and account target accessible. Preserve non-game nav placement and auth logic; no duplicate profile/creator rows.
+
+### Shared lobby panels3.11.10
+
+Load public/lobby-panels.css last on each entry. Use --mk-ui-panel/line/ink/muted resolved from the native card/panel/ink/text/paper theme; do not hardcode the leaderboard to green on gray games. Preferences/ranking/directory share12pxradius and border. Game rankings/preferences share the rail; hub rankings/directory share1200pxmax/40pxinsets desktop/28pxpadding/32pxsectiontitles. Controls44pxouter/36pxsegmentedbuttons, labels13px. Keep scoped CSS and content-driven wrapping, never hide document overflow to mask a mismatch. Review Dark/Light open/closed panels before changing shared selectors.
+
+### UI control vocabulary3.11.11
+
+Load disclosures.css last. Expand/collapse content always uses one small left-hand arrow, right closed/down open. Prefer native details/summary; shared sidebar toggles keep button semantics with aria-expanded/label and the same arrow. Do not invent plus/minus or visible Buka/Lipat/? variants for panel folds. Use ? solely for contextual help, back arrow for navigation, refresh for refreshing, smile for emoji. Reuse central styles/tokens/sizes; do not add page-specific variants of the same control. Existing room fold persistence keys and semantic labels must stay. Review open/closed, Dark/Light, keyboard and responsive states when changing controls; no claim full validation from visual checks alone.
+
+### Creator placement3.11.12
+
+Supersedes the earlier topbar-credit location: shared game-tools renders creator/emblem once in footer.mk-game-credit at document end, centered and understated, normal flow with safe-area padding. Header contains back link +profile only; never overlay gameplay with a fixed credit. Keep game creator mapping and author labels on landing game cards. Native game views may rerender, so mount footer outside their replaceable containers. Do not reintroduce duplicate header/entry credits.
+
+### Readable contextual help
+Use the shared /help.js and /help.css on all entry pages. Supply plain text; separate distinct topics with newline characters. Multiple topics render as semantic bullet lists, long paragraphs split at sentence boundaries, and short one-topic explanations remain a paragraph. Never inject help text as HTML. Preserve native hover/focus/tap/Escape behavior and viewport containment.

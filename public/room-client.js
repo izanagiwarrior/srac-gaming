@@ -1,6 +1,6 @@
 'use strict';
 (function(){
-  const games=['capsa','mahjong','poker','catur','domino','blackjack'];
+  const games=['capsa','mahjong','poker','catur','domino','blackjack','uno','ludo','monopoli','reversi'];
   const slug=location.pathname.split('/')[1],read=(key,fallback)=>{try{return JSON.parse(localStorage.getItem(key))??fallback;}catch{return fallback;}};
   const write=(key,value)=>{try{localStorage.setItem(key,JSON.stringify(value));}catch{}};
   const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -288,6 +288,10 @@
   let lastEmoteAt=0;
   function emote(text){if(!sender||!sessionOnline||!meta?.code||sessionChoice||!window.MejaTools?.isEmote(text)||Date.now()-lastEmoteAt<900)return false;const sent=sender({type:'chat',text,emoji:true});if(sent!==false)lastEmoteAt=Date.now();return sent;}
   function receive(message,send){sender=send;
+    if(['state','lobby','left','replaced','room-dissolved'].includes(message.type)){
+      const visible=message.type!=='state'||['lobby','waiting','ended','finished','result'].includes(message.phase)||message.over===true;
+      window.MejaLeaderboard?.state(visible);
+    }
     const accountHandled=accountMessage(message);if(accountHandled===true)return true;
     if(message.type==='joined'){clearTimeout(accountTimer);accountDialog?.close();accountOffer=null;}
     if(message.type==='error'&&message.accountConflict&&resuming){forgetSeat(sessionSeat);sessionSeat=null;sessionChoice=null;resuming=false;renderSession();returnToEntry(initialRoom,message.message||message.msg);message.type='left';}
@@ -312,7 +316,7 @@
     if(slug==='mahjong'){turn=!message.over&&!message.spectator&&(message.phase==='discard'&&message.you===message.current||message.claimWaiting?.includes(message.you));play=message.last?.tile?.id;round=message.hand;done=message.over;}
     if(slug==='poker'){turn=!!message.game?.options&&!message.spectator;play=message.game?.version;round=message.game?.handNo;done=message.game?.over||message.phase==='ended';}
     if(slug==='catur'){turn=message.ready&&!message.spectator&&message.phase==='playing'&&message.turn===message.yourColor;play=message.ply;round=message.matchId;done=message.phase==='finished';}
-    if(slug==='domino'){turn=message.ready&&!message.spectator&&message.phase==='playing'&&message.turnId===message.you;play=message.revision;round=message.matchId;done=message.phase==='finished';}
+    if(['domino','uno','ludo','monopoli','reversi'].includes(slug)){turn=message.ready&&!message.spectator&&message.phase==='playing'&&message.turnId===message.you;play=message.revision;round=message.matchId;done=message.phase==='finished';}
     if(slug==='blackjack'){turn=!message.spectator&&(message.phase==='playing'&&message.turnId===message.you||message.phase==='betting'&&message.players?.find(p=>p.id===message.you)?.bet===null);play=message.events?.at(-1)?.text;round=message.round;done=message.phase==='finished';}
     const chat=JSON.stringify(message.chat?.at(-1)||null),room=message.code;
     if(previous&&previous.room===room&&!meta?.recovering){if(done&&!previous.done)tone('result');else if(turn&&(!previous.turn||round!==previous.round))tone('turn');else if(play!==previous.play&&round===previous.round)tone('play');else if(chat!==previous.chat&&message.chat?.at(-1)?.name!==profile.name)tone('chat');}
@@ -323,7 +327,7 @@
   function queueEnhance(){if(tickQueued)return;tickQueued=true;queueMicrotask(()=>{tickQueued=false;enhancePanels();});}
   function applyFold(panel,key,titleText){
     const helpPanel=/cheat sheet|contekan|panduan/i.test(titleText),collapsed=Object.prototype.hasOwnProperty.call(folds,key)?!!folds[key]:helpPanel,button=panel.querySelector('[data-mk-fold]');panel.dataset.mkCollapsed=String(collapsed);
-    if(!button)return;const label=helpPanel?(collapsed?'?':'Tutup'):(collapsed?'Buka':'Lipat');
+    if(!button)return;const label='';
     // Do not generate another child-list mutation when nothing changed.
     if(button.textContent!==label)button.textContent=label;
     button.setAttribute('aria-expanded',String(!collapsed));button.setAttribute('aria-label',(collapsed?'Buka':'Lipat')+' '+titleText);
@@ -334,7 +338,7 @@
       const text=[...title.childNodes].filter(n=>n.nodeType!==1||!n.matches('[data-mk-fold]')).map(n=>n.textContent).join('').trim(),key=slug+':'+text;
       panel.dataset.mkPanel=key;panel.dataset.mkTitle=text;
       let header=title;while(header.parentElement!==panel)header=header.parentElement;header.dataset.mkPanelHeader='';
-      if(!title.querySelector('[data-mk-fold]')){const button=document.createElement('button');button.type='button';button.dataset.mkFold=key;button.className='mk-fold';title.append(button);}
+      if(!title.querySelector('[data-mk-fold]')){const button=document.createElement('button');button.type='button';button.dataset.mkFold=key;button.className='mk-fold';title.prepend(button);}
       applyFold(panel,key,text);
     }
   }

@@ -1,0 +1,7 @@
+# Ludo · Meja Kita
+
+Creator: Faiz T. Server-authoritative2–4player race. Santai uses4pawns; Quick Play uses1pawn per seat. Server rolls cryptographically random1–6. A6 deploys a pawn at its colored start; another roll moves it. Shared ring has52cells; each player's route uses positions0–50 then six private home cells51–56. Home requires exact roll. Offsets0/13/26/39; marked safe cells0/8/13/21/26/34/39/47. Non-safe opposing pawns are returned to base. Multiple pawns can share cells (no blockade). Six/capture/home grant another roll; three consecutive sixes end the turn. First all-home wins. These are the documented Meja Kita house rules; Ludo has regional variants.
+
+Payout is a house point measure, not cash handling: each loser−10, winner+10per opponent, zero-sum. Value per point is configured before Start. Dice/moves/turn/revision/finish are validated by the server; spectators cannot act. Easy chooses a random legal pawn; Normal advances/home; Hard also prioritizes public captures. All bots wait3seconds for each roll or move. Board has labelled pawn buttons below it as an alternative to small board targets.
+
+Shared party-server and room-service provide the same account/rewards/admin, chat/emotes, invite, lock, spectator queue, host dissolve, private saved state and15second disconnect grace as existing games. No engine or rule change to the original six games. CSS grid artwork, no image generation/storage. See ../../docs/UNO-LUDO.md.

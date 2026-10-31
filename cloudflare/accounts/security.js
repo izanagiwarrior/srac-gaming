@@ -18,7 +18,7 @@ export async function body(req){
  let parsed;try{parsed=JSON.parse(new TextDecoder().decode(bytes));}catch{problem('JSON tidak valid.');}
  if(!parsed||typeof parsed!=='object'||Array.isArray(parsed))problem('Objek JSON diperlukan.');return parsed;
 }
-export function safeReturn(value,origin){try{const u=new URL(value||'/account/',origin);return u.origin===origin&&/^\/(capsa|mahjong|poker|catur|domino|blackjack)\//.test(u.pathname)?u.pathname+u.search:'/account/';}catch{return '/account/';}}
+export function safeReturn(value,origin){try{const u=new URL(value||'/account/',origin);return u.origin===origin&&/^\/(capsa|mahjong|poker|catur|domino|blackjack|uno|ludo|monopoli|reversi|leaderboard)\//.test(u.pathname)?u.pathname+u.search:'/account/';}catch{return '/account/';}}
 
 export async function passwordHash(password,salt=random()){
  if(typeof password!=='string'||password.length<1||password.length>128)problem('Isi password (maksimal 128 karakter).');

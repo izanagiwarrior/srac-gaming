@@ -1,3 +1,4 @@
+import {initLeaderboard,recordStanding,leaderboard,GAMES} from './leaderboard.js';
 import {DurableObject} from 'cloudflare:workers';
 import {uid,random,hash,cookies,cookie,response,problem,email,displayName,body,passwordHash,equal,verifyGoogle,safeReturn} from './security.js';
 import {applyUserEdit,possessions} from './admin.js';
@@ -24,6 +25,7 @@ export class AccountStore extends DurableObject {
   this.sql.exec('CREATE TABLE IF NOT EXISTS limits(key TEXT PRIMARY KEY,count INTEGER NOT NULL,until INTEGER NOT NULL)');
   this.sql.exec('CREATE TABLE IF NOT EXISTS metadata(key TEXT PRIMARY KEY,value TEXT NOT NULL)');
   this.sql.exec("INSERT OR IGNORE INTO metadata VALUES('rate_salt',?)",random());
+  initLeaderboard(this);
   for(const address of BOOTSTRAP)this.sql.exec('INSERT OR IGNORE INTO roles VALUES(?,?,NULL,1)',address,Date.now());
  }
  rows(q,...p){return this.sql.exec(q,...p).toArray();} one(q,...p){return this.rows(q,...p)[0];}
@@ -104,7 +106,7 @@ export class AccountStore extends DurableObject {
    if(user.email!==identity.email)problem('Email Google berubah. Hubungi admin untuk pemulihan akun.',409);
    const signedCookie=await this.login(user,req);if(revokeGoogle)await this.notifySessions({userId:user.id,all:true,keep:await hash(signedCookie.split(';')[0].split('=')[1])});const headers=new Headers({Location:url.origin+safeReturn(entry.return_to,url.origin),'Cache-Control':'no-store'});headers.append('Set-Cookie',signedCookie);headers.append('Set-Cookie',cookie('mk_oauth','',0,req));return new Response(null,{status:303,headers});
   }
-  if(!['POST','PATCH','DELETE'].includes(method)&&!path.startsWith('/api/account/admin')&&!['/api/account/history'].includes(path))problem('Tidak ditemukan.',404);
+  if(!['POST','PATCH','DELETE'].includes(method)&&!path.startsWith('/api/account/admin')&&!['/api/account/history','/api/account/leaderboard'].includes(path))problem('Tidak ditemukan.',404);
   if(['POST','PATCH','DELETE'].includes(method)){
    if(req.headers.get('Origin')!==url.origin)problem('Asal permintaan tidak diizinkan.',403);
    if(req.headers.get('Sec-Fetch-Site')==='cross-site')problem('Permintaan lintas situs ditolak.',403);
@@ -127,6 +129,7 @@ export class AccountStore extends DurableObject {
    return response({user:this.publicUser(user)},200,{'Set-Cookie':await this.login(user,req)});
   }
   if(!u)problem('Masuk ke akun dahulu.',401);
+  if(path==='/api/account/leaderboard'&&method==='GET')return leaderboard(this,url,u);
   if(path==='/api/account/logout'&&method==='POST'){this.sql.exec('DELETE FROM sessions WHERE hash=?',u.session_hash);this.log('auth.logout',u.id);await this.notifySessions({userId:u.id,sessionIds:[u.session_hash]});return response({ok:true},200,{'Set-Cookie':cookie('mk_session','',0,req)});}
   if(path==='/api/account/logout-others'&&method==='POST'){if(Date.now()-u.session_created>1800000)problem('Masuk ulang untuk mengakhiri perangkat lain.',401);this.sql.exec('DELETE FROM sessions WHERE user_id=? AND hash<>?',u.id,u.session_hash);this.log('auth.sessions_revoked',u.id);await this.notifySessions({userId:u.id,all:true,keep:u.session_hash});return response({ok:true});}
   if(path==='/api/account/profile'&&method==='PATCH'){const b=parsed;const name=displayName(b.name);this.sql.exec('UPDATE users SET name=?,revision=revision+1 WHERE id=?',name,u.id);this.log('profile.updated',u.id);return response({ok:true});}
@@ -189,9 +192,15 @@ export class AccountStore extends DurableObject {
  async throttle(req,action,max=8){const salt=this.one("SELECT value FROM metadata WHERE key='rate_salt'").value;const fingerprint=await hash(salt+':'+(req.headers.get('CF-Connecting-IP')||'local'));this.limit(action+':'+fingerprint,max);if(Math.random()<.02)this.cleanup();}
  overview(){const now=Date.now(),since=now-7*DAY;return response({totals:this.one('SELECT COUNT(*) users,COALESCE(SUM(xp),0) xp,COALESCE(SUM(coins),0) coins FROM users'),activeToday:this.one('SELECT COUNT(*) n FROM users WHERE last_seen>?',now-DAY).n,play:this.one('SELECT COUNT(*) rounds,COUNT(DISTINCT user_id) players,COALESCE(SUM(seconds),0) seconds,COALESCE(SUM(xp),0) xp FROM rewards WHERE time>?',since),daily:this.rows("SELECT strftime('%Y-%m-%d',time/1000,'unixepoch') day,COUNT(*) rounds,COUNT(DISTINCT user_id) players,SUM(xp) xp FROM rewards WHERE time>? GROUP BY day ORDER BY day",since),games:this.rows('SELECT game,COUNT(*) rounds,COUNT(DISTINCT user_id) players,SUM(seconds) seconds FROM rewards WHERE time>? GROUP BY game',since),retentionDays:90,measurement:'Participant-rounds, not unique table rounds. Playtime sums eligible connected-player time; not a billing estimate.',generatedAt:now});}
  reward(b){
-  if(!b||typeof b.id!=='string'||b.id.length>200||!Array.isArray(b.players)||b.players.length>8||!['capsa','mahjong','poker','catur','domino','blackjack'].includes(b.game))problem('Reward tidak valid.');
-  this.ctx.storage.transactionSync(()=>{const today=Math.floor(Date.now()/DAY)*DAY;for(const p of b.players){if(typeof p.userId!=='string'||!Number.isFinite(p.seconds)||p.seconds<REWARDS.minSeconds)continue;const id=b.id+':'+p.userId;if(this.one('SELECT id FROM rewards WHERE id=?',id))continue;const u=this.one('SELECT id,xp,coins FROM users WHERE id=?',p.userId);if(!u)continue;const earned=this.one('SELECT COALESCE(SUM(xp),0) n FROM rewards WHERE user_id=? AND time>=?',p.userId,today).n;const xp=Math.max(0,Math.min(1000000000-u.xp,1000000000-u.coins,REWARDS.dailyCap-earned,REWARDS.play+(p.won?REWARDS.winBonus:0))),seconds=Math.min(7200,Math.max(0,Math.floor(p.seconds)));
+  if(!b||typeof b.id!=='string'||b.id.length>200||!Array.isArray(b.players)||b.players.length>8||!GAMES.includes(b.game))problem('Reward tidak valid.');
+  const seen=new Set();for(const p of b.players){if(!p||typeof p.userId!=='string'||p.userId.length>80||seen.has(p.userId)||!Number.isFinite(p.seconds)||p.seconds<0)problem('Peserta hasil tidak valid.');seen.add(p.userId);if(b.scoreVersion===1&&!(p.points===null&&p.money===null)&&(!Number.isSafeInteger(p.points)||!Number.isSafeInteger(p.money)||Math.abs(p.points)>1000000000000000||Math.abs(p.money)>1000000000000000))problem('Hasil poin tidak valid.');}
+  this.ctx.storage.transactionSync(()=>{const today=Math.floor(Date.now()/DAY)*DAY;for(const p of b.players){
+   const id=b.id+':'+p.userId;if(this.one('SELECT id FROM rewards WHERE id=?',id)||this.one('SELECT id FROM game_result_receipts WHERE id=?',id))continue;
+   const u=this.one('SELECT id,xp,coins FROM users WHERE id=?',p.userId);if(!u)continue;let xp=0;
+   if(p.seconds>=REWARDS.minSeconds){const earned=this.one('SELECT COALESCE(SUM(xp),0) n FROM rewards WHERE user_id=? AND time>=?',p.userId,today).n;xp=Math.max(0,Math.min(1000000000-u.xp,1000000000-u.coins,REWARDS.dailyCap-earned,REWARDS.play+(p.won?REWARDS.winBonus:0)));const seconds=Math.min(7200,Math.floor(p.seconds));
     this.sql.exec('INSERT INTO rewards VALUES(?,?,?,?,?,?,?,?)',id,p.userId,Date.now(),xp,xp,b.game,p.won?'win':'played',seconds);this.sql.exec('UPDATE users SET xp=xp+?,coins=coins+?,last_seen=?,revision=revision+1 WHERE id=?',xp,xp,Date.now(),p.userId);this.log('game.completed',p.userId,{xp,coins:xp,seconds,outcome:p.won?'win':'played',eventId:b.id},b.game,b.room,id);
-   }});return response({ok:true});
+   }
+   if(b.scoreVersion===1||p.seconds>=REWARDS.minSeconds)recordStanding(this,b,p,id,xp);
+  }});return response({ok:true});
  }
 }

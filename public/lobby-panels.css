@@ -1,0 +1,28 @@
+/* Shared lobby surfaces. Loaded last so page themes cannot split shared panels apart. */
+:root{--mk-ui-panel:var(--card,var(--panel,#142c25));--mk-ui-line:var(--line,#bdc4a333);--mk-ui-ink:var(--ink,var(--text,var(--paper,#f0ead9)));--mk-ui-muted:var(--muted,#adbea9);--mk-ui-radius:12px;--mk-ui-gap:12px;--mk-ui-font:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+html[data-theme] :is(.mk-room-tools,.mk-directory,.lb-home,.lb-entry,.lb-page-panel){box-sizing:border-box;min-width:0;background:var(--mk-ui-panel);color:var(--mk-ui-ink);border:1px solid var(--mk-ui-line);border-radius:var(--mk-ui-radius);box-shadow:none}
+html[data-theme] :is(.lb-home,.mk-directory){width:calc(100% - 80px);max-width:1200px;margin:16px auto 40px;padding:28px}
+html[data-theme] :is(.lb-home .lb-heading,.mk-directory .section-heading){display:flex;align-items:center;flex-wrap:wrap;gap:10px 18px;margin:0 0 24px}
+html[data-theme] :is(.lb-home .lb-heading h2,.mk-directory h2){margin:0;font:normal 32px/1.2 Georgia,serif;color:var(--mk-ui-ink)}
+html[data-theme] .mk-directory .section-heading>div{min-width:0}.mk-directory .section-heading p{font:13px/1.6 var(--mk-ui-font);margin:0 0 0 auto;color:var(--mk-ui-muted)}
+html[data-theme] .mk-directory .section-heading .eyebrow{margin-bottom:10px}
+html[data-theme] .lb-entry{width:calc(100% - 40px);max-width:1400px;margin:12px auto;padding:0;overflow:hidden;font:13px/1.6 var(--mk-ui-font)}
+html[data-theme] .lb-entry>summary{box-sizing:border-box;display:flex;align-items:center;min-height:68px;padding:12px 16px;gap:12px;font:650 13px/1.6 var(--mk-ui-font);color:var(--mk-ui-ink)}
+html[data-theme] .lb-entry>summary small{font:400 11px/1.6 var(--mk-ui-font);color:var(--mk-ui-muted);margin-left:auto}
+html[data-theme] .lb-entry>summary:after{font:400 20px/1 var(--mk-ui-font);color:var(--mk-ui-muted);flex-shrink:0}
+html[data-theme] .lb-entry>section{padding:20px 16px;border-top:1px solid var(--mk-ui-line)}
+html[data-theme] .lb-entry .lb-heading h2{font:600 18px/1.4 var(--mk-ui-font);color:var(--mk-ui-ink)}
+html[data-theme] .lb-page-panel{padding:28px}
+html[data-theme] .lb-controls{gap:12px;margin-bottom:20px;font:13px/1.5 var(--mk-ui-font)}
+html[data-theme] .lb-controls label{font:inherit;gap:10px}
+html[data-theme] :is(.lb-controls select,.lb-refresh){box-sizing:border-box;min-height:44px;height:44px;border:1px solid var(--mk-ui-line);border-radius:8px;background:var(--mk-control);color:var(--mk-ui-ink);font-family:var(--mk-ui-font)}
+html[data-theme] .lb-controls select{padding:9px 12px;font-size:13px}
+html[data-theme] .lb-refresh{width:44px;flex-basis:44px;font-size:23px;padding:0}
+html[data-theme] .lb-sorts{box-sizing:border-box;display:flex;align-items:center;gap:2px;height:44px;padding:3px;border:1px solid var(--mk-ui-line);border-radius:10px;background:var(--mk-control);color:var(--mk-ui-ink)}
+html[data-theme] .lb-sorts button{box-sizing:border-box;height:36px;min-height:36px;margin:0;padding:5px 14px;border:1px solid transparent;border-radius:7px;font:600 12px/1.4 var(--mk-ui-font);color:var(--mk-ui-ink);background:transparent}
+html[data-theme] .lb-sorts button[aria-pressed=true]{background:var(--mk-accent);color:var(--mk-accent-ink);border-color:var(--mk-accent)}
+html[data-theme] :is(.lb-heading>a,.lb-footnote,.lb-player small,.lb-results th,.lb-entry>summary small){color:var(--mk-ui-muted)}
+html[data-theme] .lb-message{font:13px/1.7 var(--mk-ui-font);padding:12px 0}.lb-message a{font:inherit}
+@media(max-width:760px){html[data-theme] :is(.lb-home,.mk-directory){width:calc(100% - 44px);padding:22px;margin:16px auto 32px}html[data-theme] :is(.lb-home .lb-heading h2,.mk-directory h2){font-size:28px}html[data-theme] .lb-heading>a{flex-basis:auto;margin-left:auto}.mk-directory .section-heading p{margin-left:0}.mk-directory .section-heading{align-items:flex-start}html[data-theme] .lb-page-panel{padding:22px}}
+@media(max-width:700px){html[data-theme] .lb-entry{width:calc(100% - 24px);margin:12px auto}html[data-theme] .lb-entry>summary{padding:10px 12px;min-height:62px}html[data-theme] .lb-entry>section{padding:16px 12px}}
+@media(max-width:420px){html[data-theme] :is(.lb-home,.mk-directory){padding:18px}html[data-theme] .lb-entry>summary small{display:none}html[data-theme] .lb-heading>a{flex-basis:100%;margin-left:0;text-align:left}}

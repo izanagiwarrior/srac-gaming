@@ -1,6 +1,6 @@
 'use strict';
 (function () {
-  const creators = { capsa:'Faiz T',mahjong:'Hendy W',poker:'Hendy W',catur:'Faiz T',domino:'Faiz T',blackjack:'Faiz T' };
+  const creators = { capsa:'Faiz T',mahjong:'Hendy W',poker:'Hendy W',catur:'Faiz T',domino:'Faiz T',blackjack:'Faiz T',uno:'Faiz T',ludo:'Faiz T',monopoli:'Faiz T',reversi:'Faiz T' };
   const esc = value => String(value ?? '').replace(/[&<>"']/g,c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const idr = n => new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(n || 0);
   const SUITS = {s:'♠',h:'♥',d:'♦',c:'♣'};
@@ -36,8 +36,8 @@
     emojiMenu.innerHTML='<div class="mk-emoji-popover-heading"><b>Pilih emoji</b><button type="button" data-mk-emoji-close aria-label="Tutup pilihan emoji">×</button></div>'+emojiBar();
     document.body.append(emojiMenu);placeEmojiMenu();emojiMenu?.querySelector('[data-mk-emoji]')?.focus({preventScroll:true});
   }
-  const EMOTE_STAGES={capsa:'.bt-table',mahjong:'#game .table',poker:'.table-shell',catur:'.board-area .board',domino:'.domino-table',blackjack:'.bj-table'};
-  const FEEDBACK_COLUMNS={capsa:'#view',mahjong:'#lobby .lcol',poker:'.mk-layout > div',catur:'.board-area',domino:'.table-area',blackjack:'.mk-layout > section'};
+  const EMOTE_STAGES={capsa:'.bt-table',mahjong:'#game .table',poker:'.table-shell',catur:'.board-area .board',domino:'.domino-table',blackjack:'.bj-table',uno:'.party-table',ludo:'.party-table',monopoli:'.party-table',reversi:'.party-table'};
+  const FEEDBACK_COLUMNS={capsa:'#view',mahjong:'#lobby .lcol',poker:'.mk-layout > div',catur:'.board-area',domino:'.table-area',blackjack:'.mk-layout > section',uno:'.table-area',ludo:'.table-area',monopoli:'.table-area',reversi:'.table-area'};
   let emoteRoom=null,emotesReady=false,emoteLayer=null,emoteFrame=null,emoteUndo=null;
   const seenEmotes=new Set(),bursts=new Map();
   let floatingLayer=null,floatingFrame=null;
@@ -185,7 +185,7 @@
   }
   function durationSettings(slug,s,disabled) {
     if(slug==='catur')return `<label>Mode main<select data-mk-clock-mode ${disabled}>${[['casual','Santai · tanpa jam'],['blitz5','Quick Play · Blitz 5+0'],['blitz3plus2','Blitz 3+2 · tambah 2 detik/langkah']].map(([value,label])=>`<option value="${value}" ${(s.clockMode||'casual')===value?'selected':''}>${label}</option>`).join('')}</select></label><p class="mk-note">Blitz: waktu per pemain, dihitung server. Jam dijeda saat pemain terputus atau permainan dijeda. Pilihan terkunci sejak mulai.</p>`;
-    if(['domino','blackjack'].includes(slug))return `<label>Durasi permainan<select data-mk-play-mode ${disabled}>${[['standard','Santai · ronde bebas'],['quick','Quick Play · 1 ronde']].map(([value,label])=>`<option value="${value}" ${(s.playMode||'standard')===value?'selected':''}>${label}</option>`).join('')}</select></label><p class="mk-note">${s.playMode==='quick'?'Satu ronde lalu tampil rekap selesai. Quick Play baru harus dimulai lagi secara eksplisit; saldo tetap tercatat.':'Setiap ronde selesai sebelum host/pemain memilih main lagi.'}</p>`;
+    if(['domino','blackjack','uno','ludo','monopoli','reversi'].includes(slug))return `<label>Durasi permainan<select data-mk-play-mode ${disabled}>${[['standard','Santai · ronde bebas'],['quick',slug==='ludo'?'Quick Play · 1 pion':slug==='reversi'?'Quick Play · 6×6':slug==='monopoli'?'Quick Play · 8 giliran/pemain':'Quick Play · 1 ronde']].map(([value,label])=>`<option value="${value}" ${(s.playMode||'standard')===value?'selected':''}>${label}</option>`).join('')}</select></label><p class="mk-note">${s.playMode==='quick'?'Satu ronde lalu tampil rekap selesai. Quick Play baru harus dimulai lagi secara eksplisit; saldo tetap tercatat.':'Setiap ronde selesai sebelum host/pemain memilih main lagi.'}</p>`;
     return '';
   }
   function settings(data) {
@@ -235,7 +235,7 @@
   });
   document.addEventListener('keydown',event=>{if(event.key==='Escape'&&emojiMenu){event.preventDefault();event.stopImmediatePropagation();closeEmojiMenu('toggle');}});
   document.addEventListener('focusin',event=>{if(emojiMenu&&!emojiMenu.contains(event.target)&&!event.target.closest('[data-mk-emoji-toggle]'))closeEmojiMenu();});
-  document.addEventListener('DOMContentLoaded',()=>{const slug=location.pathname.split('/')[1];const credit=document.querySelector('.hubbar>span');if(credit&&creators[slug])credit.textContent='Creator: '+creators[slug]+' · MEJA KITA';});
+  document.addEventListener('DOMContentLoaded',()=>{const slug=location.pathname.split('/')[1];const bar=document.querySelector('.hubbar');if(bar&&creators[slug]){bar.classList.add('mk-credit-in-footer');bar.querySelector(':scope>span')?.remove();let credit=document.querySelector('footer.mk-game-credit');if(!credit){credit=document.createElement('footer');credit.className='mk-game-credit';credit.setAttribute('aria-label','Kreator permainan');const mark=document.createElement('img');mark.className='mk-brand-emblem';mark.src='/brand-emblem.webp';mark.width=24;mark.height=24;mark.alt='';mark.decoding='async';credit.append(mark,document.createTextNode('Creator: '+creators[slug]+' · MEJA KITA'));document.body.append(credit);}}});
   function readSettings(scope=document){const rate=scope.querySelector('[data-mk-rate]'),level=scope.querySelector('[data-mk-level]'),play=scope.querySelector('[data-mk-play-mode]'),clock=scope.querySelector('[data-mk-clock-mode]');return rate&&level?{pointValue:Number(rate.value),botLevel:level.value,...(play?{playMode:play.value}:{}),...(clock?{clockMode:clock.value}:{})}:{};}
   window.MejaTools={emojiBar,emojiPicker,isEmote,receiveEmotes,clearEmotes:clearFeedback,sidebar,settings,recap,cheat,card,esc,idr,creators,exportCSV,readSettings};
 })();

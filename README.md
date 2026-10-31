@@ -1,5 +1,7 @@
 # Meja Kita
 
+Candidate lokal **3.11.12**: sepuluh game, Mahjong besar di baris pertama, sembilan game lain berurutan abjad dalam grid tiga kolom. Termasuk UNO, Ludo, Monopoli Nusantara dan Reversi. Ilustrasi kartu dirapikan; naga hitam Faiz di logo dan login dengan animasi ringan. [Branding](docs/DRAGON-BRAND.md). Leaderboard gabungan/per game, default uang, tersimpan di database. [Panduan leaderboard](docs/LEADERBOARD.md). Ilustrasi karakter baru dan hero game-night sudah dikompres. [Artwork](docs/CHARACTER-ART.md). Belum dipasang ke cloud/Git. [Aturan dan batas verifikasi](docs/TEN-GAMES.md).
+
 Satu landing page untuk **Capsa Banting, Mahjong, Poker Texas Hold’em, Catur, Domino Gaple, dan Blackjack**. Hosting utama memakai Cloudflare Workers + SQLite Durable Object tanpa laptop. Target Node.js satu port tetap tersedia secara terpisah.
 
 Repository: [izanagiwarrior/srac-gaming](https://github.com/izanagiwarrior/srac-gaming).
@@ -177,3 +179,25 @@ Admin operations and accounting: [ADMIN-CONTROLS.md](docs/ADMIN-CONTROLS.md).
 
 
 Account/device ownership: [ACCOUNT-SAFETY.md](docs/ACCOUNT-SAFETY.md) describes confirmed cross-device recovery, one occupied room, revoked-session handling and targeted verification. See root AGENTS for current release status.
+
+UI layout candidate3.11.2: [scope and review limits](docs/UI-LAYOUT.md). Local-only, not published.
+
+Candidate3.11.3: Papan Juara features Hendy green/Faiz white dragons giving thumbs up; local-only preview3031.
+
+Candidate3.11.4 unifies the black dragon and gold club into one transparent brand emblem; local preview3032, unpublished.
+
+Candidate3.11.5: classic-inspired UNO card faces rendered in CSS; local-only preview3033.
+
+Candidate3.11.6: Faiz profile cosmetic uses white dragon; black brand/login stay, local-only preview3034.
+
+Candidate3.11.7: compact shared game topbar; local-only preview3035.
+
+Candidate3.11.8 uses [Wikimedia UNO card artwork](docs/UNO-CARD-ART.md) instead of the rejected CSS faces; local preview3036.
+
+Candidate3.11.9: consistent dragon/club tab icon for all13entry pages; local preview3037.
+
+Candidate3.11.10: consistent native-theme ranking/preferences/directory panels, local preview3038.
+
+Candidate3.11.11: one shared left-arrow disclosure pattern across all entries/sidebar controls, local preview3039.
+
+Candidate3.11.12: creator credits centered in normal-flow footer, local preview3040.

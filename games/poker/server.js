@@ -139,7 +139,7 @@ function createPokerServer({dataDir = path.join(__dirname,'data'), botDelay = 30
     }
     afterAction(wasOver) {
       if (!wasOver && this.game.over) {
-        hub?.recordResult(this,this.players.map((p,i)=>(this.game.result?.delta?.[i]||0)>0),String(this.game.handNo),this.players.map(p=>!!p.inHand));
+        hub?.recordResult(this,this.players.map((p,i)=>(this.game.result?.delta?.[i]||0)>0),String(this.game.handNo),this.players.map(p=>!!p.inHand),this.game.result?.delta);
         for (const p of this.players) if (p.inHand) p.handsPlayed++;
         this.players[this.game.dealer].dealerRounds++;
         this.history.push({handNo:this.game.handNo,board:this.game.board,result:this.game.result,names:this.players.map(p=>p.name),time:Date.now()});

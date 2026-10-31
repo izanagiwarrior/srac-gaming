@@ -3,6 +3,10 @@ import {createApp as createCapsa} from '../games/capsa/server.js';
 import {createMahjongServer} from '../games/mahjong/server.js';
 import {createPokerServer} from '../games/poker/server.js';
 import {createChessServer} from '../games/chess/server.js';
+import {createMonopoliServer} from '../games/monopoli/server.js';
+import {createReversiServer} from '../games/reversi/server.js';
+import {createUnoServer} from '../games/uno/server.js';
+import {createLudoServer} from '../games/ludo/server.js';
 import {createDominoServer} from '../games/domino/server.js';
 import {createBlackjackServer} from '../games/blackjack/server.js';
 import {installRoomService} from '../games/shared/room-service.js';
@@ -15,7 +19,7 @@ import {AccountStore} from './accounts/store.js';
 import {AccountRooms} from './accounts/room-access.js';
 export {AccountStore};
 const VERSION=__SRAC_BUILD__;
-const GAMES=['capsa','mahjong','poker','catur','domino','blackjack'];
+const GAMES=['capsa','mahjong','poker','catur','domino','blackjack','uno','ludo','monopoli','reversi'];
 const JSON_HEADERS={'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'};
 const json=(value,status=200)=>new Response(JSON.stringify(value),{status,headers:JSON_HEADERS});
 const failed=()=>json({error:'Server belum dapat memproses sesi. Coba hubungkan kembali.'},503);
@@ -37,7 +41,7 @@ export class GamingHub extends DurableObject {
       this.apps=new Map([
         ['capsa',createCapsa()],['mahjong',createMahjongServer()],
         ['poker',createPokerServer({dataDir:null,managed:true,getAddresses:()=>[]})],
-        ['catur',createChessServer({getAddresses:()=>[]})],['domino',createDominoServer({getAddresses:()=>[]})],['blackjack',createBlackjackServer({getAddresses:()=>[]})]
+        ['catur',createChessServer({getAddresses:()=>[]})],['domino',createDominoServer({getAddresses:()=>[]})],['blackjack',createBlackjackServer({getAddresses:()=>[]})],['uno',createUnoServer()],['ludo',createLudoServer()],['monopoli',createMonopoliServer()],['reversi',createReversiServer()]
       ]);
       this.services=new Map();
       try{
@@ -186,12 +190,12 @@ export default {
     if(['/account/','/admin/'].includes(path))return env.ASSETS.fetch(new Request(new URL('/account/'+url.search,url),request));
     if(path==='/favicon.ico')return new Response(null,{status:204});
     if(path==='/health')return json({ok:true,version:VERSION,games:GAMES,hosting:'cloudflare-workers'});
-    if(path==='/api/lobby'||/^\/(capsa|mahjong|poker|catur|domino|blackjack)\/ws$/.test(path)){
+    if(path==='/api/lobby'||/^\/(capsa|mahjong|poker|catur|domino|blackjack|uno|ludo|monopoli|reversi)\/ws$/.test(path)){
       if(path==='/api/lobby'&&!['GET','HEAD'].includes(request.method))return json({error:'Method not allowed'},405);
       return env.GAMING_HUB.get(env.GAMING_HUB.idFromName('office-hub-v1')).fetch(request);
     }
-    if(/^\/(capsa|mahjong|poker|catur|domino|blackjack)\/api\/info$/.test(path))return json({addresses:[],hosting:'cloudflare-workers'});
-    const bare=/^\/(capsa|mahjong|poker|catur|domino|blackjack)$/.exec(path);
+    if(/^\/(capsa|mahjong|poker|catur|domino|blackjack|uno|ludo|monopoli|reversi)\/api\/info$/.test(path))return json({addresses:[],hosting:'cloudflare-workers'});
+    const bare=/^\/(capsa|mahjong|poker|catur|domino|blackjack|uno|ludo|monopoli|reversi)$/.exec(path);
     if(bare)return Response.redirect(url.origin+path+'/'+url.search,308);
     if(!['GET','HEAD'].includes(request.method))return json({error:'Method not allowed'},405);
     return env.ASSETS.fetch(request);

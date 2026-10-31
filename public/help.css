@@ -12,3 +12,13 @@ html body .mk-help-label-text{min-width:0;overflow-wrap:anywhere}
 html body .mk-help-label>.mk-help-trigger{flex:0 0 28px;margin:0}
 
 html body .mk-help-standalone{font:600 13px/1.4 system-ui,sans-serif;margin:8px 0;color:var(--mk-muted,#b8c8b5)}
+
+/* Hero headings keep help beside the last text line, rather than centred in a tall flex row. */
+html body :is(h1,h2,h3,h4).mk-help-label{display:block}html body :is(h1,h2,h3,h4).mk-help-label>.mk-help-label-text{display:inline}html body :is(h1,h2,h3,h4).mk-help-label>.mk-help-trigger{display:inline-flex;margin-inline-start:8px;vertical-align:middle}
+
+/* Shared readable help on every entry page; override game list defaults locally. */
+html body .mk-help-popover>p{margin:0;padding:0;font:inherit;color:inherit}
+html body .mk-help-popover>ul{display:block;margin:0;padding:0 0 0 18px;list-style:disc outside;font:inherit;color:inherit}
+html body .mk-help-popover>ul>li{display:list-item;margin:0;padding:0;font:inherit;color:inherit;line-height:1.6}
+html body .mk-help-popover>ul>li+li{margin-top:8px}
+html body .mk-help-popover>ul>li::marker{color:var(--mk-gold,#dfbd7d)}

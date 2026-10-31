@@ -1,5 +1,125 @@
 # Project completion audit — 31 October 2026
 
+## Pending3.11.12 — creator credits in centered footer (31 October2026)
+
+Local3.11.12/build2026-10-31-creator-footer-1 includes3.11.11. Shared game-tools moves creator/emblem from top .hubbar to one semantic footer.mk-game-credit appended at document end for all10games; normal flow, centered, small, wrapping/safe-area padding, never fixed/overlay. Top game bar now2columns/back+profile. Removed duplicate Creator smalls on4new-game headers and dynamic new-game entry eyebrow credit; landing game-card authors and creator mapping retained. Existing heading/branding/avatar/disclosure/rules/auth/data unchanged.
+
+Preview http://127.0.0.1:3040/mahjong/ /privateSQLite/session29744; isolated work/creator-footer-patch/source. Build/source checks,958px demo Mahjong Dark/Light and UNO long entry footer reviewed; no room/start/gameplay/automated/mobile/active table verification. Canonicalmain46321a1/cloud3.8.1/oldpreviews/live unchanged; no install/commit/push/deploy. Earlierpendingincluded/superseded, newrelease authorization required; quota not rechecked. Proof outputs/creator-footer-preview.png.
+
+
+## Pending3.11.11 — consistent disclosure controls (31 October2026)
+
+Local3.11.11/build2026-10-31-disclosure-consistency-1 includes3.11.10. Last-loaded public/disclosures.css on all13entries gives every native details/summary the same small left arrow (right=closed/down=open), hides native marker/right+/minus variants, standardizes8pxlabel gap. Shared sidebar fold buttons now prepend same arrow and omit visible Buka/Lipat/?/Tutup labels; aria-label/expanded states and persistence keys remain. Help ? is still help, actions/navigation/emoji retain distinct semantics. No animation required, no color/rules/auth/storage changes.
+
+Isolated work/disclosure-consistency-patch/source, preview http://127.0.0.1:3039/mahjong/ /privateSQLite/session23479. Build/source/13stylesheet checks;958px demo Mahjong preferences+ranking closed/open, Dark/Light; private unstarted CMRU lobby sidebar chat/cheat/recap/log reviewed and cheat opened, then left. No Start/production/gameplay/automated/mobile/fullkeyboard/all-state validation. Canonicalmain46321a1/cloud3.8.1/oldpreviews/live untouched; no install/commit/push/deploy. Previouspendingincluded/superseded, new release permission required; quota not rechecked. Proof outputs/consistent-disclosure-preview.png.
+
+
+## Pending3.11.10 — consistent leaderboard/lobby panels (31 October2026)
+
+Local3.11.10/build2026-10-31-lobby-panel-consistency-1 includes3.11.9. New last-loaded public/lobby-panels.css on all13HTML entries defines shared surface/text/border/radius tokens from each page's native card/panel theme. Preferences, ranking and room-directory now share those colors,12pxcorner and border; game ranking uses same content width/insets and70pxdesktop collapsed height as preferences,13pxfont/650weight. Landing leaderboard+directory share max1200/contentwidth/padding28/title32 and margin. Ranking selects/refresh44px and sortgroup44px with36pxbuttons match theme switch proportions; smaller breakpoints coordinated. Native Mahjong dark cards are gray, Poker/UNO use own native green surfaces, Light uses native cream. No JS/engine/auth/storage changes except hub build metadata.
+
+Preview http://127.0.0.1:3038/mahjong/ /privateSQLite/session40811, isolated work/lobby-panel-consistency-patch/source. Build/source checks and13stylesheetreferences. Manual958px landing computed identical backgrounds/borders/width878/left40/padding28/radius12/title32; Mahjong ranking/preference matched gray/border/width918/left20/radius12, reviewed closed/open Dark/Light. UNO/Poker closed panels reviewed. No production/room/start/gameplay/automated/mobile/populatedrank/longdata validation. Canonicalmain46321a1/cloud3.8.1/oldpreviews/live unchanged; no install/commit/push/deploy. Earlierpendingincluded/superseded; new release authorization required, quota not rechecked. Proof outputs/consistent-mahjong-ranking-preview.png.
+
+
+## Pending3.11.9 — consistent tab favicon (31 October2026)
+
+Local3.11.9/build2026-10-31-favicon-brand-1 includes3.11.8. All13HTML entry pages (hub/account/leaderboard +10games) explicitly use /favicon-dragon-v1.png,64×64RGBA/3729bytes, derived from existing unified black-dragon/gold-club emblem. New filename avoids stale old-favicon cache. Legacy favicon.svg also embeds the new emblem as a fallback. No imagegen/new character or account/game/storage changes.
+
+Isolated work/favicon-brand-patch/source, preview http://127.0.0.1:3037/ /privateSQLite/session95555. Build/source and13icon-tag checks; browser landing resolves new favicon link and compressed asset inspected. Browser tab chrome icon itself not captured by page screenshot; no gameplay/automated/mobile verification. Canonicalmain46321a1/cloud3.8.1/oldpreviews/live unchanged, no install/commit/push/deploy. Prior3.11.8included/superseded, new release permission required; quota not rechecked. Icon proof outputs/dragon-favicon.png.
+
+
+## Pending3.11.8 — Wikipedia UNO artwork (31 October2026)
+
+Local3.11.8/build2026-10-31-uno-wiki-art-1 includes3.11.7. Replaces rejected CSS-drawn UNO faces with cropped artwork from Wikimedia Commons UNO cards deck.svg by Dmitry Fomin (file page CC0, used by user Wikipedia reference). Local WebP atlas54unique faces:2240×1200/240066bytes,160×240 per slot. CSS class mappings for4colors×13values +Wild/+4, consistent landing/entry/hand/discard. Native semantic labels/disabled/card click behavior retained; CSS center/corners no longer render over image. No bitmap hotlinks or runtime fetch from Wikimedia. Original/reference/provenance outside public; docs/UNO-CARD-ART.md recordsauthor/source/license/changes. Community illustration is not a claim of official Mattel authorization/edition, enginehouse rules unchanged.
+
+Preview http://127.0.0.1:3036/ /privateSQLite/session42637; isolated work/uno-wiki-art-patch/source. Source/build checks, master54face layout and1280px landing UNO reviewed; no active game/hand mapping/Wild gameplay/automated/mobile validation. Canonicalmain46321a1/cloud3.8.1/oldpreviews/live unchanged; no install/commit/push/deploy. Supersedes rejected3.11.5CSSappearance while includes otherpendingpatches; new release authorization required. Quota not rechecked. Proof outputs/uno-wiki-cards-preview.png.
+
+
+## Pending3.11.7 — compact shared game header (31 October2026)
+
+Local3.11.7/build2026-10-31-compact-game-header-1 includes3.11.6. Shared account bridge inserts profile link directly in .hubbar instead of a separate full-width top account strip for all10games. Single desktop row: back link left, small creator credit +profile right. At<=640px credit becomes left subcaption while profile spans rows; narrow names wrap within bounded profile. Native focus/links and account fetching/gating/name ownership remain unchanged. Non-game landing/account placement unchanged.
+
+Preview http://127.0.0.1:3035/uno/ /privateSQLite/session68327; isolated work/compact-game-header-patch/source. Build/source checks;958px demo-authenticated UNO Dark/Light, Mahjong/Poker entry reviewed. No room/start/gameplay/automated/mobile/long-name verification. Canonicalmain46321a1/cloud3.8.1/oldpreviews/live unchanged; no canonical install/commit/push/deploy. Prior3.11.6included/superseded, new publication permission required. Quota not rechecked. Proof outputs/compact-game-header-preview.png.
+
+
+## Pending3.11.6 — Faiz white profile avatar (31 October2026)
+
+Local3.11.6/build2026-10-31-faiz-white-avatar-1 includes3.11.5. Existing admin-faiz cosmetic keeps its ID/adminOnly/ownerEmail/price/entitlements, updates display name to Faiz · Ivory Dragon and image to /avatar-admin-faiz-white.webp. New512×512WebP49286bytes, metadata stripped, imagegen reference white Faiz from joint leaderboard illustration. Existing black avatar source retained; black integrated brand emblem and black login portrait/account markup byte-identical to3.11.5. No account/session/inventory/database writes or new grants. Existing equipped admin-faiz resolves new art after authorized release; no production profile changed yet.
+
+Isolated work/faiz-white-avatar-patch/source, preview http://127.0.0.1:3034/ /privateSQLite/session65866. Build/source checks and compressed art inspected; no real-account/catalog equip, room/gameplay/automated/mobile verification. Canonical staging main46321a1/cloud3.8.1/oldpreviews/live unchanged; not installed/committed/pushed/deployed. Prior3.11.5included/superseded; new release authorization required, quota not rechecked.
+
+
+## Pending3.11.5 — classic UNO card appearance (31 October2026)
+
+Local3.11.5/build2026-10-31-uno-classic-1 includes3.11.4. Shared lightweight public/uno-cards.css gives UNO props/entry/cards classic red-yellow-green-blue faces, white diagonal oval/border, colored central symbols and inverted corner indices; Wild black face with four-color oval. CSS-rendered approximation guided by Mattel UNO reference https://shop.mattel.com/collections/uno, not licensed official asset files or an official-edition claim. No new bitmap/payload image. Applied to hub props, UNO entry illustration and dynamic hand/discard markup. No rule/engine/account/storage changes; earlier house variants unchanged.
+
+Preview http://127.0.0.1:3033/ /privateSQLite/session92141, isolated work/uno-classic-patch/source. Build/source checks; desktop1280px landing UNO card and958px authenticated demo UNO entry reviewed. No Start/room/gameplay/automated/mobile/active hand/Wild runtime verification. Canonical staging main46321a1/cloud3.8.1/old previews/live unchanged; no install/commit/push/deploy. Prior3.11.4included/superseded; new publication authorization needed. Quota not rechecked. Proof outputs/uno-classic-cards-preview.png.
+
+
+## Pending3.11.4 — unified black-dragon club emblem (31 October2026)
+
+Local3.11.4/build2026-10-31-unified-brand-1 includes3.11.3. Single transparent black-dragon/gold-club emblem replaces the two separate clover+portrait tiles in hub header/footer, account brand, leaderboard and creator bars. Generated with existing Faiz dragon reference;96×96WebP5680bytes with alpha, metadata stripped, master outside source. Decorative only: existing login portrait, actual avatars/admin grants, leaderboard two-dragon art remain unchanged. Brand marks use48px/44px/40px/28px contexts without frame/background.
+
+Isolated work/unified-brand-patch/source, preview http://127.0.0.1:3032/ /privateSQLite/session24117. Build/source checks; desktop1280/958px landing Dark/Light and account login Light reviewed. No credential/account/room/gameplay/automated/mobile actions. Canonical staging main46321a1/cloud3.8.1/old previews/legacy live untouched; no install/commit/push/deploy. Prior3.11.3included/superseded; new release permission required, cloudquota not rechecked. Screenshot outputs/unified-dragon-logo-preview.png.
+
+
+## Pending3.11.3 — leaderboard dragon appreciation art (31 October2026)
+
+Local3.11.3/build2026-10-31-leaderboard-dragons-1 includes3.11.2. Dedicated Papan Juara hero replaces tiger with joint Hendy jade-green/Faiz pearlescent-white dragons, both giving thumbs up. White Faiz is specific to this illustration; black-dragon brand/login and actual reserved avatar/catalog rights stay unchanged. Built-in imagegen using existing jade/Faiz artwork references; final WebP480×320/35080bytes, metadata stripped; master excluded from source. Rounded3:2 contain frame keeps hands/faces visible, stacks below title on narrow CSS breakpoints.
+
+Preview http://127.0.0.1:3031/leaderboard/ /privateSQLite/session73891, isolated work/leaderboard-dragons-patch/source. Build/source checks and desktop1280px Dark/Light reviewed; no mobile/gameplay/automated tests or account/room actions. Canonical staging main46321a1/cloud3.8.1/older previews/legacy live unchanged; not installed/committed/pushed/deployed. Prior3.11.2included/superseded, new release authorization required; cloudquota recovery not rechecked. Proof outputs/leaderboard-dragons-preview.png.
+
+
+## Pending 3.11.2 — responsive UI containment (31 October 2026)
+
+Local candidate **3.11.2 / `2026-10-31-ui-layout-1`** includes3.11.1 and all prior game/art/leaderboard patches. Flexible headers/navigation, ranking filter rows and bounded table columns; consistent ranking panel insets; shrinking account/login/settings grids; sidebar brand now fits its rail; shared game columns, controls and character entry art remain within their containers. Help icons in large headings follow the last line rather than floating midway alongside a tall title. No blanket document overflow hiding, game/auth/storage/settlement changes or new images.
+
+Isolated work/ui-layout-patch/source, preview **http://127.0.0.1:3030/**, private SQLite/session33075. Canonical staging main46321a1, cloud3.8.1, legacy live and previous previews unchanged. Not installed/committed/pushed/deployed; separate new publication authorization required. Prior pending3.11.1 is included/superseded. Cloudquota recovery not rechecked.
+
+Manual browser review: authenticated demo account/profile, empty leaderboard Dark/Light, all10game entry pages at958px, unstarted private Mahjong lobby +expanded cheat sheet, landing/card rows and account sidebar at1280px. Document width equals viewport on measured pages. No game started, no production room actions. Build and changed-JS syntax checked. No automated/gameplay/populated leaderboard/mobile viewport/active table/admin interaction validation; do not claim every UI/state or game bug is proven absent. See docs/UI-LAYOUT.md and private PATCH-MANIFEST.json.
+
+
+## Pending 3.11.1 — contained card art and Faiz dragon brand (31 October 2026)
+
+Local candidate **3.11.1 / `2026-10-31-dragon-brand-1`** includes leaderboard3.11.0/all previous game/art patches. All10landing illustrations now use bounded flex/grid game-prop sets with positive insets, no oversized/negative-positioned card stacks; character portraits use contain. Existing Faiz black dragon decorates the clover/Meja Kita brand on hub/footer/account/leaderboard and shared game creator bars. Only the login/signup hero replaces Table Buddy with the black dragon; actual starter avatar/catalog/admin entitlements/profile ownership stay unchanged. Existing green-dragon/cat hero scene unchanged.
+
+Reuses existing artwork only; no imagegen/new master. Brand96px2700bytes; login384px20660bytes. Cast32KiB guard retained; new brand8KiB guard. Login CSS slow6px float/gold halo, visible pause/resume, prefers-reduced-motion disables animation. Dark/Light desktop cards/brand/login/signup and pause/resume inspected. No credentials submitted, account/room actions, automated/gameplay/mobile or OS reduced-motion verification. Syntax/build/static assets checked separately; previous game/leaderboard validation limits remain. See docs/DRAGON-BRAND.md.
+
+Isolated work/dragon-brand-patch/source, preview3029/privateSQLite/session18274. Canonical staging main46321a1, cloud3.8.1, old previews and legacy live unchanged; no install/commit/push/deploy. Prior3.11.0pending is included/superseded. New authorization required before safe canonical reconciliation/publication. Cloudquota recovery not rechecked.
+
+
+## Pending 3.11.0 — account/game leaderboards (31 October 2026)
+
+Local candidate **3.11.0 / `2026-10-31-leaderboard-1`** includes ten games +character-art3.10.1. Authenticated global/per-game leaderboard defaults to net IDR, optional level/points, top50 +own summary; hub link/panel, dedicated `/leaderboard/`, collapsed shared control before starting every game. No polling; client/server30s cache, indexed bounded results. Active state hides game-entry panel. Users' email/role/session/room/other hands are not returned.
+
+AccountStore adds `game_stats` and permanent `game_result_receipts` under the same actor/binding/migration identity. Atomic result receipt/stats/XP transaction and existing checkpoint/outbox flow. All10settlement hooks supply server-owned points/chips ×table rate; bots/spectators/buy-ins/admin corrections excluded as ranked entrants/deltas, but human games against bots/custom rules count. Monetary ranks are informal net simulation results, not cash/account coins; rates/units differ by table. Completed short rounds count stats, existing60s/dailyXP rules unchanged. One-time existing reward backfill retains per-game XP/outcomes only, measuredRounds0; never invent historical money/points. Global level uses lifetime account XP, game level earned game XP. See docs/LEADERBOARD.md.
+
+Separate source/preview3028/privateSQLite. Canonical staging main46321a1, cloud3.8.1, legacy live and older previews unchanged; no canonical installation, commit/push/deploy. New authorization required for publication. Source/build +authenticated empty-list reads and Mahjong pre-game control inspected; no automated/gameplay/settlement/retry/ranking-tie/backfill-with-history/mobile tests. Empty demo DB is not a populated ranking proof. Cloud quota recovery not rechecked; previous gameplay limits remain.
+
+
+## Pending 3.10.1 — character illustrations (31 October 2026)
+
+Local candidate **3.10.1 / `2026-10-31-character-art-1`** includes ten-game3.10.0 and all earlier pending UNO/Ludo work. New warm game-night hero generated with existing jade dragon and starter cat references; eleven384px WebP cast derivatives decorate all ten landing cards, closing section and UNO/Ludo/Monopoli/Reversi entry screens. Original avatar/inventory IDs and admin entitlements remain unchanged. Mahjong featured row and alphabetical three-column layout retained. Hero1120×630/100236bytes; eleven cast images175476bytes total, largest22380bytes. Lazy card images, explicit dimensions, reduced-motion support; cast build guard32KiB. Prompt/provenance and usage: docs/CHARACTER-ART.md (CHARACTER-ART.md from docs).
+
+Isolated copy/preview3027; canonical staging/main46321a1, previews3024/3025/3026, cloud3.8.1 and legacy live unchanged. Not committed/pushed/deployed/installed into canonical. A later release must reconcile the reviewed private manifest safely into staging, preserve newer work/runtime, and obtain current push/deploy authorization.3.10.0pending notes are included/superseded. Source syntax/build/image budgets and desktop Dark/Light landing/cards, Monopoli entry reviewed; no new automated/gameplay/mobile tests, room actions or production changes. Earlier game-validation gaps remain. Cloudquota not rechecked.
+
+
+## Pending 3.10.0 — ten games and featured Mahjong (31 October 2026)
+
+Local candidate **3.10.0 / `2026-10-31-ten-games-1`** includes the previous UNO/Ludo candidate3.9.0 plus Monopoli Nusantara2–6 and Reversi2. Landing: Mahjong full width, then Blackjack, Capsa, Catur, Domino, Ludo, Monopoli, Poker, Reversi, UNO in a three-column desktop grid. Tablet/phone reduce columns. Both new games reuse accounts, shared rooms, invite/dissolve, disconnect grace, bot levels/delay, money recap and right sidebar. Monopoli is an explicitly documented Nusantara house profile, not a complete official-edition claim. Reversi uses standard8×8, optional house6×6 QuickPlay.
+
+Prepared in an isolated authoring copy, preview3026/privateSQLite; canonical staging/main46321a1, older previews3024/3025, cloud3.8.1 and legacy live remain untouched. Earlier3.9.0 pending notes are included/superseded, not a separate release. Before a later release, reconcile this candidate against canonical staging using the reviewed private manifest, preserve newer changes/runtime, and obtain current Git/cloud authorization. See docs/TEN-GAMES.md (TEN-GAMES.md from docs). No commit, push or deployment authorized/performed.
+
+Evidence: source syntax and cloud asset build; landing and unstarted Monopoli/Reversi lobbies inspected. No automated/gameplay/complete-match/settlement/reward/recovery/race/security tests or phone viewport validation. Do not infer full correctness from lobby rendering. Cloud quota recovery has not been rechecked.
+
+
+## Pending3.9.0 — UNO and Ludo (31 October2026)
+
+User authorized building two games locally, not Git/cloud publication. Candidate3.9.0/build2026-10-31-uno-ludo-1 is prepared in a separate operator authoring copy, served locally on3025 with isolated SQLite. Original staging/main46321a1/cloud3.8.1/preview3024 remain unchanged. Adds UNO2–8 and Ludo2–4, own authoritative engines +shared party factory, bot levels/3s delay/15s grace, accounts/XP/admin point support, chat/emote/right sidebar, invite/dissolve, QuickPlay and creator Faiz T. Rules/verification boundaries in docs/UNO-LUDO.md (or UNO-LUDO.md from docs). UNO automatic call/no challenge and Ludo no blockade are explicit house variants, not a full official edition claim.
+
+Source syntax/build and unstarted private lobby/UI inspection only; no automated/gameplay/mobile/settlement/reward/recovery/security tests. Candidate must be installed into canonical staging from the reviewed manifest before a later authorized Git/cloud release; never overwrite newer staging/runtime or stop3024without approval. See private work/uno-ludo-patch/. Future push/deploy requires a new request.
+
+
 ## Installed3.8.1 — cosmetics and image budget (31 October 2026)
 
 User explicitly requested push/deploy and Obsidian update. Cloud now **3.8.1 / `2026-10-31-image-budget-1`**, deployment `5b2212d2-7e44-44a0-ac8b-a5f7d882afae`, https://srac-gaming.faiz-triputra.workers.dev/ . Includes3.8.0:20paid cosmetics (12skins/8frames),7free skins,7admin skins (Faiz black dragon, Hendy existing green dragon,5generic admin choices), verified-role/owner entitlement and audited one-time default grant. All34images now512px WebP,61.68MB→1.49MB (97.59%smaller); stable item IDs, preserved alpha,100KiB avatar/frame build guard. Same SQLite actor/bindings/migrations/secrets and existing game data; no legacy live change.

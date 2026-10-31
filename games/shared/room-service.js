@@ -182,17 +182,19 @@ function installRoomService(app,{slug,dataDir,persistence=null,saveInterval=5000
     for(const saved of loaded.rooms){if(closedCodes.has(saved.code))continue;const r=app.restoreRoom(saved);ensurePeople(r);for(const p of everyone(r)){p.ws=null;p.connected=!!p.bot;p.disconnectBot=false;delete p.disconnectedAt;delete p.disconnectDeadline;}r.recovering=active(slug,r);for(const track of Object.values(r.progressionTracking||{}))track.last=null;app.rooms.set(r.code,r);}
     savedAt=persistence?persistence.savedAt():fs.statSync(filename).mtimeMs;
   }else for(const r of app.rooms.values()){ensurePeople(r);r.recovering=active(slug,r);}
-  function recordResult(room,winners,key,participated=null){
+  function recordResult(room,winners,key,participated=null,settlement=null){
     if(!accountMode)return;
     ensurePeople(room);room.progressionEvents||=[];
     const id=slug+':'+room.social.id+':'+(room.progressionRoundToken||key);
     if(room.progressionAwardedToken===id)return;
     room.progressionAwardedToken=id;room.progressionActive=false;
     const now=Date.now();
-    room.progressionEvents.push({id,game:slug,room:room.code,players:room.players.flatMap((p,i)=>{
+    const deltas=settlement||room.ledger?.at(-1)?.players?.map(row=>row.delta),rate=room.settings?.pointValue??room.settings?.chipValue??0;
+    room.progressionEvents.push({id,scoreVersion:1,game:slug,room:room.code,players:room.players.flatMap((p,i)=>{
       const track=room.progressionTracking?.[p.id];
       const seconds=track?Math.floor((track.ms+(p.connected&&track.last?Math.min(120000,now-track.last):0))/1000):0;
-      return p.accountId&&!p.bot&&(!participated||participated[i])?[{userId:p.accountId,seconds,won:!!winners[i]}]:[];
+      const points=deltas?.[i],money=points*rate,measured=Number.isSafeInteger(points)&&Number.isSafeInteger(money)&&Math.abs(points)<=1000000000000000&&Math.abs(money)<=1000000000000000;
+      return p.accountId&&!p.bot&&(!participated||participated[i])?[{userId:p.accountId,seconds,won:!!winners[i],points:measured?points:null,money:measured?money:null}]:[];
     })});
     room.progressionEvents=room.progressionEvents.slice(-200);room.progressionTracking={};
   }

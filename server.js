@@ -10,7 +10,12 @@ const { createChessServer } = require('./games/chess/server');
 const { createDominoServer } = require('./games/domino/server');
 const { createBlackjackServer } = require('./games/blackjack/server');
 
-const VERSION = '2026-10-31-image-budget-1';
+const {createUnoServer}=require('./games/uno/server');
+const {createLudoServer}=require('./games/ludo/server');
+
+const {createMonopoliServer}=require('./games/monopoli/server');
+const {createReversiServer}=require('./games/reversi/server');
+const VERSION = '2026-10-31-dragon-flame-1';
 const {installRoomService}=require('./games/shared/room-service');
 
 function createHub(options = {}) {
@@ -30,10 +35,14 @@ function createHub(options = {}) {
     ['poker',createPokerServer({ dataDir:path.join(runtimeDir,'poker'), getAddresses:sharedAddresses,managed:true })],
     ['catur',createChessServer({ getAddresses:sharedAddresses })],
     ['domino',createDominoServer({ getAddresses:sharedAddresses })],
-    ['blackjack',createBlackjackServer({ getAddresses:sharedAddresses })]
+    ['blackjack',createBlackjackServer({ getAddresses:sharedAddresses })],
+    ['uno',createUnoServer({getAddresses:sharedAddresses})],['ludo',createLudoServer({getAddresses:sharedAddresses})],['monopoli',createMonopoliServer({getAddresses:sharedAddresses})],['reversi',createReversiServer({getAddresses:sharedAddresses})]
   ]);
   const services = new Map([...games].map(([slug,app])=>[slug,installRoomService(app,{slug,dataDir:path.join(runtimeDir,'rooms')})]));
   const assets = new Map([
+    ['/strategy-ui.js',['public/strategy-ui.js','application/javascript; charset=utf-8']],
+    ['/party-client.js',['public/party-client.js','application/javascript; charset=utf-8']],
+    ['/party.css',['public/party.css','text/css; charset=utf-8']],
     ['/accessory-amethyst-frame.webp', ['public/accessory-amethyst-frame.webp','image/webp']],
     ['/accessory-crown-frame.webp', ['public/accessory-crown-frame.webp','image/webp']],
     ['/accessory-emerald-frame.webp', ['public/accessory-emerald-frame.webp','image/webp']],
@@ -42,6 +51,19 @@ function createHub(options = {}) {
     ['/accessory-orbit-frame.webp', ['public/accessory-orbit-frame.webp','image/webp']],
     ['/accessory-ruby-frame.webp', ['public/accessory-ruby-frame.webp','image/webp']],
     ['/accessory-sapphire-frame.webp', ['public/accessory-sapphire-frame.webp','image/webp']],
+    ['/characters-game-night.webp', ['public/characters-game-night.webp','image/webp']],
+    ['/leaderboard-dragons.webp', ['public/leaderboard-dragons.webp','image/webp']],
+    ['/cast-bamboo-panda.webp', ['public/cast-bamboo-panda.webp','image/webp']],
+    ['/cast-bima.webp', ['public/cast-bima.webp','image/webp']],
+    ['/cast-ember-tiger.webp', ['public/cast-ember-tiger.webp','image/webp']],
+    ['/cast-fox.webp', ['public/cast-fox.webp','image/webp']],
+    ['/cast-jade.webp', ['public/cast-jade.webp','image/webp']],
+    ['/cast-mira-starlight.webp', ['public/cast-mira-starlight.webp','image/webp']],
+    ['/cast-moon-rabbit.webp', ['public/cast-moon-rabbit.webp','image/webp']],
+    ['/cast-raccoon-scout.webp', ['public/cast-raccoon-scout.webp','image/webp']],
+    ['/cast-river-otter.webp', ['public/cast-river-otter.webp','image/webp']],
+    ['/cast-snow-owl.webp', ['public/cast-snow-owl.webp','image/webp']],
+    ['/cast-starter-buddy.webp', ['public/cast-starter-buddy.webp','image/webp']],
     ['/avatar-admin-faiz.webp', ['public/avatar-admin-faiz.webp','image/webp']],
     ['/avatar-admin-lion.webp', ['public/avatar-admin-lion.webp','image/webp']],
     ['/avatar-admin-lunar.webp', ['public/avatar-admin-lunar.webp','image/webp']],
@@ -75,6 +97,17 @@ function createHub(options = {}) {
     ['/account-bridge.css', ['public/account-bridge.css','text/css; charset=utf-8']],
     ['/account-bridge.js', ['public/account-bridge.js','application/javascript; charset=utf-8']],
 
+    ['/brand.css', ['public/brand.css','text/css; charset=utf-8']],
+    ['/avatar-admin-faiz-white.webp', ['public/avatar-admin-faiz-white.webp','image/webp']],
+    ['/uno-deck-art.webp', ['public/uno-deck-art.webp','image/webp']],
+    ['/uno-cards.css', ['public/uno-cards.css','text/css']],
+    ['/brand-emblem.webp', ['public/brand-emblem.webp','image/webp']],
+    ['/brand-dragon.webp', ['public/brand-dragon.webp','image/webp']],
+    ['/cast-admin-faiz.webp', ['public/cast-admin-faiz.webp','image/webp']],
+    ['/leaderboard/', ['public/leaderboard.html','text/html; charset=utf-8']],
+    ['/leaderboard', ['public/leaderboard.html','text/html; charset=utf-8']],
+    ['/leaderboard.js', ['public/leaderboard.js','text/javascript; charset=utf-8']],
+    ['/leaderboard.css', ['public/leaderboard.css','text/css; charset=utf-8']],
     ['/', ['public/index.html','text/html; charset=utf-8']],
     ['/index.html', ['public/index.html','text/html; charset=utf-8']],
     ['/hub.css', ['public/hub.css','text/css; charset=utf-8']],
@@ -88,13 +121,16 @@ function createHub(options = {}) {
     ['/hub-game.css', ['public/hub-game.css','text/css; charset=utf-8']],
     ['/hub-game.js', ['public/hub-game.js','application/javascript; charset=utf-8']],
     ['/game-tools.js', ['public/game-tools.js','application/javascript; charset=utf-8']],
+    ['/disclosures.css', ['public/disclosures.css','text/css']],
+    ['/lobby-panels.css', ['public/lobby-panels.css','text/css']],
+    ['/favicon-dragon-v1.png', ['public/favicon-dragon-v1.png','image/png']],
     ['/favicon.svg', ['public/favicon.svg','image/svg+xml']],
     ['/table.svg', ['public/table.svg','image/svg+xml']],
     ['/chess-art.svg', ['public/chess-art.svg','image/svg+xml']],
     ['/domino-art.svg', ['public/domino-art.svg','image/svg+xml']]
   ]);
   function route(url) {
-    const match = /^\/(capsa|mahjong|poker|catur|domino|blackjack)(\/.*)?$/.exec(url.pathname);
+    const match = /^\/(capsa|mahjong|poker|catur|domino|blackjack|uno|ludo|monopoli|reversi)(\/.*)?$/.exec(url.pathname);
     return match ? { slug:match[1], remainder:match[2] || '/', app:games.get(match[1]), bare:!match[2] } : null;
   }
   const server = http.createServer((req,res) => {
