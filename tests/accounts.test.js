@@ -52,3 +52,15 @@ test('Google ID token requires signed identity, audience, nonce, expiry and veri
  for(const change of [{aud:'another-client'},{nonce:'wrong'},{exp:0},{exp:undefined},{iat:undefined},{email_verified:false},{iss:'https://evil.invalid'}])await assert.rejects(()=>token(change).then(v=>verifyGoogle(v,'client-fixture','nonce-fixture')),e=>e.status===401);
  const signed=await token();await assert.rejects(()=>verifyGoogle(signed.slice(0,-10)+'corrupted','client-fixture','nonce-fixture'),e=>e.status===401);
 });
+
+test('Anonymous game sockets are rejected before factories/timers initialize',async t=>{
+ const src=require('node:fs').readFileSync(path.join(root,'cloudflare/worker.js'),'utf8');
+ // Execute the actual GamingHub fetch body with stub dependencies; no runtime/code replacement.
+ const start=src.indexOf('  async fetch(request){'),end=src.indexOf('\n}\n\nexport default',start);
+ const method=src.slice(start,end).replace('  async fetch(request){','return async function(request){');
+ const handler=new Function('GAMES','json','failed','WebSocketPair',method)(['capsa','mahjong','poker','catur','domino','blackjack'],(v,s=200)=>new Response(JSON.stringify(v),{status:s}),()=>new Response(null,{status:503}),()=>{throw Error('Unexpected socket allocation');});
+ for(const game of ['capsa','mahjong','poker','catur','domino','blackjack']){
+  const hub={env:{ACCOUNTS:{idFromName:n=>n,get:()=>({fetch:async()=>new Response('null')})}},init(){throw Error('Anonymous request started game factories');}};
+  const r=await handler.call(hub,new Request('https://game.invalid/'+game+'/ws',{headers:{Upgrade:'websocket',Origin:'https://game.invalid'}}));assert.equal(r.status,401);
+ }
+});

@@ -1,6 +1,6 @@
 # Accounts, progression and administration — included in candidate3.1.0
 
-Status:3.1.0 `2026-10-31-admin-controls-1` is deployed, including the [admin ownership/balance editor](ADMIN-CONTROLS.md). Google production credentials are configured and real local/public Google sign-in completed with verified admin identity. See root AGENTS for the release evidence and [validation](ACCOUNT-VALIDATION.md) for127passing tests and limits. Git publication is recorded separately; this guide never authorizes a future release.
+Status:3.1.1 `2026-10-31-account-socket-guard-1` is deployed, including the [admin ownership/balance editor](ADMIN-CONTROLS.md). Google production credentials are configured and real local/public Google sign-in completed with verified admin identity. See root AGENTS for the release evidence and [validation](ACCOUNT-VALIDATION.md) for128passing tests and limits. Git publication is recorded separately; this guide never authorizes a future release.
 
 ## Scope and product rules
 
@@ -73,7 +73,7 @@ The account feature targets Workers. Legacy Node remains anonymous and does not 
 
 Google OAuth has now been configured locally; see the latest release handoff for production status. Do not silently gate active players mid-match. Deployment can disconnect existing sockets, and future game connections require accounts; announce that change and allow active rooms to finish. No existing guest history/coins is migrated.
 
-Initial authoring did not include automated tests. The later user instruction to finish all pending work authorized focused verification; see [release validation](ACCOUNT-VALIDATION.md) for127passing tests, real local Google sign-in and remaining limits. No promise of bug-free/authentication certification.
+Initial authoring did not include automated tests. The later user instruction to finish all pending work authorized focused verification; see [release validation](ACCOUNT-VALIDATION.md) for128passing tests, real local Google sign-in and remaining limits. No promise of bug-free/authentication certification.
 
 For further exhaustive gameplay/failure-injection work beyond the recorded checks, obtain the corresponding user request. Do not expose the Google-gated release publicly before its configuration and failure paths are reviewed. Git commit/push and production deployment remain separate actions.
 
@@ -92,3 +92,5 @@ The project currently has Internal audience and shared consent branding `Smart D
 ## Production activation completed — 31 October
 
 Google production secrets were installed with release3.1.0 in deployment71c2f303-58e7-4317-b6ea-25741ce1ebc1. Owner real Google sign-in completed on workers.dev; verified admin profile and dashboard were observed. No preview rows were uploaded. Production preview flag is false and demo endpoint404. Public setup details above remain current: Internal audience/shared branding were left intact. Google tokens/passwords are not in source; future secret uploads are deployment actions requiring fresh permission.
+
+Final3.1.1socket-guard release59095e81-d0a7-4a75-879d-7fa332eecaf4 retains the same Google secrets/SQLite actors. All six anonymous WebSocket paths return401 before game timers are initialized;128tests pass. No pending runtime patch remains.

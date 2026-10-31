@@ -10,7 +10,7 @@ const { createChessServer } = require('./games/chess/server');
 const { createDominoServer } = require('./games/domino/server');
 const { createBlackjackServer } = require('./games/blackjack/server');
 
-const VERSION = '2026-10-31-admin-controls-1';
+const VERSION = '2026-10-31-account-socket-guard-1';
 const {installRoomService}=require('./games/shared/room-service');
 
 function createHub(options = {}) {

@@ -2,7 +2,13 @@
 
 Last reconciled: **31 October 2026**. Read root [AGENTS.md](../AGENTS.md) first. This document records context and procedures; it does not authorize push, deployment, interruption, gameplay tests or data migration. Dates below are historical evidence. Recheck actual source and service before acting.
 
-## Current release — 31 October 2026
+## Current final release3.1.1 — 31 October 2026
+
+**Running3.1.1 / `2026-10-31-account-socket-guard-1`**, deployment `59095e81-d0a7-4a75-879d-7fa332eecaf4`, at https://srac-gaming.faiz-triputra.workers.dev/ . Includes the full3.1.0account/admin release below and rejects anonymous game WebSockets before factory/timer initialization. Automatic approval review required fresh deployment confirmation after3.1.0; user explicitly answered “Ya, deploy3.1.1 sekarang”. Deployment/checks succeeded; no pending runtime patch remains. Git publication is authorized but must be confirmed independently against the remote.
+
+**128tests pass/0fail**, including six anonymous fetch-handler paths proving no factory startup. Public health matches3.1.1; landing/account/admin/six entries200;8account assets match source; anonymous admin and6game WebSockets401; Google configured true/preview false. Real public Google sign-in/Admin dashboard succeeded on3.1.0and the same session/configuration is retained. An authenticated Blackjack empty entry connected without room creation or gameplay. Full six-game settlements/races/quotas remain unproven; see ACCOUNT-VALIDATION.md. Google project remains Internal with shared branding, not modified. No secret/player data in Git or preview data upload, no legacy live changes. Earlier entries are historical.
+
+## Previous release3.1.0 — 31 October 2026
 
 **Running3.1.0 / `2026-10-31-admin-controls-1`** on https://srac-gaming.faiz-triputra.workers.dev/ . User instruction “selesaiin semua” explicitly followed the listed remaining validation, Git publication, Google production secrets and deployment work. Deployment succeeded `71c2f303-58e7-4317-b6ea-25741ce1ebc1`. Google secrets were uploaded with the same version using `wrangler deploy --secrets-file .dev.vars`; never print/commit that ignored0600file. ACCOUNT_PREVIEW is absent in production and public demo login returns404. Existing GamingHub/office-hub-v1/v1 data is retained; AccountStore/accounts-v1/v2-accounts is additive. Legacy Node live and local preview data were not migrated.
 

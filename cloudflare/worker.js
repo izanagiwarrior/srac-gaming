@@ -140,10 +140,11 @@ export class GamingHub extends DurableObject {
     // Do not accept a cross-site browser socket. Native clients may omit Origin.
     const origin=request.headers.get('Origin');if(origin&&origin!==url.origin)return json({error:'Origin mismatch'},403);
     if(this.stopping)return failed();
-    try{this.init();}catch(error){console.error('Cloud storage restore failed');return failed();}
-    if(this.connections()>=64)return json({error:'Meja sedang penuh. Coba lagi nanti.'},503);
+    // Reject anonymous connections before restoring factories or starting native timers.
     const principal=this.env.ACCOUNTS?await this.env.ACCOUNTS.get(this.env.ACCOUNTS.idFromName('accounts-v1')).fetch(new Request(new URL('/internal/session',request.url),request)).then(r=>r.json()):null;
     if(this.env.ACCOUNTS&&!principal)return json({error:'Masuk ke akun dahulu.'},401);
+    try{this.init();}catch(error){console.error('Cloud storage restore failed');return failed();}
+    if(this.connections()>=64)return json({error:'Meja sedang penuh. Coba lagi nanti.'},503);
     const app=this.apps.get(slug),pair=new WebSocketPair(),client=pair[0],server=pair[1];this.ctx.acceptWebSocket(server);
     // Client protocol and private views remain owned by each native factory.
     try{const socket=app.wss.accept(server,request,fn=>this.run(fn),principal);if(socket.readyState===1){socket.authRequest=new Request(new URL('/internal/session',request.url),request);this.sessions.set(server,socket);}app.wss.afterEvent();}catch{try{server.close(1011,'Sesi belum dapat dipulihkan.');}catch{}}

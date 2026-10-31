@@ -1,6 +1,6 @@
-# Admin controls — release3.1.0
+# Admin controls — included in release3.1.1
 
-Cloud release `2026-10-31-admin-controls-1` is deployed with Google credentials and verified owner admin sign-in. It includes the preceding3.0account work. [127passing tests and limits](ACCOUNT-VALIDATION.md) cover focused auth/admin/reward and six-game balance fixtures; full gameplay/recovery is not exhaustively proven. Preparation evidence below is historical. Read [account setup](ACCOUNTS.md), AGENTS and the maintenance guide before publishing.
+Cloud release `2026-10-31-admin-controls-1` is deployed with Google credentials and verified owner admin sign-in. It includes the preceding3.0account work. [128passing tests and limits](ACCOUNT-VALIDATION.md) cover focused auth/admin/reward and six-game balance fixtures; full gameplay/recovery is not exhaustively proven. Preparation evidence below is historical. Read [account setup](ACCOUNTS.md), AGENTS and the maintenance guide before publishing.
 
 ## What admins can change
 

@@ -1,10 +1,10 @@
 # Account and admin release verification — 31 October 2026
 
-Release: **3.1.0 / 2026-10-31-admin-controls-1**. Source preparation, tests and deployment are separate facts; see root AGENTS for the final installed/publication status.
+Release: **3.1.1 / 2026-10-31-account-socket-guard-1**, including3.1.0 accounts/admin. Source preparation, tests and deployment are separate facts; see root AGENTS for the final installed/publication status.
 
 ## Checks actually performed
 
-`npm run test:ui`: **127 tests passed, zero failed** (31 October). This includes the existing Mahjong/Hong Kong and UI regressions plus21 account/admin assertions and fixture groups:
+`npm run test:ui`: **128 tests passed, zero failed** (31 October). This includes the existing Mahjong/Hong Kong and UI regressions plus22 account/admin assertions and fixture groups:
 
 - Real AccountStore implementation in an isolated workerd/SQLite emulator: unauthenticated access; local-only demo gate; bootstrap email signup denial; ordinary-player admin denial; exact-origin mutation enforcement; password signup, wrong/correct password, logout and session privacy.
 - Account edits: transaction, revision conflicts, unchanged replay, mismatched replay, inventory invariant, actor/recipient audit; purchase charged once; equipment ownership; protected/self-admin removal; unverified password account cannot activate an admin grant.
@@ -15,7 +15,7 @@ Release: **3.1.0 / 2026-10-31-admin-controls-1**. Source preparation, tests and 
 
 The owner completed real Google login in local preview. UI settings showed faiz.triputra@shopee.com and “Identitas Google sudah terverifikasi”; admin navigation was present. Local account DB and every synthetic test/emulator store remain private and are not uploaded.
 
-JavaScript/build/whitespace checks passed; deploy bundle320.04KiB/gzip89.44KiB,64public assets. Source/build scan found neither the actual Google secret nor a Google client-secret prefix. `.dev.vars` is ignored and mode0600. The deployment secret file contains only GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET, never ACCOUNT_PREVIEW.
+JavaScript/build/whitespace checks passed; deploy bundle320.05KiB/gzip89.45KiB,64public assets. Source/build scan found neither the actual Google secret nor a Google client-secret prefix. `.dev.vars` is ignored and mode0600. The deployment secret file contains only GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET, never ACCOUNT_PREVIEW.
 
 ## Limits and operational follow-up
 
@@ -24,3 +24,6 @@ These are targeted checks, not a security audit or exhaustive proof. Full six-ga
 Google project SRAC-AI currently uses Internal audience and shared branding “Smart Drive Image Tool”. This restricts Google sign-in to the organization's eligible accounts; email signup is a separate path. Changing audience/branding affects other OAuth clients and needs explicit scope review. Only openid/email/profile are requested; no Drive/Gmail permission.
 
 See [accounts](ACCOUNTS.md), [admin accounting](ADMIN-CONTROLS.md), [maintenance](MAINTENANCE.md) and [Cloudflare operations](CLOUDFLARE-WORKERS.md).
+
+
+The final socket guard executes the actual GamingHub fetch method against anonymous-session stubs for all six game paths:401 is returned before factory initialization or socket allocation. Public3.1.1 was separately approved after automatic review required a new confirmation. The owner also completed real Google sign-in on the production callback; verified Admin profile and live dashboard were inspected. An authenticated Blackjack entry connected without creating/joining/starting a room.
