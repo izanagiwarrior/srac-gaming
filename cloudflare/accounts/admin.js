@@ -1,5 +1,5 @@
 import {problem,displayName} from './security.js';
-import {CATALOG} from './catalog.js';
+import {CATALOG,canUseCosmetic} from './catalog.js';
 export const MAX_BALANCE=1000000000;
 export function reason(value){const text=String(value||'').replace(/[\u0000-\u001f]/g,'').trim();if(text.length<10||text.length>240)problem('Isi alasan perubahan, 10–240 karakter.');return text;}
 export function requestId(value){if(typeof value!=='string'||!/^[a-zA-Z0-9-]{16,80}$/.test(value))problem('ID permintaan tidak valid.');return value;}
@@ -19,7 +19,7 @@ export function applyUserEdit(store,actor,body,targetId){
   const user=store.one('SELECT * FROM users WHERE id=?',targetId);if(!user)problem('Pemain tidak ditemukan.',404);
   if(!Number.isSafeInteger(body.version)||body.version!==(user.revision||0))problem('Data pemain sudah berubah. Muat ulang sebelum menyimpan.',409);
   const before=possessions(store,user),name=displayName(body.name),xp=amount(user.xp,body.xp),coins=amount(user.coins,body.coins);
-  if(!Array.isArray(body.inventory)||body.inventory.length>CATALOG.length||new Set(body.inventory).size!==body.inventory.length||body.inventory.some(i=>!CATALOG.some(c=>c.id===i)))problem('Koleksi tidak valid.');
+  if(!Array.isArray(body.inventory)||body.inventory.length>CATALOG.length||new Set(body.inventory).size!==body.inventory.length||body.inventory.some(i=>!canUseCosmetic(CATALOG.find(c=>c.id===i),user,store.isAdmin(user))))problem('Koleksi tidak valid.');
   const skin=CATALOG.find(i=>i.id===body.skin&&i.kind==='skin'),accessory=body.accessory===null?null:CATALOG.find(i=>i.id===body.accessory&&i.kind==='accessory');
   if(!skin||!body.inventory.includes(skin.id)||body.accessory!==null&&(!accessory||!body.inventory.includes(accessory.id)))problem('Avatar aktif harus dimiliki pemain; sisakan setidaknya satu skin.');
   store.sql.exec('UPDATE users SET name=?,xp=?,coins=?,skin=?,accessory=?,revision=revision+1 WHERE id=?',name,xp,coins,skin.id,accessory?.id||null,targetId);

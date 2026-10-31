@@ -1,5 +1,5 @@
 import {build} from 'esbuild';
-import {readFile,mkdir,cp,writeFile,readdir,rm} from 'node:fs/promises';
+import {readFile,mkdir,cp,writeFile,readdir,rm,stat} from 'node:fs/promises';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
@@ -10,7 +10,7 @@ await rm(out,{recursive:true,force:true});
 await mkdir(assets,{recursive:true});
 // Explicit source directories only; never copy a checkout, DATA_DIR or .git.
 const games={capsa:'capsa',mahjong:'mahjong',poker:'poker',catur:'chess',domino:'domino',blackjack:'blackjack'};
-async function copyPublic(from,to){await mkdir(to,{recursive:true});for(const file of await readdir(from,{withFileTypes:true})){if(!file.isFile()||!/^[-a-z0-9.]+\.(html|css|js|svg|png|webp|ico)$/.test(file.name))throw Error('Unexpected public asset: '+file.name);await cp(path.join(from,file.name),path.join(to,file.name));}}
+async function copyPublic(from,to){await mkdir(to,{recursive:true});for(const file of await readdir(from,{withFileTypes:true})){if(!file.isFile()||!/^[-a-z0-9.]+\.(html|css|js|svg|png|webp|ico)$/.test(file.name))throw Error('Unexpected public asset: '+file.name);const input=path.join(from,file.name);if(/\.(png|webp|ico)$/.test(file.name)){const limit=/^(avatar|accessory)-/.test(file.name)?100*1024:300*1024;if((await stat(input)).size>limit)throw Error('Image exceeds '+limit/1024+' KiB budget: '+input+'. Compress before building; see docs/IMAGE-ASSETS.md.');}await cp(input,path.join(to,file.name));}}
 await copyPublic(path.join(root,'public'),assets);
 await rm(path.join(assets,'account.html'),{force:true});
 await mkdir(path.join(assets,'account'),{recursive:true});

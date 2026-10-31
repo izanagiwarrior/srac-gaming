@@ -27,3 +27,11 @@ Generate one original square game profile avatar asset. {subject}. Premium styli
 | public/avatar-arka.png | a friendly adult Indonesian man with short textured black hair, medium brown skin, cream bomber jacket over a forest green shirt, relaxed smile |
 | public/avatar-bima.png | a warm adult man with deep brown skin, close-cropped curly hair and neat short beard, navy casual shirt, gold round eyeglasses, friendly smile |
 | public/avatar-rio.png | a friendly adult androgynous-presenting man with light olive skin, slightly long wavy dark brown hair, rust-colored hoodie, playful easy smile |
+
+## Expansion3.8.0 (pending)
+
+[New24assets and prompts](COSMETICS-EXPANSION.md). Twenty paid items +seven free +seven admin skins; existing green Jade Keeper art is now exclusive to Hendy, Faiz uses the new black dragon, and the unchanged starter ID jade renders Table Buddy. No runtime generation or paid API introduced.
+
+## Shipping format3.8.1
+
+All original PNG artwork above is now shipped as optimized512px `.webp` derivatives; original masters are kept privately outside public/Git. See [image policy and compression totals](IMAGE-ASSETS.md). Catalog/asset references use WebP; provenance prompts retain the original generation filenames.

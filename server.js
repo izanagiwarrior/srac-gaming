@@ -10,7 +10,7 @@ const { createChessServer } = require('./games/chess/server');
 const { createDominoServer } = require('./games/domino/server');
 const { createBlackjackServer } = require('./games/blackjack/server');
 
-const VERSION = '2026-10-31-password-controls-1';
+const VERSION = '2026-10-31-image-budget-1';
 const {installRoomService}=require('./games/shared/room-service');
 
 function createHub(options = {}) {
@@ -34,16 +34,47 @@ function createHub(options = {}) {
   ]);
   const services = new Map([...games].map(([slug,app])=>[slug,installRoomService(app,{slug,dataDir:path.join(runtimeDir,'rooms')})]));
   const assets = new Map([
+    ['/accessory-amethyst-frame.webp', ['public/accessory-amethyst-frame.webp','image/webp']],
+    ['/accessory-crown-frame.webp', ['public/accessory-crown-frame.webp','image/webp']],
+    ['/accessory-emerald-frame.webp', ['public/accessory-emerald-frame.webp','image/webp']],
+    ['/accessory-gold.webp', ['public/accessory-gold.webp','image/webp']],
+    ['/accessory-lotus-frame.webp', ['public/accessory-lotus-frame.webp','image/webp']],
+    ['/accessory-orbit-frame.webp', ['public/accessory-orbit-frame.webp','image/webp']],
+    ['/accessory-ruby-frame.webp', ['public/accessory-ruby-frame.webp','image/webp']],
+    ['/accessory-sapphire-frame.webp', ['public/accessory-sapphire-frame.webp','image/webp']],
+    ['/avatar-admin-faiz.webp', ['public/avatar-admin-faiz.webp','image/webp']],
+    ['/avatar-admin-lion.webp', ['public/avatar-admin-lion.webp','image/webp']],
+    ['/avatar-admin-lunar.webp', ['public/avatar-admin-lunar.webp','image/webp']],
+    ['/avatar-admin-phoenix.webp', ['public/avatar-admin-phoenix.webp','image/webp']],
+    ['/avatar-admin-qilin.webp', ['public/avatar-admin-qilin.webp','image/webp']],
+    ['/avatar-admin-turtle.webp', ['public/avatar-admin-turtle.webp','image/webp']],
+    ['/avatar-arka.webp', ['public/avatar-arka.webp','image/webp']],
+    ['/avatar-bamboo-panda.webp', ['public/avatar-bamboo-panda.webp','image/webp']],
+    ['/avatar-bima.webp', ['public/avatar-bima.webp','image/webp']],
+    ['/avatar-crane.webp', ['public/avatar-crane.webp','image/webp']],
+    ['/avatar-ember-tiger.webp', ['public/avatar-ember-tiger.webp','image/webp']],
+    ['/avatar-fox.webp', ['public/avatar-fox.webp','image/webp']],
+    ['/avatar-jade.webp', ['public/avatar-jade.webp','image/webp']],
+    ['/avatar-koi-spirit.webp', ['public/avatar-koi-spirit.webp','image/webp']],
+    ['/avatar-luna.webp', ['public/avatar-luna.webp','image/webp']],
+    ['/avatar-mira-starlight.webp', ['public/avatar-mira-starlight.webp','image/webp']],
+    ['/avatar-moon-rabbit.webp', ['public/avatar-moon-rabbit.webp','image/webp']],
+    ['/avatar-nadia.webp', ['public/avatar-nadia.webp','image/webp']],
+    ['/avatar-orion-explorer.webp', ['public/avatar-orion-explorer.webp','image/webp']],
+    ['/avatar-raccoon-scout.webp', ['public/avatar-raccoon-scout.webp','image/webp']],
+    ['/avatar-rio.webp', ['public/avatar-rio.webp','image/webp']],
+    ['/avatar-river-otter.webp', ['public/avatar-river-otter.webp','image/webp']],
+    ['/avatar-sakura-ronin.webp', ['public/avatar-sakura-ronin.webp','image/webp']],
+    ['/avatar-sari.webp', ['public/avatar-sari.webp','image/webp']],
+    ['/avatar-snow-owl.webp', ['public/avatar-snow-owl.webp','image/webp']],
+    ['/avatar-starter-buddy.webp', ['public/avatar-starter-buddy.webp','image/webp']],
     ['/account/', ['public/account.html','text/html; charset=utf-8']],
     ['/admin/', ['public/account.html','text/html; charset=utf-8']],
     ['/account.css', ['public/account.css','text/css; charset=utf-8']],
     ['/account-app.js', ['public/account-app.js','application/javascript; charset=utf-8']],
     ['/account-bridge.css', ['public/account-bridge.css','text/css; charset=utf-8']],
     ['/account-bridge.js', ['public/account-bridge.js','application/javascript; charset=utf-8']],
-    ['/avatar-jade.png', ['public/avatar-jade.png','image/png']],
-    ['/avatar-fox.png', ['public/avatar-fox.png','image/png']],
-    ['/avatar-crane.png', ['public/avatar-crane.png','image/png']],
-    ['/accessory-gold.png', ['public/accessory-gold.png','image/png']],
+
     ['/', ['public/index.html','text/html; charset=utf-8']],
     ['/index.html', ['public/index.html','text/html; charset=utf-8']],
     ['/hub.css', ['public/hub.css','text/css; charset=utf-8']],

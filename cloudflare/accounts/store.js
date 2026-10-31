@@ -1,7 +1,7 @@
 import {DurableObject} from 'cloudflare:workers';
 import {uid,random,hash,cookies,cookie,response,problem,email,displayName,body,passwordHash,equal,verifyGoogle,safeReturn} from './security.js';
 import {applyUserEdit,possessions} from './admin.js';
-import {CATALOG,BOOTSTRAP,REWARDS} from './catalog.js';
+import {CATALOG,PUBLIC_CATALOG,canUseCosmetic,allowedCosmetics,BOOTSTRAP,REWARDS} from './catalog.js';
 const DAY=86400000,SESSION=7*DAY;
 function confirmPassword(b,required=false){if((required||b.confirmPassword!==undefined)&&(typeof b.confirmPassword!=='string'||b.password!==b.confirmPassword))problem('Konfirmasi password tidak sama.');}
 // Separate SQLite namespace: never stores or migrates private game snapshots.
@@ -29,8 +29,20 @@ export class AccountStore extends DurableObject {
  rows(q,...p){return this.sql.exec(q,...p).toArray();} one(q,...p){return this.rows(q,...p)[0];}
  log(kind,userId=null,detail={},game=null,room=null,id=uid()){this.sql.exec('INSERT OR IGNORE INTO events VALUES(?,?,?,?,?,?,?)',id,Date.now(),userId,kind,game,room,JSON.stringify(detail));}
  isAdmin(u){return !!u?.verified&&!!this.one('SELECT email FROM roles WHERE email=?',u.email);}
- publicUser(u){return {id:u.id,name:u.name,email:u.email,verified:!!u.verified,admin:this.isAdmin(u),xp:u.xp,coins:u.coins,level:Math.floor(Math.sqrt(u.xp/100))+1,skin:u.skin,accessory:u.accessory,created:u.created,version:u.revision||0};}
- async session(req){const token=cookies(req).mk_session;if(!token)return null;const u=this.one('SELECT u.*,s.created AS session_created,s.hash AS session_hash,s.expires AS session_expires FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.hash=? AND s.expires>?',await hash(token),Date.now());if(u&&u.last_seen<Date.now()-300000)this.sql.exec('UPDATE users SET last_seen=? WHERE id=?',Date.now(),u.id);return u;}
+ publicUser(u){const admin=this.isAdmin(u),skin=canUseCosmetic(CATALOG.find(i=>i.id===u.skin),u,admin)?u.skin:'jade';return {id:u.id,name:u.name,email:u.email,verified:!!u.verified,admin:this.isAdmin(u),xp:u.xp,coins:u.coins,level:Math.floor(Math.sqrt(u.xp/100))+1,skin,accessory:u.accessory,created:u.created,version:u.revision||0};}
+ syncAdminCosmetics(user){
+  if(!this.isAdmin(user))return;
+  const items=allowedCosmetics(user,true).filter(i=>i.adminOnly),owned=new Set(this.rows('SELECT item FROM inventory WHERE user_id=?',user.id).map(r=>r.item));
+  const missing=items.filter(i=>!owned.has(i.id)),key='admin-avatar-default:'+user.id,first=!this.one('SELECT key FROM metadata WHERE key=?',key);
+  if(!missing.length&&!first)return;
+  this.ctx.storage.transactionSync(()=>{
+   for(const item of missing)this.sql.exec('INSERT OR IGNORE INTO inventory VALUES(?,?,?)',user.id,item.id,Date.now());
+   if(first){const initial=items.find(i=>i.ownerEmail===user.email)||items[0];this.sql.exec('UPDATE users SET skin=?,revision=revision+1 WHERE id=?',initial.id,user.id);user.skin=initial.id;user.revision=(user.revision||0)+1;this.sql.exec('INSERT OR IGNORE INTO metadata VALUES(?,?)',key,initial.id);}
+   else {this.sql.exec('UPDATE users SET revision=revision+1 WHERE id=?',user.id);user.revision=(user.revision||0)+1;}
+   this.log('avatar.admin_granted',user.id,{items:missing.map(i=>i.id),automaticDefault:first});
+  });
+ }
+ async session(req){const token=cookies(req).mk_session;if(!token)return null;const u=this.one('SELECT u.*,s.created AS session_created,s.hash AS session_hash,s.expires AS session_expires FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.hash=? AND s.expires>?',await hash(token),Date.now());if(u&&u.last_seen<Date.now()-300000)this.sql.exec('UPDATE users SET last_seen=? WHERE id=?',Date.now(),u.id);if(u){this.syncAdminCosmetics(u);if(!canUseCosmetic(CATALOG.find(i=>i.id===u.skin),u,this.isAdmin(u)))u.skin='jade';}return u;}
  async notifySessions(data){
   if(!this.env.GAMING_HUB)return;
   try{const r=await this.env.GAMING_HUB.get(this.env.GAMING_HUB.idFromName('office-hub-v1')).fetch(new Request('https://internal/internal/account-revoke',{method:'POST',body:JSON.stringify(data)}));if(!r.ok)throw Error();}catch{console.error('Session disconnected notification pending; subsequent actions still require a valid session.');}
@@ -58,7 +70,7 @@ export class AccountStore extends DurableObject {
   let parsed;
   if(['POST','PATCH','DELETE'].includes(method)){if(req.headers.get('Origin')!==url.origin||req.headers.get('Sec-Fetch-Site')==='cross-site')problem('Asal permintaan tidak diizinkan.',403);parsed=await body(req);}
   const u=await this.session(req);
-  if(path==='/api/account/me'&&method==='GET')return response({user:u?this.publicUser(u):null,catalog:CATALOG,inventory:u?this.rows('SELECT item FROM inventory WHERE user_id=?',u.id).map(r=>r.item):[],googleConfigured:!!(this.env.GOOGLE_CLIENT_ID&&this.env.GOOGLE_CLIENT_SECRET),rewards:REWARDS,preview:this.env.ACCOUNT_PREVIEW==='1'&&['localhost','127.0.0.1'].includes(url.hostname)});
+  if(path==='/api/account/me'&&method==='GET')return response({user:u?this.publicUser(u):null,catalog:PUBLIC_CATALOG,availableItems:allowedCosmetics(u,this.isAdmin(u)).map(i=>i.id),inventory:u?this.rows('SELECT item FROM inventory WHERE user_id=?',u.id).map(r=>r.item):[],googleConfigured:!!(this.env.GOOGLE_CLIENT_ID&&this.env.GOOGLE_CLIENT_SECRET),rewards:REWARDS,preview:this.env.ACCOUNT_PREVIEW==='1'&&['localhost','127.0.0.1'].includes(url.hostname)});
   if(path==='/auth/google'&&method==='GET'){
    if(!this.env.GOOGLE_CLIENT_ID||!this.env.GOOGLE_CLIENT_SECRET)return Response.redirect(url.origin+'/account/?error=google_setup',303);
    await this.throttle(req,'oauth');const state=random(),browser=random(),verifier=random(),nonce=random();
@@ -123,12 +135,12 @@ export class AccountStore extends DurableObject {
    const pw=await passwordHash(b.password);if(!await this.session(req))problem('Sesi akun berakhir.',401);this.ctx.storage.transactionSync(()=>{const fresh=this.one('SELECT password FROM users WHERE id=?',u.id);if(fresh.password!==u.password)problem('Password sudah berubah. Masuk ulang.',409);this.sql.exec('UPDATE users SET password=?,salt=?,revision=revision+1 WHERE id=?',pw.hash,pw.salt,u.id);this.sql.exec('DELETE FROM sessions WHERE user_id=? AND hash<>?',u.id,u.session_hash);this.log('auth.password_changed',u.id);});await this.notifySessions({userId:u.id,all:true,keep:u.session_hash});return response({ok:true});
   }
   if(path==='/api/account/buy'&&method==='POST'){
-   const b=parsed,item=CATALOG.find(i=>i.id===b.item);if(!item)problem('Item tidak ditemukan.',404);
+   const b=parsed,item=CATALOG.find(i=>i.id===b.item);if(!item)problem('Item tidak ditemukan.',404);if(item.adminOnly)problem('Avatar admin tidak dijual.',403);
    this.ctx.storage.transactionSync(()=>{if(this.one('SELECT item FROM inventory WHERE user_id=? AND item=?',u.id,item.id))return;const fresh=this.one('SELECT coins FROM users WHERE id=?',u.id);if(fresh.coins<item.price)problem('Koin belum cukup.',409);this.sql.exec('UPDATE users SET coins=coins-?,revision=revision+1 WHERE id=?',item.price,u.id);this.sql.exec('INSERT INTO inventory VALUES(?,?,?)',u.id,item.id,Date.now());this.log('shop.purchase',u.id,{item:item.id,coins:-item.price});});return response({ok:true});
   }
   if(path==='/api/account/equip'&&method==='POST'){
    const b=parsed;if(b.item===null){this.sql.exec('UPDATE users SET accessory=NULL,revision=revision+1 WHERE id=?',u.id);return response({ok:true});}
-   const item=CATALOG.find(i=>i.id===b.item);if(!item||!this.one('SELECT item FROM inventory WHERE user_id=? AND item=?',u.id,item.id))problem('Item belum dimiliki.',403);
+   const item=CATALOG.find(i=>i.id===b.item);if(!canUseCosmetic(item,u,this.isAdmin(u))||!this.one('SELECT item FROM inventory WHERE user_id=? AND item=?',u.id,item.id))problem('Item belum dimiliki.',403);
    this.sql.exec(item.kind==='skin'?'UPDATE users SET skin=?,revision=revision+1 WHERE id=?':'UPDATE users SET accessory=?,revision=revision+1 WHERE id=?',item.id,u.id);this.log('avatar.equipped',u.id,{item:item.id});return response({ok:true});
   }
   if(path==='/api/account/history'&&method==='GET')return response({events:this.rows('SELECT id,time,kind,game,detail FROM events WHERE user_id=? ORDER BY time DESC LIMIT 50',u.id),rewards:this.rows('SELECT * FROM rewards WHERE user_id=? ORDER BY time DESC LIMIT 50',u.id)});
@@ -154,7 +166,7 @@ export class AccountStore extends DurableObject {
     await this.notifySessions({userId:target.id,sessionIds:revokedSessions});return response({ok:true});
    }
    const target=/^\/api\/account\/admin\/users\/([a-zA-Z0-9-]{16,80})$/.exec(path);
-   if(target&&method==='GET'){const user=this.one('SELECT * FROM users WHERE id=?',target[1]);if(!user)problem('Pemain tidak ditemukan.',404);return response({user:this.publicUser(user),possessions:possessions(this,user),catalog:CATALOG});}
+   if(target&&method==='GET'){const user=this.one('SELECT * FROM users WHERE id=?',target[1]);if(!user)problem('Pemain tidak ditemukan.',404);return response({user:this.publicUser(user),possessions:possessions(this,user),catalog:PUBLIC_CATALOG.filter(i=>canUseCosmetic(CATALOG.find(c=>c.id===i.id),user,this.isAdmin(user)))});}
    if(target&&method==='PATCH'){if(Date.now()-u.session_created>1800000)problem('Masuk ulang untuk mengubah milik pemain.',401);return response(applyUserEdit(this,u,parsed,target[1]));}
    if(path==='/api/account/admin/authorize'&&method==='GET'){if(Date.now()-u.session_created>1800000)problem('Masuk ulang untuk mengubah saldo meja.',401);return response({id:u.id,name:u.name});}
    if(path==='/api/account/admin/overview'&&method==='GET')return this.overview();
