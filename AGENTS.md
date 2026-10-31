@@ -1,5 +1,14 @@
 # SRAC-Gaming: instructions for coding agents
 
+## Released 3.11.14 — 31 October 2026
+
+User authorized “push, deploy, update obsidian”. Cloud build **2026-10-31-dragon-flame-1 / 3.11.14** is installed at https://srac-gaming.faiz-triputra.workers.dev/ ; deployment **3214c64d-d2bd-4881-85db-da5ef2450ceb**. Source commit **50a0ec8396f48005e0f0172f9e01ad927a3094d9** pushed through personal GitHub Desktop izanagiwarrior and independently matched remote main. All pending3.9.0–3.11.14 work is included: ten games, featured Mahjong/alphabetical grid, database leaderboards, compressed character/card artwork, white Faiz profile, integrated black-dragon brand/favicon/login aura, consistent panels/disclosures, centered creator footer and help bullets. Historical Pending headings below describe preparation, not outstanding deployment.
+
+Canonical staging reconciled from verified94-file candidate manifest on clean46321a1; source backup retained outside Git. Build/dry-run passed:134publicfiles,394.35KiB/gzip110.79KiB bundle. Public health confirms10games/newbuild;14entrypages200 and14representative assets byte-identical. Shared Google secrets, Durable Object bindings/migration identities, existing account/game storage and legacy Node live are preserved; local preview data is not uploaded. Leaderboard adds tables/indexes and a one-time XP/outcome backfill in the existing AccountStore; historical money/points are never invented.
+
+**Availability remains impaired:** anonymous account API500 before and after deployment. Read-only Worker tail again shows `Exceeded allowed rows read in Durable Objects free tier.` Account/login/leaderboard and account-gated gameplay cannot be declared healthy until the account-wide daily quota resets and recovery is checked. No billing upgrade, reset, data deletion or workaround migration was performed. Static release is installed; quota recovery remains external. No new automated/gameplay tests; four new games/full settlement/ranking recovery/mobile/all-state verification remains incomplete. No production room actions. Future code changes/push/deploy require a new request. Release documentation is published in a follow-up documentation commit under this same authorization.
+
+
 ## Pending3.11.14 — black dragon aura (31 October2026)
 
 Local3.11.14/build2026-10-31-dragon-flame-1 includes3.11.13. Login/signup dragon portrait gains two decorative CSS black-fire/smoke layers with subdued violet edges, organic animated shapes and slow rising motion. Existing pause control pauses both pseudo layers; reduced-motion disables animation. Portrait/profile IDs, black brand and white Faiz account avatar unchanged. No new assets/downloads/auth/storage changes.

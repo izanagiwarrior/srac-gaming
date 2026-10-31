@@ -1,16 +1,12 @@
 # Meja Kita
 
-Candidate lokal **3.11.12**: sepuluh game, Mahjong besar di baris pertama, sembilan game lain berurutan abjad dalam grid tiga kolom. Termasuk UNO, Ludo, Monopoli Nusantara dan Reversi. Ilustrasi kartu dirapikan; naga hitam Faiz di logo dan login dengan animasi ringan. [Branding](docs/DRAGON-BRAND.md). Leaderboard gabungan/per game, default uang, tersimpan di database. [Panduan leaderboard](docs/LEADERBOARD.md). Ilustrasi karakter baru dan hero game-night sudah dikompres. [Artwork](docs/CHARACTER-ART.md). Belum dipasang ke cloud/Git. [Aturan dan batas verifikasi](docs/TEN-GAMES.md).
+Rilis **3.11.14 / `2026-10-31-dragon-flame-1`**: **Mahjong, Blackjack, Capsa Banting, Catur, Domino, Ludo, Monopoli Nusantara, Poker, Reversi dan UNO**. Mahjong tampil besar; sembilan game lain berurutan abjad dalam tiga kolom. Termasuk leaderboard global/per game, ilustrasi terkompresi, logo naga hitam, profil Faiz naga putih dan bantuan ringkas berbentuk bullet.
 
-Satu landing page untuk **Capsa Banting, Mahjong, Poker Texas Hold’em, Catur, Domino Gaple, dan Blackjack**. Hosting utama memakai Cloudflare Workers + SQLite Durable Object tanpa laptop. Target Node.js satu port tetap tersedia secara terpisah.
+[Main online](https://srac-gaming.faiz-triputra.workers.dev/) · [GitHub personal](https://github.com/izanagiwarrior/srac-gaming) · [Status dan batas verifikasi](docs/PROJECT-STATUS.md) · [Maintenance](docs/MAINTENANCE.md).
 
-Repository: [izanagiwarrior/srac-gaming](https://github.com/izanagiwarrior/srac-gaming).
+Hosting utama adalah **Cloudflare Workers + SQLite Durable Objects**, tanpa laptop. Target Node satu port tetap tersedia terpisah. Rilis tidak menyalin data preview atau mereset akun/room yang sudah ada. Panduan [sepuluh game](docs/TEN-GAMES.md), [leaderboard](docs/LEADERBOARD.md), [artwork](docs/CHARACTER-ART.md) dan [branding](docs/DRAGON-BRAND.md).
 
-Baseline cloud aktif: **3.8.1 / `2026-10-31-image-budget-1`**. Audit status31Oktober2026: [permintaan, bukti, dan batas penyelesaian](docs/PROJECT-STATUS.md). [Main online](https://srac-gaming.faiz-triputra.workers.dev/). Periksa `/health` untuk status aktual. Rilis source mencakup panduan agent dan validasi skor HKMA; lihat [status dan panduan maintenance](docs/MAINTENANCE.md).
-
-Terbaru:20item kosmetik, avatar admin khusus dan gambar WebP97.6%lebihkecil. Catatan operasional: batas baca database Free sedang tercapai; akses akun menunggu reset kuota07.00WIB. Detail di [status rilis](docs/PROJECT-STATUS.md). Password mulai1karakter, konfirmasi + tombol mata, dan reset password oleh admin dengan audit. Tampilan diringkas dengan bantuan `?` yang sejajar dengan label, ukuran konsisten, dan cheat sheet lipat. Dua belas emote chat tersedia di enam game, dengan efek transparan di meja yang terlihat seluruh room. Lobby Mahjong punya Manual bebas, Manual terbantu, serta Fast. Manual bebas membiarkan pemain mencoba klaim tanpa pemeriksaan awal; server menilai saat klaim dikirim. Panduan dapat dilewati dan panel sidebar tetap dapat dilipat.
-
-Fitur: lobby bersama, nama diminta saat create/join game, lalu disimpan untuk prefill enam game, kunci room, save/pemulihan sesi, penonton/antrean/rotasi, panel lipat dan aksi HP, suara/volume serta pengurangan animasi. Pada hosting cloud, koneksi game terbaru mengambil kendali kursi akun otomatis; perangkat lama berhenti dan bisa merebut kembali lewat tindakan sambung manual. Keluar dari room lama sebelum pindah room. Pilihan popup/token tetap berlaku pada transport Node legacy. [Panduan sesi bersama](docs/SOCIAL-SESSIONS.md).
+**Status operasional31Oktober2026:** build terbaru sudah terpasang, tetapi API akun masih500 karena kuota baca harian Durable Objects Free akunCloudflare tercapai. Static pages tersedia; login/main belum dinyatakan pulih. Reset harian07.00WIB; jangan menjanjikan pemulihan sebelum diperiksa. Tidak ada upgrade billing/reset database. Game baru dan leaderboard belum menjalani validasi gameplay menyeluruh.
 
 ## Akun kantor untuk login Google
 
