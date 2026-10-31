@@ -70,3 +70,98 @@ test('Cloud SQLite six-game account ownership and two-device handoff',async t=>{
   const other=await peer(mf,'poker',a2);other.send({type:'hub-account-list'});const offer=await other.next('account-room-offer');assert.equal(offer.seats[0].code,j.code);other.send({type:'hub-account-claim',handoffId:offer.handoffId,roomId:offer.seats[0].roomId});const recovered=await other.next('joined');assert.equal(recovered.code,j.code);other.send({type:'leave'});await other.next('left');other.close();
  });
 });
+
+test('Cloud SQLite real-time disconnect grace and account reconnect keep the same active Chess seat',async t=>{
+ execFileSync(process.execPath,['scripts/build-cloudflare.mjs'],{cwd:root,stdio:'pipe'});
+ const store=fs.mkdtempSync(path.join(os.tmpdir(),'srac-cloud-grace-')),mf=fixture(store),peers=[];
+ t.after(async()=>{peers.forEach(p=>p.close());await mf.dispose();fs.rmSync(store,{recursive:true,force:true});});
+ const cookies=[];for(let i=0;i<2;i++)cookies.push((await api(mf,'signup',null,{name:'Grace '+i,email:'grace'+i+'@example.invalid',password:'private-grace-test-password'})).cookie);
+ const first=await peer(mf,'catur',cookies[0]),observer=await peer(mf,'catur',cookies[1]);peers.push(first,observer);
+ first.send({type:'create',name:'Grace 0',settings:{bots:0}});const j=await first.next('joined');observer.send({type:'join',code:j.code,name:'Grace 1'});await observer.next('joined');
+ first.send({type:'start',settings:{bots:0,clockMode:'blitz5'}});const initial=await observer.next('state',s=>s.phase==='playing'),id=initial.players.find(p=>p.name==='Grace 0').id;
+ const claim=async()=>{const p=await peer(mf,'catur',cookies[0]);peers.push(p);p.send({type:'hub-account-list'});const o=await p.next('account-room-offer');p.send({type:'hub-account-claim',handoffId:o.handoffId,roomId:o.seats[0].roomId});await p.next('joined');return p;};
+ const row=s=>s.hub.presence.find(p=>p.id===id);
+ first.close();const gone=await observer.next('state',s=>row(s)?.connected===false);assert.equal(row(gone).proxy,false);assert(row(gone).deadline>Date.now());
+ const resumed=await claim();const back=await observer.next('state',s=>row(s)?.connected===true);assert.equal(back.fen,initial.fen);assert.equal(row(back).proxy,false);
+ observer.q.length=0;resumed.close();const waiting=await observer.next('state',s=>row(s)?.connected===false),deadline=row(waiting).deadline;
+ await new Promise(r=>setTimeout(r,Math.max(0,deadline-Date.now()-250)));
+ assert(!observer.q.some(s=>s.type==='state'&&row(s)?.proxy),'no early takeover in the actual Workers timer adapter');
+ const proxy=await observer.next('state',s=>row(s)?.proxy===true);assert(Date.now()>=deadline);assert.equal(proxy.players.find(p=>p.id===id).bot,false);
+ const finalPeer=await claim(),after=await finalPeer.next('state');assert.equal(after.fen,initial.fen);assert.equal(row(after).proxy,false);assert.deepEqual(after.players.map(p=>p.score),initial.players.map(p=>p.score));
+ finalPeer.send({type:'hub-dissolve',confirm:true,code:after.code,roomId:after.hub.roomId});await finalPeer.next('room-dissolved');
+});
+
+test('Cloud SQLite cold active recovery preserves all six games and closed room tombstones',async t=>{
+ execFileSync(process.execPath,['scripts/build-cloudflare.mjs'],{cwd:root,stdio:'pipe'});
+ const store=fs.mkdtempSync(path.join(os.tmpdir(),'srac-cold-active-'));let mf=fixture(store);const peers=[],saved=[];
+ t.after(async()=>{peers.forEach(p=>p.close());await mf.dispose();fs.rmSync(store,{recursive:true,force:true});});
+ const stable=(game,s)=>({cards:game==='mahjong'?s.players[s.you].hand:game==='poker'?s.players.find(p=>p.id===s.you).hole:game==='blackjack'?s.players.find(p=>p.id===s.you).hands:s.hand,board:s.board||s.fen||s.game?.board,chain:s.chain,phase:s.phase,turn:s.turn??s.current??s.turnId??s.game?.turn,match:s.matchId,hand:s.game?.handNo,round:s.round,points:s.players.map(p=>[p.id,p.score,p.stack,p.totalBuyIn]),dealer:s.dealer,wall:s.wallCount});
+ for(const game of ['capsa','mahjong','poker','catur','domino','blackjack']){
+  const signup=await api(mf,'signup',null,{name:'Cold '+game,email:'cold-'+game+'@example.invalid',password:'private-cold-runtime-test'});assert.equal(signup.status,201);
+  const p=await peer(mf,game,signup.cookie);peers.push(p);p.send({type:'create',name:'Ignored',seats:2,fillBots:true,practice:true,settings:{bots:game==='blackjack'?0:1}});const j=await p.next('joined');await p.next(game==='mahjong'?'lobby':'state');p.q.length=0;
+  p.send({type:'start',settings:{tablePreset:'custom',animateDeal:false,bots:game==='blackjack'?0:1,clockMode:'blitz5'}});const state=await p.next('state',s=>s.phase!=='lobby');
+  saved.push({game,cookie:signup.cookie,code:j.code,token:j.token,state});
+ }
+ // Kill the private runtime with live sockets, as opposed to orderly native Leave.
+ await mf.dispose();mf=fixture(store);
+ for(const f of saved)await t.test(f.game+' resumes its DB-owned active seat only after host continuation',async()=>{
+  const p=await peer(mf,f.game,f.cookie);peers.push(p);p.send({type:'hub-account-list'});const offer=await p.next('account-room-offer');assert.equal(offer.seats.length,1);assert.equal(offer.seats[0].code,f.code);
+  p.send({type:'hub-account-claim',handoffId:offer.handoffId,roomId:offer.seats[0].roomId});const j=await p.next('joined'),s=await p.next('state');assert.notEqual(j.token,f.token);assert.deepEqual(stable(f.game,s),stable(f.game,f.state));assert.equal(s.hub.host,true);assert.equal(s.hub.recovering,true);assert(s.hub.presence.every(row=>!row.proxy&&!row.deadline));
+  p.send({type:'start'});assert.match((await p.next('error')).message,/jeda|dipulihkan/i);
+  p.q.length=0;await new Promise(r=>setTimeout(r,3100));assert(!p.q.some(m=>m.type==='state'&&JSON.stringify(stable(f.game,m))!==JSON.stringify(stable(f.game,s))),'paused bots must not move during cold recovery');
+  p.send({type:'hub-resume'});await p.next('state',m=>m.hub?.recovering===false);
+  p.send({type:'hub-dissolve',confirm:true,code:f.code,roomId:s.hub.roomId});await p.next('room-dissolved');p.close();
+ });
+ await mf.dispose();mf=fixture(store);
+ for(const f of saved)await t.test(f.game+' dissolved code stays unavailable after another cold start',async()=>{
+  const p=await peer(mf,f.game,f.cookie);peers.push(p);p.send({type:'hub-account-list'});assert.equal((await p.next('account-room-offer')).seats.length,0);p.send({type:'join',code:f.code,name:'Ignored'});const e=await p.next('error');assert(!p.q.some(m=>m.type==='joined'));assert.match(e.message||e.msg,/tidak ditemukan/i);p.close();
+ });
+});
+
+test('Cloud SQLite Mahjong opening and pending claims survive cold recovery',async t=>{
+ execFileSync(process.execPath,['scripts/build-cloudflare.mjs'],{cwd:root,stdio:'pipe'});
+ for(const mode of ['opening','claim','undo'])await t.test(mode,async st=>{
+  const store=fs.mkdtempSync(path.join(os.tmpdir(),'srac-mahjong-phase-'));let mf=fixture(store);const peers=[],cookies=[];st.after(async()=>{peers.forEach(p=>p.close());await mf.dispose();fs.rmSync(store,{recursive:true,force:true});});
+  const n=mode==='opening'?1:4;
+  for(let i=0;i<n;i++){cookies.push((await api(mf,'signup',null,{name:'Phase '+i,email:'phase'+i+'@example.invalid',password:'private-phase-test-password'})).cookie);peers.push(await peer(mf,'mahjong',cookies[i]));}
+  peers[0].send({type:'create',name:'Ignored'});const j=await peers[0].next('joined');await peers[0].next('lobby');
+  for(let i=1;i<n;i++){peers[i].send({type:'join',name:'Ignored',code:j.code});await peers[i].next('joined');}
+  for(const p of peers)p.q.length=0;
+  peers[0].send({type:'start',settings:{tablePreset:'custom',animateDeal:mode==='opening',claimMode:'manual'}});
+  let before=await Promise.all(peers.map(p=>p.next('state',s=>s.phase===(mode==='opening'?'opening':'discard'))));
+  if(mode!=='opening'){
+   for(const p of peers)p.q.length=0;const s=before[0],actor=peers[s.current],own=before[s.current].players[s.current];actor.send({type:'action',action:'discard',id:own.drawn||own.hand[0].id});before=await Promise.all(peers.map(p=>p.next('state',s=>mode==='claim'?s.claimOpen:s.phase==='claim'&&!s.claimOpen)));if(mode==='claim')assert.equal(before[0].claimWaiting.length,3);else assert(before[s.current].undoUntil>Date.now());
+  }
+  await mf.dispose();mf=fixture(store);const fresh=[],after=[];
+  for(let i=0;i<n;i++){const p=await peer(mf,'mahjong',cookies[i]);peers.push(p);fresh.push(p);p.send({type:'hub-account-list'});const o=await p.next('account-room-offer');p.send({type:'hub-account-claim',handoffId:o.handoffId,roomId:o.seats[0].roomId});await p.next('joined');after.push(await p.next('state'));}
+  if(mode==='undo')assert(after.every(s=>s.undoUntil===null),'old undo window expires on cold recovery');
+  const projection=s=>({phase:s.phase,current:s.current,wall:s.wall,opening:s.opening,layout:s.wallLayout,last:s.last,claimId:s.claimId,waiting:s.claimWaiting,options:s.options,hand:s.players[s.you].hand,flowers:s.players.map(p=>p.flowers),melds:s.players.map(p=>p.melds),discards:s.players.map(p=>p.discards),scores:s.players.map(p=>p.score)});
+  for(let i=0;i<n;i++){assert.equal(after[i].hub.recovering,true);assert.deepEqual(projection(after[i]),projection(before[i]));fresh[i].q.length=0;}
+  await new Promise(r=>setTimeout(r,1100));assert(!fresh[0].q.some(s=>s.type==='state'&&JSON.stringify(projection(s))!==JSON.stringify(projection(after[0]))));
+  fresh[0].send({type:'hub-resume'});const continued=await Promise.all(fresh.map(p=>p.next('state',s=>s.hub?.recovering===false)));
+  if(mode==='opening'){
+   fresh[0].send({type:'action',action:'skip-opening',openingId:continued[0].opening.id});const done=await fresh[0].next('state',s=>s.phase==='discard');assert.equal(done.players.reduce((n,p)=>n+p.handCount,0),53);assert.equal(done.wall,before[0].wall);assert(done.players[done.you].hand.length>=13);
+  }else{
+   const s=continued[0];for(const seat of s.claimWaiting)fresh[seat].send({type:'action',action:'claim',claim:'pass',claimId:s.claimId});const next=await fresh[0].next('state',s=>s.phase==='discard'&&!s.claimOpen);assert.equal(next.current,(s.last.from+1)%4);assert(next.wall<s.wall);assert.equal(next.players.reduce((n,p)=>n+p.handCount,0),53);
+  }
+  fresh[0].send({type:'hub-dissolve',confirm:true,code:j.code,roomId:after[0].hub.roomId});await fresh[0].next('room-dissolved');
+ });
+});
+
+test('Cloud SQLite Blackjack dealt wagers survive restart without duplicate debit or payout',async t=>{
+ execFileSync(process.execPath,['scripts/build-cloudflare.mjs'],{cwd:root,stdio:'pipe'});
+ const store=fs.mkdtempSync(path.join(os.tmpdir(),'srac-blackjack-dealt-'));let mf=fixture(store);const peers=[];t.after(async()=>{peers.forEach(p=>p.close());await mf.dispose();fs.rmSync(store,{recursive:true,force:true});});
+ const signup=await api(mf,'signup',null,{name:'Dealt player',email:'dealt@example.invalid',password:'private-dealt-test-password'}),p=await peer(mf,'blackjack',signup.cookie);peers.push(p);p.send({type:'create',name:'Ignored',settings:{bots:0}});await p.next('joined');await p.next('state');p.q.length=0;p.send({type:'start',settings:{bots:0}});let before=await p.next('state',s=>s.phase==='betting');
+ for(let attempt=0;attempt<10;attempt++){
+  p.q.length=0;p.send({type:'bet',amount:10,revision:before.revision});before=await p.next('state',s=>s.phase!=='betting');if(before.phase==='playing')break;
+  while(before.phase==='dealer')before=await p.next('state');assert.equal(before.phase,'finished');p.send({type:'next'});before=await p.next('state',s=>s.phase==='betting');
+ }
+ assert.equal(before.phase,'playing','bounded fixture needs a non-natural player hand');assert(before.players[0].hands[0].cards.length===2);assert.equal(before.players[0].hands[0].bet,10);
+ const stable=s=>({phase:s.phase,round:s.round,turn:s.turnId,dealer:s.dealer,players:s.players.map(p=>[p.id,p.stack,p.totalBuyIn,p.bet,p.hands,p.handIndex,p.score]),house:s.house,ledger:s.ledger});
+ await mf.dispose();mf=fixture(store);const q=await peer(mf,'blackjack',signup.cookie);peers.push(q);q.send({type:'hub-account-list'});const o=await q.next('account-room-offer');q.send({type:'hub-account-claim',handoffId:o.handoffId,roomId:o.seats[0].roomId});await q.next('joined');const restored=await q.next('state');assert(restored.hub.recovering);assert.deepEqual(stable(restored),stable(before));
+ q.send({type:'stand',revision:restored.revision});assert.match((await q.next('error')).message,/jeda|dipulihkan/i);q.send({type:'hub-resume'});const resumed=await q.next('state',s=>!s.hub.recovering);assert.deepEqual(stable(resumed),stable(before));
+ q.q.length=0;q.send({type:'stand',revision:resumed.revision});const dealerCheckpoint=await q.next('state',s=>s.phase==='dealer');await mf.dispose();mf=fixture(store);
+ const dealerPeer=await peer(mf,'blackjack',signup.cookie);peers.push(dealerPeer);dealerPeer.send({type:'hub-account-list'});const dealerOffer=await dealerPeer.next('account-room-offer');dealerPeer.send({type:'hub-account-claim',handoffId:dealerOffer.handoffId,roomId:dealerOffer.seats[0].roomId});await dealerPeer.next('joined');const dealerRestored=await dealerPeer.next('state');assert(dealerRestored.hub.recovering);assert.deepEqual(stable(dealerRestored),stable(dealerCheckpoint));dealerPeer.send({type:'hub-resume'});await dealerPeer.next('state',s=>!s.hub.recovering);
+ let done;for(let i=0;i<12;i++){done=await dealerPeer.next('state');if(done.phase==='finished')break;}assert.equal(done.phase,'finished');assert.equal(done.house+done.players.reduce((sum,p)=>sum+p.stack,0),done.players.reduce((sum,p)=>sum+p.totalBuyIn,0));
+ const settled=stable(done);await mf.dispose();mf=fixture(store);const last=await peer(mf,'blackjack',signup.cookie);peers.push(last);last.send({type:'hub-account-list'});const own=await last.next('account-room-offer');last.send({type:'hub-account-claim',handoffId:own.handoffId,roomId:own.seats[0].roomId});await last.next('joined');const final=await last.next('state');assert.equal(final.hub.recovering,false);assert.deepEqual(stable(final),settled);assert.equal(final.ledger.length,done.ledger.length);last.send({type:'hub-dissolve',confirm:true,code:final.code,roomId:final.hub.roomId});await last.next('room-dissolved');
+});

@@ -104,7 +104,7 @@ test('Socket does not send private output after its pre-send guard closes it',()
 test('Cloud entry ignores a stale browser seat when the database has no owned seat',async()=>{
  const vm=require('node:vm'),fs=require('node:fs'),writes=new Map(),sent=[],entries=[];
  const doc={documentElement:{dataset:{}},addEventListener(){},querySelectorAll(){return [];},querySelector(){return null;}};
- const context={window:{},document:doc,localStorage:{getItem:k=>writes.get(k)||null,setItem:(k,v)=>writes.set(k,v)},location:{pathname:'/blackjack/',search:'?room=NEWROOM',origin:'https://game.invalid'},matchMedia:()=>({matches:false}),URL,URLSearchParams,Intl,setTimeout,clearTimeout,queueMicrotask,history:{replaceState(){}}};
+ const context={window:{},document:doc,localStorage:{getItem:k=>writes.get(k)||null,setItem:(k,v)=>writes.set(k,v)},location:{pathname:'/blackjack/',search:'?room=NEWROOM',origin:'https://game.invalid'},matchMedia:()=>({matches:false}),URL,URLSearchParams,Intl,setTimeout,clearTimeout,setInterval:()=>0,queueMicrotask,history:{replaceState(){}}};
  vm.createContext(context);vm.runInContext(fs.readFileSync(path.join(root,'public/room-client.js'),'utf8'),context);
  context.window.MejaRoom.connected({code:'OTHER',token:'another-account-browser-cache'},m=>{sent.push(m);return true;},target=>entries.push(target));
  assert.equal(sent[0].type,'hub-account-list');const message={type:'account-room-offer',seats:[]};context.window.MejaRoom.receive(message,m=>{sent.push(m);return true;});await new Promise(r=>queueMicrotask(r));assert.equal(message.type,'left');assert.equal(sent.filter(m=>['resume','rejoin'].includes(m.type)).length,0);assert.deepEqual(entries,['NEWROOM']);
@@ -126,4 +126,17 @@ test('Failed handoff checkpoint preserves old seat token and host',async()=>{
  const person={accountId:'owner',token:'original',name:'Owner'},room={code:'TEST',social:{id:'room-id'},hostToken:'original',players:[person],spectators:[]},messages=[];
  const hub={apps:new Map([['mahjong',{rooms:new Map([['TEST',room]])}]]),services:new Map([['mahjong',{roomFor:()=>({}),save:()=>false}]])};const guard=new AccountRooms(hub),socket={account:{id:'owner'},send:text=>messages.push(JSON.parse(text))};
  guard.before(socket,{type:'hub-account-list'},'mahjong');const offer=messages.pop();assert.equal(guard.before(socket,{type:'hub-account-claim',roomId:'room-id',handoffId:offer.handoffId},'mahjong'),false);assert.equal(person.token,'original');assert.equal(room.hostToken,'original');assert.equal(messages.pop().type,'error');
+});
+
+test('Cloud entry automatically claims its DB seat and redirects to an owned game',()=>{
+ const vm=require('node:vm'),fs=require('node:fs');
+ for(const game of ['blackjack','mahjong']){
+  const sent=[],redirects=[],doc={documentElement:{dataset:{}},addEventListener(){},querySelectorAll(){return [];},querySelector(){return null;}};
+  const context={window:{},document:doc,localStorage:{getItem:()=>null,setItem(){}},location:{pathname:'/blackjack/',search:'',origin:'https://game.invalid',assign:p=>redirects.push(p)},matchMedia:()=>({matches:false}),URL,URLSearchParams,Intl,setTimeout:()=>0,clearTimeout(){},setInterval:()=>0,queueMicrotask,history:{replaceState(){}}};
+  vm.createContext(context);vm.runInContext(fs.readFileSync(path.join(root,'public/room-client.js'),'utf8'),context);
+  const send=m=>{sent.push(m);return true;};context.window.MejaRoom.connected(null,send,()=>{});
+  context.window.MejaRoom.receive({type:'account-room-offer',handoffId:'challenge',seats:[{game,code:'OWNED',roomId:'db-seat'}]},send);
+  if(game==='blackjack'){assert.equal(sent.at(-1).type,'hub-account-claim');assert.equal(sent.at(-1).handoffId,'challenge');assert.equal(sent.at(-1).roomId,'db-seat');assert.equal(redirects.length,0);}
+  else {assert.deepEqual(redirects,['/mahjong/?room=OWNED']);assert.equal(sent.length,1);}
+ }
 });
