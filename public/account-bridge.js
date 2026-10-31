@@ -17,7 +17,7 @@
    }
    if(window.MejaRoom?.receive){const original=window.MejaRoom.receive;window.MejaRoom.receive=function(...args){const result=original.apply(this,args);const meta=args[0]?.hub;if(meta)queueMicrotask(()=>{if(meta.profiles)renderProfiles(meta.profiles);renderAdjustments(meta.adjustments||[]);});return result;};}
   }else if(game){
-   const dialog=document.createElement('dialog');dialog.className='mk-account-gate';const title=document.createElement('h2');title.textContent='Satu akun untuk setiap meja.';const p=document.createElement('p');p.textContent='Masuk untuk menyimpan avatar, XP, dan koleksimu di database. Setelah masuk, kamu bisa kembali ke undangan ini.';
+   const dialog=document.createElement('dialog');dialog.className='mk-account-gate';const title=document.createElement('h2');title.textContent='Satu akun untuk setiap meja.';const p=document.createElement('p');p.textContent='Game internal bareng teman kantor. Login Google memakai akun kantor @shopee.com yang diizinkan; Gmail pribadi bisa lewat daftar email dan password. Setelah masuk, kamu bisa kembali ke undangan ini.';
    const signin=document.createElement('a');signin.href='/account/?next='+encodeURIComponent(location.pathname+location.search);signin.textContent='Masuk / Buat akun';signin.className='mk-account-gate-primary';const home=document.createElement('a');home.href='/';home.textContent='Kembali ke beranda';dialog.append(title,p,signin,home);dialog.addEventListener('cancel',ev=>{ev.preventDefault();location.assign('/');});document.body.append(dialog);dialog.showModal();
   }
  }

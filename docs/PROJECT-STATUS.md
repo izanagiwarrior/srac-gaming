@@ -1,6 +1,10 @@
 # Project completion audit — 31 October 2026
 
-## Current state
+## Follow-up3.5.1 — office login explanation
+
+After the closure audit, the user explicitly accepted Google's Internal audience and requested an on-site office-account explanation, notes, deployment and personal Git push. Release3.5.1/build2026-10-31-office-login-note-1 is installed (deployment23a92239-e344-462b-a2de-8d5b0818b358). Landing, login/signup and shared game gate now explain Google office-account access and the separate personal-email/password path. Public health/nine entries and three changed file hashes passed. Rules/data/OAuth audience remain unchanged; no new automated/gameplay run. This follow-up is complete on the runtime; its publication is identified by the Git history and verified operator record.
+
+## Closure-audit baseline (historical3.5.0)
 
 - Public hosting: **3.5.0 / `2026-10-31-disconnect-grace-1`**, https://srac-gaming.faiz-triputra.workers.dev/ . Read-only health and ten entry routes returned200 during this audit.19critical public assets exactly matched source. Google configured=true, account preview=false;9skins plus1accessory. No login, room action, gameplay, deployment, restart or production data change was performed.
 - Git: personal `izanagiwarrior/srac-gaming`, main. Runtime source release `862bf18`; regression publication `adb90f7bd2bfda8c9b7ac91df45876300548402c` independently matched remote main before this documentation-only follow-up. The audit publication commit is identified by Git history; confirm remote equality after pushing.

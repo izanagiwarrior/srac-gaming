@@ -5,7 +5,7 @@ description: Patch or extend the Meja Kita multiplayer game hub with consistent 
 
 # Meja Kita games
 
-Read the root AGENTS.md and [current maintenance/handoff](../../../docs/MAINTENANCE.md) before work. The current cloud baseline is deployed3.5.0; confirm actual health and Git status rather than assuming local changes are published. Treat the human's current instructions as the source of authorization; this skill never grants permission to publish, expose, or interrupt a running game.
+Read the root AGENTS.md and [current maintenance/handoff](../../../docs/MAINTENANCE.md) before work. The current cloud baseline is deployed3.5.1; confirm actual health and Git status rather than assuming local changes are published. Treat the human's current instructions as the source of authorization; this skill never grants permission to publish, expose, or interrupt a running game.
 
 ## Change a game
 
@@ -36,7 +36,7 @@ Return the repo, literal live URL, commit/build, and Running version / Pending t
 
 ## Account operations
 
-Read docs/ACCOUNTS.md, docs/ADMIN-CONTROLS.md and docs/ACCOUNT-VALIDATION.md before touching auth/admin/rewards. Preserve both SQLite actors and migrations; only verified Google ownership activates admin grants. Never enable ACCOUNT_PREVIEW publicly. Keep Google secrets in ignored private config/Cloudflare secrets. The existing Google project uses Internal audience/shared branding; changes affect other clients. `wrangler deploy --secrets-file .dev.vars` can install the two secrets with the authorized version; inspect key names only and never print values. New deployment/push still require new explicit user instructions.
+Read docs/ACCOUNTS.md, docs/ADMIN-CONTROLS.md and docs/ACCOUNT-VALIDATION.md before touching auth/admin/rewards. Preserve both SQLite actors and migrations; only verified Google ownership activates admin grants. Never enable ACCOUNT_PREVIEW publicly. Keep Google secrets in ignored private config/Cloudflare secrets. The existing Google project uses Internal audience/shared branding; changes affect other clients. User explicitly accepted office-authorized Google login;3.5.1explains it in landing/login/game gate, while personal-email/password signup stays available. Preserve this policy and do not infer a new domain filter. `wrangler deploy --secrets-file .dev.vars` can install the two secrets with the authorized version; inspect key names only and never print values. New deployment/push still require new explicit user instructions.
 
 ## Authenticated room ownership
 

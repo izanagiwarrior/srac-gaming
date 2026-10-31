@@ -7,7 +7,13 @@
 3. [Game conventions](docs/GAME-CONVENTIONS.md) and [sessions/storage](docs/SOCIAL-SESSIONS.md).
 4. For hosting, [Cloudflare Workers](docs/CLOUDFLARE-WORKERS.md); for game changes, that game's README. [Quick Tunnel](docs/CLOUDFLARE.md) is a separate legacy option.
 
-## Installed release3.5.0 — 31 October 2026
+## Installed release3.5.1 — office Google login explanation
+
+User accepted the existing Internal Google audience and explicitly requested “notes … di webnya … internal game … email kantor, deploy & push”. Current **3.5.1 / `2026-10-31-office-login-note-1`**, deployment `23a92239-e344-462b-a2de-8d5b0818b358`, https://srac-gaming.faiz-triputra.workers.dev/ . Landing, sign-in/sign-up card and shared six-game account gate explain the office-community context: Google sign-in requires an organization-authorized office account such as @shopee.com; personal Gmail cannot use that Google button. Email/password signup with personal email remains available. This is explanatory UI, not a new domain filter or an official corporate service claim. Existing Google audience/shared branding, authentication policy, secrets, database actors/bindings/migrations, game rules, accounts/balances and legacy live are unchanged.
+
+Syntax/whitespace/build/dry-run passed,70assets,335.60KiB/gzip93.71KiB. Private empty account/landing preview inspected in Dark/Light without signup/login/gameplay; preview stopped. Public health/new build and nine entries200; three changed public files exactly match; Google configured true, preview false,9skins retained. No public room actions or new automated/gameplay tests. The200passing regression checks remain evidence for the unchanged native game/account logic, not a new test run. Git publication of this exact change is authorized; verify the remote before reporting it complete. No pending runtime deploy. Future changes need fresh authorization.
+
+## Previously installed release3.5.0 — 31 October 2026
 
 User explicitly authorized “deploy push semua”. Running **3.5.0 / `2026-10-31-disconnect-grace-1`**, deployment `1add96c5-7189-49fe-9cbe-0be27cb9960a`, at https://srac-gaming.faiz-triputra.workers.dev/ . Includes all3.2.1/3.3.0/3.4.0/3.5.0pending source: account-based automatic device takeover, no manual recovery files, six free human portraits (9skins total), and six-game15second disconnect grace/native temporary AI with countdown/reconnect animation. Same AccountStore/GamingHub actors, binding/migrations, secrets and existing data; legacy Node live untouched. No production room/game actions.
 

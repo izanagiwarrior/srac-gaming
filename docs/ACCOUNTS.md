@@ -1,6 +1,10 @@
-# Accounts, progression and administration — release3.5.0
+# Accounts, progression and administration — release3.5.1
 
-Status:3.5.0 `2026-10-31-disconnect-grace-1` is deployed, including the [admin ownership/balance editor](ADMIN-CONTROLS.md). Google production credentials are configured and real local/public Google sign-in completed with verified admin identity. See root AGENTS for the release evidence and [account safety validation](ACCOUNT-SAFETY.md) for historical3.2.0test evidence and current limits; [connection lifecycle](CONNECTIONS.md) documents the3.5.0changes, whose subsequent200-test native/SQLite validation is detailed in CONNECTION-VALIDATION.md. Git publication is recorded separately; this guide never authorizes a future release.
+Status:3.5.1 `2026-10-31-office-login-note-1` is deployed, including the [admin ownership/balance editor](ADMIN-CONTROLS.md). Google production credentials are configured and real local/public Google sign-in completed with verified admin identity. See root AGENTS for the release evidence and [account safety validation](ACCOUNT-SAFETY.md) for historical3.2.0test evidence and current limits; [connection lifecycle](CONNECTIONS.md) documents the3.5.0changes, whose subsequent200-test native/SQLite validation is detailed in CONNECTION-VALIDATION.md. Git publication is recorded separately; this guide never authorizes a future release.
+
+## Accepted Internal Google policy and user-facing explanation
+
+On31October the user saw403org_internal with a personal Gmail account, accepted the office-account limitation, and requested a visible explanation plus deployment/publication. Current landing/login/shared account gate says this is a community game for office friends and Google requires an organization-authorized office account such as @shopee.com. The button says Lanjutkan dengan Google kantor. Email/password with a personal email remains available; no new server domain enforcement was requested or added. Do not silently switch the shared Google project to External, alter branding/other clients or remove this explanation.
 
 ## Scope and product rules
 
