@@ -115,3 +115,13 @@ Keep game rules authoritative in the existing six factories. Cloud-only transpor
 - For complex games show the current ready-to-use configuration and a Customize disclosure. Mahjong has real server presets; do not pretend a client-only UI disclosure is a new authoritative preset. Existing Poker/Capsa/Blackjack values remain valid when Customize closes. All controls still exist in the DOM so Start reads their complete values.
 - Reuse MejaRoom.customize(key,label,trustedInternalHTML) for per-room open-state preservation across native rerenders. Never pass player text as raw HTML. Preserve focus/drafts on settings/chat acknowledgements. Labels explain units and any house-rule variation.
 - No new automatic deploy/push or automatic reset to default settings follows from these conventions.
+
+## Concise interface and optional help
+
+- Keep the default view focused on choices, current settings, primary actions and game state. Use a short label rather than repeating a full rule explanation.
+- Put supplementary rules, formulas and onboarding details behind the shared `/help.js` and `/help.css` `?` control (`MejaHelp.icon` or an explicitly scoped `data-mk-help-note`). Support hover, keyboard and touch; dismiss with Escape/outside click. Use plain text, theme tokens and viewport bounds.
+- Never hide turn/timer state, errors, amounts, account access requirements or confirmation consequences in tooltips. Keep the office Google label visible; detailed email alternatives can be help.
+- Default cheat sheets to collapsed only for an unset preference. Preserve stored folds and user-entered values across native rerenders. Keep actual in-game Poker odds; lobby examples are unnecessary.
+- Automatic enhancement must use narrow selectors and retain original dynamic node IDs. Dialogs/alerts/status and interactive explanation content are excluded. Inspect changed states in private preview; public rooms are not fixtures.
+
+- Help alignment: keep label text and `?` in one shared flex row; let only the text column wrap. Use the shared28px icon and8px gap at every breakpoint, with no per-game size overrides. Place dialog help inside its dialog top layer; keep primary actions as initial focus. Review long labels/checkboxes at390px, with tablet/desktop representatives.

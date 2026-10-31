@@ -1,6 +1,18 @@
 # Maintenance and agent handoff
 
+## Pending3.6.0 — compact explanations (31 October 2026)
+
+User requests less on-screen prose and optional `?` explanations. Candidate **3.6.0 / `2026-10-31-compact-help-1`** is prepared in staging only. Shared help supports pointer hover, keyboard focus/Enter/Space/Escape and tap/outside dismissal; viewport-clamped themed popovers retain original dynamic explanation nodes/IDs. Landing/account and six game entries/settings use concise copy or optional help. Cheat sheets start collapsed only when no stored fold preference exists. Poker lobby warm-up/example odds removed; actual in-game odds retained. Core turn/timer, error, balance and confirmation information stays visible.
+
+Running remains **3.5.1 / `2026-10-31-office-login-note-1`**, deployment `23a92239-e344-462b-a2de-8d5b0818b358`. No commit, push, public deploy/restart or production room actions authorized/performed. No rules, DB, auth policy or runtime identity changes. Private local preview inspected landing/account, all six entries and Mahjong/Poker/Capsa/Blackjack lobbies without starting games. Click/focus/Escape, checkbox-help isolation, cheat open/close and Light/Dark reviewed; hover path implemented but not directly exercised by the native browser API. The initial review excluded mobile; the follow-up below adds390px layout checks. No full gameplay or automated regression run for this candidate. Source syntax, whitespace and cloud asset build checked. Preview uses isolated local data and ACCOUNT_PREVIEW only; never publish that preview flag. [Compact UI conventions](GAME-CONVENTIONS.md).
+
 Last reconciled: **31 October 2026**. Read root [AGENTS.md](../AGENTS.md) first. This document records context and procedures; it does not authorize push, deployment, interruption, gameplay tests or data migration. Dates below are historical evidence. Recheck actual source and service before acting.
+
+### UI alignment review — 31 October 2026
+
+Follow-up requests all question-mark help aligned with its label and consistent sizing. Pending3.6.0 now uses one shared non-wrapping flex row, a shrinking/wrapping text column,28px fixed icon and8px gap. Specificity prevents native game styles overriding it. Heading, legend, plain labels, standalone notes and account copy share the same row treatment. Landing mobile header grows without account-pill collision. Explicit help in the login dialog is placed in the top layer and primary login receives initial focus.
+
+Manual private preview covered landing/account and six game entry/lobby states at390px width, Mahjong Customize long checkbox labels, Poker Customize at390/768/1280, and Dark/Light examples. Local synthetic rooms were never started; no real/public player actions. This is representative UI review, not an exhaustive guarantee for every game state, browser, zoom or device. No automated/gameplay tests run. Temporary responsive fixture/CSP adjustment existed only in generated local preview output; final build restores production frame-ancestors none and excludes preview fixture/config. Running remains3.5.1; no commit/push/deploy.
 
 ## Installed release3.5.1 — office Google login explanation
 

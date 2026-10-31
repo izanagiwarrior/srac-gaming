@@ -274,7 +274,7 @@
   function command(message){if(!sender||sender(message)===false){announce('Tunggu koneksi atau aksi sebelumnya selesai.');return false;}return true;}
   function renderControls(){if(!toolbar)return;renderPresence();toolbar.querySelector('[data-mk-summary]').textContent=meta?'Preferensi & pengelolaan room':'Preferensi perangkat';
     const quickFocus=quickActions.querySelector(':focus')?.dataset.mkRoom;quickActions.hidden=!meta;
-    quickActions.innerHTML=meta?`<div class="mk-room-identity"><small>ROOM ${esc(slug==='catur'?'CATUR':slug.toUpperCase())}</small><strong>${esc(meta.code)}</strong><span>${meta.locked?'Akses terkunci':'Bagikan undangan untuk bermain bersama'}</span></div><div class="mk-quick-buttons"><button type="button" data-mk-room="copy">Salin link undangan</button><button type="button" data-mk-room="copy-code">Salin kode</button><button type="button" data-mk-room="switch">Keluar / ganti room</button></div>`:'';
+    quickActions.innerHTML=meta?`<div class="mk-room-identity"><small>ROOM ${esc(slug==='catur'?'CATUR':slug.toUpperCase())}</small><strong>${esc(meta.code)}</strong><span>${meta.locked?'Akses terkunci':'Undang teman'}</span></div><div class="mk-quick-buttons"><button type="button" data-mk-room="copy">Salin link undangan</button><button type="button" data-mk-room="copy-code">Salin kode</button><button type="button" data-mk-room="switch">Keluar / ganti room</button></div>`:'';
     if(quickFocus)quickActions.querySelector('[data-mk-room="'+CSS.escape(quickFocus)+'"]')?.focus({preventScroll:true});
     document.documentElement.dataset.mkRecovering=String(!!meta?.recovering);renderSessionHealth();
     if(dissolveChoice&&(!meta?.host||meta.code!==dissolveChoice.code||meta.roomId!==dissolveChoice.roomId))closeDissolve();
@@ -322,11 +322,11 @@
   }
   function queueEnhance(){if(tickQueued)return;tickQueued=true;queueMicrotask(()=>{tickQueued=false;enhancePanels();});}
   function applyFold(panel,key,titleText){
-    const collapsed=!!folds[key],button=panel.querySelector('[data-mk-fold]');panel.dataset.mkCollapsed=String(collapsed);
-    if(!button)return;const label=collapsed?'Buka':'Lipat';
+    const helpPanel=/cheat sheet|contekan|panduan/i.test(titleText),collapsed=Object.prototype.hasOwnProperty.call(folds,key)?!!folds[key]:helpPanel,button=panel.querySelector('[data-mk-fold]');panel.dataset.mkCollapsed=String(collapsed);
+    if(!button)return;const label=helpPanel?(collapsed?'?':'Tutup'):(collapsed?'Buka':'Lipat');
     // Do not generate another child-list mutation when nothing changed.
     if(button.textContent!==label)button.textContent=label;
-    button.setAttribute('aria-expanded',String(!collapsed));button.setAttribute('aria-label',label+' '+titleText);
+    button.setAttribute('aria-expanded',String(!collapsed));button.setAttribute('aria-label',(collapsed?'Buka':'Lipat')+' '+titleText);
   }
   function enhancePanels(){if(!document.body)return;
     for(const panel of document.querySelectorAll('.mk-sidebar>.mk-panel,.sidebar>section')){
@@ -338,7 +338,7 @@
       applyFold(panel,key,text);
     }
   }
-  document.addEventListener('click',e=>{const button=e.target.closest('[data-mk-fold]');if(!button)return;e.preventDefault();const key=button.dataset.mkFold;folds[key]=!folds[key];write('mejakita.panel-folds',folds);for(const panel of document.querySelectorAll('[data-mk-panel]'))if(panel.dataset.mkPanel===key)applyFold(panel,key,panel.dataset.mkTitle);});
+  document.addEventListener('click',e=>{const button=e.target.closest('[data-mk-fold]');if(!button)return;e.preventDefault();const key=button.dataset.mkFold;folds[key]=button.getAttribute('aria-expanded')==='true';write('mejakita.panel-folds',folds);for(const panel of document.querySelectorAll('[data-mk-panel]'))if(panel.dataset.mkPanel===key)applyFold(panel,key,panel.dataset.mkTitle);});
 
   document.addEventListener('pointerdown',unlock,{passive:true});
   document.addEventListener('visibilitychange',()=>{if(document.hidden)context?.suspend().catch(()=>{});else if(unlocked&&prefs.sound)context?.resume().catch(()=>{});});

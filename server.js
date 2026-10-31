@@ -10,7 +10,7 @@ const { createChessServer } = require('./games/chess/server');
 const { createDominoServer } = require('./games/domino/server');
 const { createBlackjackServer } = require('./games/blackjack/server');
 
-const VERSION = '2026-10-31-office-login-note-1';
+const VERSION = '2026-10-31-compact-help-1';
 const {installRoomService}=require('./games/shared/room-service');
 
 function createHub(options = {}) {
@@ -50,6 +50,8 @@ function createHub(options = {}) {
     ['/hub.js', ['public/hub.js','application/javascript; charset=utf-8']],
     ['/room-client.js',['public/room-client.js','application/javascript; charset=utf-8']],
     ['/theme.js',['public/theme.js','application/javascript; charset=utf-8']],
+    ['/help.js',['public/help.js','application/javascript; charset=utf-8']],
+    ['/help.css',['public/help.css','text/css; charset=utf-8']],
     ['/theme.css',['public/theme.css','text/css; charset=utf-8']],
     ['/room-ui.css',['public/room-ui.css','text/css; charset=utf-8']],
     ['/hub-game.css', ['public/hub-game.css','text/css; charset=utf-8']],

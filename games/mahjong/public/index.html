@@ -2,7 +2,7 @@
 <html lang="id" data-theme="dark">
 <head>
 <script src="/room-client.js"></script><link rel="stylesheet" href="/room-ui.css">
-<meta charset="utf-8"><meta name="theme-color" content="#102e25"><meta name="color-scheme" content="dark light"><script src="/theme.js"></script>
+<meta charset="utf-8"><meta name="theme-color" content="#102e25"><meta name="color-scheme" content="dark light"><script src="/theme.js"></script><script src="/help.js"></script><link rel="stylesheet" href="/help.css">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Mahjong P2P</title>
 <link rel="stylesheet" href="/mahjong/hu.css">
@@ -276,7 +276,7 @@ input.code{text-transform:uppercase;letter-spacing:.3em;font-weight:700;font-fam
 <div id="toast" class="toast"></div>
 
 <div id="landing" class="screen">
-  <div class="hero"><h1>Mahjong P2P</h1><p>Main bareng teman lewat browser. Buat ruangan, bagikan kode 4 huruf, kursi kosong diisi bot.</p></div>
+  <div class="hero"><h1>Mahjong P2P</h1><p>Buat room atau masukkan kode teman.</p></div>
   <div class="panel">
     <label class="f">Nama kamu<input class="in" id="name" maxlength="16" placeholder="misalnya Hendy" autocomplete="nickname"></label>
     <button class="btn primary" data-mj-action="create">Buat ruangan baru</button>
@@ -294,7 +294,7 @@ input.code{text-transform:uppercase;letter-spacing:.3em;font-weight:700;font-fam
 
 <div id="lobby" class="screen lobbywrap" style="display:none">
  <div class="lcol">
-  <div class="hero"><h1>Ruang tunggu</h1><p>Bagikan kode ini ke temanmu. Pemain yang belum datang saat dimulai akan digantikan bot.</p></div>
+  <div class="hero"><h1>Ruang tunggu</h1><p>Undang teman, lalu mulai saat siap.</p></div>
   <div class="panel">
     <div class="bigcode" id="bigcode">----</div>
     <div class="row"><div class="addr" id="invite"></div><button class="btn ghost" data-mj-action="copy-invite" style="flex:0 0 auto">Salin link</button></div>
@@ -309,10 +309,10 @@ input.code{text-transform:uppercase;letter-spacing:.3em;font-weight:700;font-fam
     <label class="f">Nilai 1 poin dalam rupiah<input class="in" id="mahjong-point-value" type="number" min="0" max="1000000" step="1" value="0" data-mj-change="settings"></label><p class="cap">0 = latihan. Skor memakai tabel fan aturan meja; rupiah = poin hasil settlement × nilai ini. Terkunci saat mulai.</p>
     <fieldset class="mj-presets"><legend>Pilih gaya bermain</legend>
       <div class="mj-preset-grid">
-        <button type="button" data-mj-action="preset" data-preset="easy" aria-pressed="true"><b>Easy</b><small>Hong Kong santai · Hu mulai 0 fan · highlight set · bot Easy</small></button>
-        <button type="button" data-mj-action="preset" data-preset="normal" aria-pressed="false"><b>Normal</b><small>Hong Kong santai · Hu mulai 0 fan · tanpa highlight · bot Normal</small></button>
-        <button type="button" data-mj-action="preset" data-preset="hard" aria-pressed="false"><b>Hard</b><small>Hong Kong HKMA · minimum 3 fan · tanpa highlight · bot Hard</small></button>
-        <button type="button" data-mj-action="preset" data-preset="custom" aria-pressed="false"><b>Customize</b><small>Atur sendiri bantuan, bot, bunga, joker, dan pembukaan</small></button>
+        <button type="button" data-mj-action="preset" data-preset="easy" aria-pressed="true"><b>Easy</b><small>Hu bebas · bantuan ON</small></button>
+        <button type="button" data-mj-action="preset" data-preset="normal" aria-pressed="false"><b>Normal</b><small>Hu bebas · bantuan OFF</small></button>
+        <button type="button" data-mj-action="preset" data-preset="hard" aria-pressed="false"><b>Hard</b><small>HKMA · min. 3 fan</small></button>
+        <button type="button" data-mj-action="preset" data-preset="custom" aria-pressed="false"><b>Customize</b><small>Atur sendiri</small></button>
       </div><p class="cap" id="mj-preset-copy">Easy adalah default untuk meja baru. Hu 0 fan bernilai 0 poin.</p>
     </fieldset>
     <div id="mj-custom-settings" hidden><h3>Pengaturan Customize</h3><label class="f">Tingkat bot<select class="in" id="botlevel" data-mj-change="settings"><option value="easy">Easy (kadang asal buang, jarang klaim)</option><option value="normal" selected>Normal (efisien)</option><option value="hard">Hard (efisien + bertahan)</option></select></label>
