@@ -6,7 +6,7 @@ const { randomUUID } = require('node:crypto');
 
 // These are process resources, never recoverable game state. v8 keeps Sets and
 // shared tile references intact; each game explicitly restores its own class.
-const transient = new Set(['ws','timers','timer','turnTimer','deadlineTimer','botTimer','clockTimer','actionTimer','hostTimer','offlineTimer','hintCache','turnKey','turnStartedAt','turnDeadline','currentTurnCheckpoint']);
+const transient = new Set(['ws','timers','timer','turnTimer','deadlineTimer','botTimer','clockTimer','actionTimer','hostTimer','offlineTimer','hintCache','turnKey','turnStartedAt','turnDeadline','currentTurnCheckpoint','disconnectedAt','disconnectDeadline','disconnectBot']);
 function snapshotRoom(value, seen = new WeakMap()) {
   if (value === null || typeof value !== 'object') return typeof value === 'function' ? undefined : value;
   if (seen.has(value)) return seen.get(value);
@@ -60,7 +60,7 @@ function installRoomService(app,{slug,dataDir,persistence=null,saveInterval=5000
       queue:queue.map(id=>room.spectators.find(q=>keyFor(q)===id)).filter(Boolean).map(q=>({name:q.name,you:q===p,connected:q.connected})),
       queued:queue.includes(keyFor(p)),yielding:room.social.yielding.includes(keyFor(p)),canNext:isHost&&settled(slug,room)&&!room.recovering,
       bank:room.spectators.filter(q=>q.hasAccount).map(q=>({id:q.id,name:q.name,bot:!!q.bot,stack:q.totalBuyIn!==undefined?q.stack:undefined,totalBuyIn:q.totalBuyIn,points:q.totalBuyIn!==undefined?q.stack-q.totalBuyIn:q.score||0,net:(q.totalBuyIn!==undefined?q.stack-q.totalBuyIn:q.score||0)*rate})),
-      adjustments:(room.adminAdjustments||[]).slice(-20),profiles:room.players.filter(p=>p.accountId).map(p=>({id:p.id,name:p.name,skin:p.accountSkin||'jade',accessory:p.accountAccessory||null})),recoveryFile:true};
+      adjustments:(room.adminAdjustments||[]).slice(-20),presence:room.players.map(q=>({id:q.id,name:q.name,you:q===p,bot:!!q.bot,connected:!!q.connected,proxy:!room.recovering&&!!q.disconnectBot,deadline:room.recovering?null:q.disconnectDeadline||null,left:!!q.left})),presenceTime:Date.now(),presenceActive:active(slug,room),profiles:room.players.filter(p=>p.accountId).map(p=>({id:p.id,name:p.name,skin:p.accountSkin||'jade',accessory:p.accountAccessory||null})),recoveryFile:false};
   }
   function enrich(ws,data) {
     if(accountMode&&ws.account){const {room,person}=entityFor(ws);if(room&&person){
@@ -179,7 +179,7 @@ function installRoomService(app,{slug,dataDir,persistence=null,saveInterval=5000
     for(const code of loaded.closedCodes||[])closedCodes.add(code);
     archives=Array.isArray(loaded.archives)?loaded.archives.slice(-200):[];
     app.rooms.clear();
-    for(const saved of loaded.rooms){if(closedCodes.has(saved.code))continue;const r=app.restoreRoom(saved);ensurePeople(r);for(const p of everyone(r)){p.ws=null;p.connected=!!p.bot;}r.recovering=active(slug,r);for(const track of Object.values(r.progressionTracking||{}))track.last=null;app.rooms.set(r.code,r);}
+    for(const saved of loaded.rooms){if(closedCodes.has(saved.code))continue;const r=app.restoreRoom(saved);ensurePeople(r);for(const p of everyone(r)){p.ws=null;p.connected=!!p.bot;p.disconnectBot=false;delete p.disconnectedAt;delete p.disconnectDeadline;}r.recovering=active(slug,r);for(const track of Object.values(r.progressionTracking||{}))track.last=null;app.rooms.set(r.code,r);}
     savedAt=persistence?persistence.savedAt():fs.statSync(filename).mtimeMs;
   }else for(const r of app.rooms.values()){ensurePeople(r);r.recovering=active(slug,r);}
   function recordResult(room,winners,key,participated=null){

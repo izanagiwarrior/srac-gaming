@@ -7,7 +7,7 @@
   const defaults={sound:false,volume:.35,reduced:matchMedia('(prefers-reduced-motion: reduce)').matches};
   let prefs={...defaults,...read('mejakita.preferences',{})},profile=read('mejakita.profile',{name:''}),seats=read('mejakita.saved-seats',{}),meta=null,sender=null,ownSeat=null,previous=null,context=null,unlocked=false;
   let toolbar,details,body,status,quickActions,sessionHealth,refreshRequired=false,refreshMessage='',tickQueued=false,lastMotion=false,folds=read('mejakita.panel-folds',{});
-  let accountDialog=null,accountOffer=null,accountLookup=false,accountTimer=null,accountMoved=false;
+  let accountDialog=null,accountOffer=null,accountLookup=false,accountTimer=null,accountMoved=false,accountClaims=0;
   let dissolveDialog=null,dissolveChoice=null,dissolveBusy=false,dissolveWait=null;
   const initialRoom=(new URLSearchParams(location.search).get('room')||'').trim().toUpperCase();
   let sessionSeat=null,sessionOnline=false,sessionAttached=false,sessionOpened=false,sessionEntry=null,sessionChoice=null,sessionDialog=null,sessionNotice=null,resuming=false,sessionWait=null;
@@ -16,11 +16,11 @@
   function saved(game){seats=read('mejakita.saved-seats',{});return Object.values(seats[game]||{}).filter(p=>typeof p?.code==='string'&&typeof p?.token==='string'&&p.code&&p.token).sort((a,b)=>b.time-a.time)[0]||null;}
   function forgetSeat(seat){if(!seat)return;seats=read('mejakita.saved-seats',{});if(seats[slug]?.[seat.code]?.token===seat.token)delete seats[slug][seat.code];write('mejakita.saved-seats',seats);}
   function sessionConnected(seat,send,onEntry){
-    sender=send;sessionEntry=onEntry;sessionOnline=true;sessionAttached=false;accountMoved=false;
+    sender=send;sessionEntry=onEntry;sessionOnline=true;sessionAttached=false;accountMoved=false;accountClaims=0;
     if(typeof seat?.code==='string'&&typeof seat?.token==='string'&&seat.code&&seat.token)sessionSeat={...seat,code:seat.code.toUpperCase()};
     accountLookup=true;clearTimeout(accountTimer);
     if(sender({type:'hub-account-list',code:sessionSeat?.code,token:sessionSeat?.token})===false){accountLookup=false;continueLocalSession();return;}
-    accountTimer=setTimeout(()=>{accountLookup=false;showAccountError('Pemeriksaan sesi terlalu lama. Segarkan untuk mencoba lagi.');},10000);
+    accountTimer=setTimeout(()=>failAccountTransfer('Pemeriksaan sesi terlalu lama. Coba sambungkan lagi.'),10000);
   }
   function continueLocalSession(){
     if(!sessionOpened){sessionOpened=true;if(sessionSeat){if(initialRoom&&initialRoom===sessionSeat.code)resumeSession();else askSession(initialRoom);return;}}
@@ -28,29 +28,46 @@
     if(sessionSeat)resumeSession();else renderSession();
   }
   function showAccountError(text){announce(text);if(accountDialog){accountDialog.querySelector('[data-account-status]').textContent=text;for(const b of accountDialog.querySelectorAll('button'))b.disabled=false;}}
+  function failAccountTransfer(text){
+    clearTimeout(accountTimer);accountLookup=false;
+    if(!accountDialog){
+      accountDialog=document.createElement('dialog');accountDialog.className='mk-session-dialog';accountDialog.setAttribute('aria-label','Sambungkan permainan');
+      accountDialog.innerHTML='<div class="mk-session-kicker">SESI AKUN</div><h2>Belum tersambung</h2><p data-account-status role="status"></p><div class="mk-session-actions"><button type="button" data-account-retry>Sambungkan di perangkat ini</button><button type="button" data-account-cancel>Tutup dulu</button></div>';
+      document.body.append(accountDialog);
+      accountDialog.addEventListener('click',e=>{
+        if(e.target.closest('[data-account-cancel]')){accountDialog.close();return;}
+        if(e.target.closest('[data-account-retry]')){
+          accountClaims=0;accountLookup=true;for(const b of accountDialog.querySelectorAll('button'))b.disabled=true;
+          if(sender({type:'hub-account-list'})===false){failAccountTransfer('Belum terhubung. Tunggu koneksi lalu coba lagi.');return;}
+          accountTimer=setTimeout(()=>failAccountTransfer('Belum ada balasan. Coba sambungkan lagi.'),10000);
+        }
+      });
+    }
+    showAccountError(text);if(!accountDialog.open)accountDialog.showModal();
+  }
   function accountMessage(message){
     if(message.type==='account-session-ended'){
       clearTimeout(accountTimer);accountLookup=false;accountDialog?.close();
       const notice=document.createElement('div');notice.className='mk-session-notice';notice.setAttribute('role','alert');notice.append(document.createTextNode('Sesi akun berakhir. Masuk ulang untuk melanjutkan kursimu. '));const link=document.createElement('a');link.href='/account/?next='+encodeURIComponent(location.pathname+location.search);link.textContent='Masuk akun';notice.append(link);document.body.prepend(notice);message.type='replaced';return false;
     }
+    if(message.type==='error'&&message.accountConflict&&accountLookup){failAccountTransfer(message.message||message.msg||'Kontrol belum dapat dipindahkan. Coba lagi.');return true;}
     if(message.type!=='account-room-offer')return null;
-    const initial=accountLookup;accountLookup=false;clearTimeout(accountTimer);clearTimeout(sessionWait);resuming=false;
+    accountLookup=false;clearTimeout(accountTimer);clearTimeout(sessionWait);resuming=false;
     if(message.legacy||!message.seats?.length&&message.legacyResume){accountDialog?.close();accountOffer=null;continueLocalSession();return true;}
     if(!message.seats?.length){accountDialog?.close();accountOffer=null;forgetSeat(sessionSeat);sessionSeat=null;sessionChoice=null;sessionOpened=true;message.type='left';returnToEntry(initialRoom,'');return false;}
-    if(initial&&sessionSeat&&message.seats.some(s=>s.game===slug&&s.code===sessionSeat.code&&!s.connected)&&initialRoom===sessionSeat.code){continueLocalSession();return true;}
     sessionChoice=null;renderSession();accountOffer=message;
-    if(!accountDialog){accountDialog=document.createElement('dialog');accountDialog.className='mk-session-dialog';accountDialog.setAttribute('aria-label','Lanjutkan sesi akun');accountDialog.innerHTML='<div class="mk-session-kicker">SESI AKUN</div><h2>Lanjutkan permainanmu?</h2><p>Kursimu tersimpan di database. Lanjutkan di sini untuk memindahkan kontrol dari perangkat lama. Kartu, giliran, dan saldo tetap sama.</p><div data-account-seats class="mk-session-actions"></div><p data-account-status role="status"></p><div class="mk-session-actions"><button type="button" data-account-refresh>Segarkan daftar</button><button type="button" data-account-cancel>Tutup dulu</button></div>';document.body.append(accountDialog);
-      accountDialog.addEventListener('click',e=>{if(e.target.closest('[data-account-cancel]')){accountDialog.close();return;}if(e.target.closest('[data-account-refresh]')){sender({type:'hub-account-list'});return;}const button=e.target.closest('[data-account-seat]');if(!button||!accountOffer)return;const seat=accountOffer.seats[Number(button.dataset.accountSeat)];if(!seat)return;
-        if(seat.game!==slug){location.assign('/'+seat.game+'/?room='+encodeURIComponent(seat.code));return;}
-        for(const b of accountDialog.querySelectorAll('button'))b.disabled=true;accountDialog.querySelector('[data-account-status]').textContent='Memindahkan kontrol, menunggu konfirmasi server…';
-        if(sender({type:'hub-account-claim',handoffId:accountOffer.handoffId,roomId:seat.roomId})===false){showAccountError('Belum terkirim. Tunggu koneksi lalu coba lagi.');return;}
-        clearTimeout(accountTimer);accountTimer=setTimeout(()=>showAccountError('Belum ada balasan. Segarkan daftar; kursi tidak dihapus.'),10000);
-      });
-    }
-    const names={capsa:'Capsa',mahjong:'Mahjong',poker:'Poker',catur:'Catur',domino:'Domino',blackjack:'Blackjack'},list=accountDialog.querySelector('[data-account-seats]');list.replaceChildren();
-    message.seats.forEach((seat,i)=>{const b=document.createElement('button');b.type='button';b.dataset.accountSeat=String(i);b.textContent=(seat.game===slug?'Lanjutkan di sini':'Buka '+names[seat.game])+' · '+seat.code+(seat.connected?' · perangkat lain aktif':' · tersimpan');list.append(b);});showAccountError('Satu akun hanya mengontrol satu room. Untuk ganti room, lanjutkan sesi lama lalu pilih Keluar.');if(!accountDialog.open)accountDialog.showModal();return true;
+    // A fresh authenticated connection takes control once. A losing/stale claim must
+    // wait for a human retry, never fight another device in an automatic loop.
+    if(accountClaims){failAccountTransfer('Akun baru saja tersambung di perangkat lain. Klik Sambungkan untuk bermain di sini.');return true;}
+    const seat=message.seats.find(s=>s.game===slug&&s.code===initialRoom)||message.seats.find(s=>s.game===slug)||message.seats[0];
+    if(!games.includes(seat.game)){failAccountTransfer('Permainan tersimpan tidak dikenali.');return true;}
+    if(seat.game!==slug){location.assign('/'+seat.game+'/?room='+encodeURIComponent(seat.code));return true;}
+    accountClaims++;accountLookup=true;accountDialog?.close();announce('Menyambungkan permainan di perangkat ini…');
+    if(sender({type:'hub-account-claim',handoffId:message.handoffId,roomId:seat.roomId})===false){failAccountTransfer('Belum terkirim. Tunggu koneksi lalu coba lagi.');return true;}
+    accountTimer=setTimeout(()=>failAccountTransfer('Belum ada balasan. Coba sambungkan lagi; progres tetap tersimpan.'),10000);return true;
   }
-  function sessionDisconnected(){clearTimeout(accountTimer);accountLookup=false;showAccountError(accountMoved?'Kontrol di perangkat ini sudah dihentikan. Muat ulang untuk membuka pilihan sesi.':'Koneksi terputus. Tunggu tersambung kembali.');if(dissolveBusy){dissolveBusy=false;clearTimeout(dissolveWait);dissolveFeedback('Koneksi terputus. Menunggu status room saat tersambung kembali.');}window.MejaTools?.clearEmotes(true);sessionOnline=false;sessionAttached=false;resuming=false;clearTimeout(sessionWait);renderSession();}
+
+  function sessionDisconnected(){if(!accountMoved&&localDisconnectAt===null)localDisconnectAt=Date.now();clearTimeout(accountTimer);accountLookup=false;showAccountError(accountMoved?'Kontrol di perangkat ini sudah dihentikan. Klik Main di perangkat ini untuk menyambung lagi.':'Koneksi terputus. Tunggu tersambung kembali.');if(dissolveBusy){dissolveBusy=false;clearTimeout(dissolveWait);dissolveFeedback('Koneksi terputus. Menunggu status room saat tersambung kembali.');}window.MejaTools?.clearEmotes(true);sessionOnline=false;sessionAttached=false;resuming=false;clearTimeout(sessionWait);renderSession();renderPresence();}
   function askSession(target=''){
     if(!sessionSeat)return;
     sessionChoice={code:sessionSeat.code,target:String(target||'').trim().toUpperCase(),action:null,phase:'prompt',error:''};
@@ -106,7 +123,7 @@
   }
   function sessionMessage(message){
     if(message.type==='joined'&&message.token){
-      announce('');refreshRequired=false;refreshMessage='';renderSessionHealth();sessionSeat={code:message.code,token:message.token};sessionAttached=true;resuming=false;clearTimeout(sessionWait);
+      localDisconnectAt=null;clearTimeout(accountTimer);accountLookup=false;accountOffer=null;accountDialog?.close();announce('');refreshRequired=false;refreshMessage='';renderSessionHealth();sessionSeat={code:message.code,token:message.token};sessionAttached=true;resuming=false;clearTimeout(sessionWait);
       if(sessionChoice?.action==='leave'){queueMicrotask(leaveSession);}else finishChoice();
     }
     if(message.type==='left'){
@@ -116,8 +133,8 @@
       else if(switched)returnToEntry(target,target?'Sudah keluar dari room lama. Klik Gabung untuk masuk room '+target+'.':'Sudah keluar dari sesi lama. Kamu bisa bergabung atau membuat room baru.');
     }
     if(message.type==='replaced'){
-      accountMoved=true;
-      if(!document.querySelector('.mk-account-moved')){const notice=document.createElement('div');notice.className='mk-session-notice mk-account-moved';notice.setAttribute('role','status');notice.textContent='Kontrol di perangkat ini sudah dihentikan. Permainan dapat dilanjutkan dari perangkat lain. Muat ulang untuk membuka pilihan sesi.';document.body.prepend(notice);}
+      accountMoved=true;clearTimeout(accountTimer);accountLookup=false;accountOffer=null;accountDialog?.close();
+      if(!document.querySelector('.mk-account-moved')){const notice=document.createElement('div');notice.className='mk-session-notice mk-account-moved';notice.setAttribute('role','status');notice.append(document.createTextNode('Akun sedang dimainkan di perangkat lain. Perangkat ini terputus. '));const reconnect=document.createElement('button');reconnect.type='button';reconnect.textContent='Main di perangkat ini';reconnect.addEventListener('click',reloadSession);notice.append(reconnect);document.body.prepend(notice);}
       // A second tab now owns the socket. Do not send a delayed leave from this tab.
       sessionOnline=false;sessionAttached=false;resuming=false;sessionSeat=null;finishChoice();meta=null;ownSeat=null;previous=null;renderControls();
     }
@@ -177,13 +194,50 @@
     const sequence=kind==='turn'?[660,880]:kind==='result'?[523,659,784]:kind==='chat'?[940]:[260];
     sequence.forEach((frequency,index)=>{const oscillator=context.createOscillator(),gain=context.createGain(),at=context.currentTime+index*.09;oscillator.type=kind==='play'?'sine':'triangle';oscillator.frequency.value=frequency;gain.gain.setValueAtTime(0,at);gain.gain.linearRampToValueAtTime(prefs.volume*.12,at+.008);gain.gain.exponentialRampToValueAtTime(.0001,at+.09);oscillator.connect(gain);gain.connect(context.destination);oscillator.start(at);oscillator.stop(at+.1);});
   }
-  function mount(){if(toolbar)return;toolbar=document.createElement('section');toolbar.className='mk-room-tools';toolbar.setAttribute('aria-label','Meja dan preferensi');toolbar.innerHTML='<div class="mk-quick-actions" hidden></div><div class="mk-session-health" hidden></div><details><summary><span data-mk-summary>Preferensi perangkat</span><span class="mk-tools-hint">Suara · animasi · pengelolaan</span></summary><div class="mk-room-controls"></div><fieldset class="mk-preferences"><legend>Preferensi perangkatmu</legend><label><input type="checkbox" data-mk-sound> Suara permainan</label><label>Volume <input type="range" min="0" max="100" step="5" data-mk-volume aria-label="Volume permainan"></label><label><input type="checkbox" data-mk-motion> Kurangi animasi</label><small>Suara mulai setelah interaksi. Semua pengaturan ini hanya berlaku di perangkatmu.</small></fieldset></details><p class="mk-tools-status" role="status"></p>';
+  let presenceRoom='',presenceClock=0,localDisconnectAt=null;
+  const presenceStates=new Map(),presenceNodes=new Map();
+  function connectionLabel(player){
+    const row=meta?.presence?.find(q=>player.id&&q.id===player.id||q.name===player.name);
+    return row?.proxy?(meta.presenceActive?'Bot sementara':'Bot siaga'):player.connected?'Terhubung':'Disconnect';
+  }
+  function connectionNotice(name,state){
+    const text=state==='connected'?name+' tersambung kembali':state==='proxy'?'Bot sementara menjaga kursi '+name:name+' Disconnect · menunggu 15 detik';
+    let live=document.querySelector('.mk-connection-announcement');if(!live){live=document.createElement('div');live.className='mk-connection-announcement';live.setAttribute('role','status');live.setAttribute('aria-live','polite');document.body.append(live);}
+    live.textContent=text;live.dataset.state=state;live.style.top=Math.max(72,Math.min(window.innerHeight-100,(toolbar?.getBoundingClientRect().bottom||78)+12))+'px';
+    if(!prefs.reduced){live.classList.remove('mk-connection-pop');void live.offsetWidth;live.classList.add('mk-connection-pop');}
+    clearTimeout(connectionNotice.timer);live.hidden=false;connectionNotice.timer=setTimeout(()=>{live.hidden=true;},3500);
+  }
+  function renderPresence(){
+    const host=toolbar?.querySelector('.mk-presence-strip');if(!host)return;
+    if(!meta?.presence?.length){host.hidden=true;host.replaceChildren();presenceRoom='';presenceStates.clear();presenceNodes.clear();return;}
+    if(presenceRoom!==meta.roomId){host.replaceChildren();presenceStates.clear();presenceNodes.clear();presenceRoom=meta.roomId;}
+    host.hidden=false;const keep=new Set();
+    for(const info of meta.presence){
+      if(info.left)continue;const key=String(info.id);keep.add(key);
+      const ownLost=info.you&&localDisconnectAt!==null&&!accountMoved,connected=info.connected&&!ownLost;
+      const until=ownLost?localDisconnectAt+15000:info.deadline;
+      const state=info.bot?'bot':connected?'connected':info.proxy&&!ownLost?'proxy':'disconnect';
+      let node=presenceNodes.get(key);
+      if(!node){node=document.createElement('div');node.className='mk-presence-player';const dot=document.createElement('i'),name=document.createElement('b'),label=document.createElement('span'),count=document.createElement('strong');name.textContent=info.name+(info.you?' · kamu':'');node.append(dot,name,label,count);host.append(node);presenceNodes.set(key,node);}
+      const before=presenceStates.get(key);
+      if(before&&before!==state&&state!=='bot')connectionNotice(info.name,state);
+      if(node.dataset.state!==state)node.dataset.state=state;
+      const text=state==='connected'?'Terhubung':state==='bot'?'Bot':state==='proxy'?(meta.presenceActive?'Bot sementara':'Bot siaga'):meta.recovering?'Disconnect · permainan dijeda':'Disconnect';
+      if(node.children[2].textContent!==text)node.children[2].textContent=text;
+      const seconds=Math.max(0,Math.ceil((until-(ownLost?Date.now():Date.now()+presenceClock))/1000));
+      const count=state==='disconnect'&&until&&!meta.recovering?(seconds?seconds+' dtk':'Menunggu koneksi'):'';
+      if(node.lastChild.textContent!==count)node.lastChild.textContent=count;
+      presenceStates.set(key,state);
+    }
+    for(const [key,node]of presenceNodes)if(!keep.has(key)){node.remove();presenceNodes.delete(key);presenceStates.delete(key);}
+  }
+  setInterval(()=>{if(!document.hidden)renderPresence();},500);
+  function mount(){if(toolbar)return;toolbar=document.createElement('section');toolbar.className='mk-room-tools';toolbar.setAttribute('aria-label','Meja dan preferensi');toolbar.innerHTML='<div class="mk-quick-actions" hidden></div><div class="mk-presence-strip" aria-label="Koneksi pemain" hidden></div><div class="mk-session-health" hidden></div><details><summary><span data-mk-summary>Preferensi perangkat</span><span class="mk-tools-hint">Suara · animasi · pengelolaan</span></summary><div class="mk-room-controls"></div><fieldset class="mk-preferences"><legend>Preferensi perangkatmu</legend><label><input type="checkbox" data-mk-sound> Suara permainan</label><label>Volume <input type="range" min="0" max="100" step="5" data-mk-volume aria-label="Volume permainan"></label><label><input type="checkbox" data-mk-motion> Kurangi animasi</label><small>Suara mulai setelah interaksi. Semua pengaturan ini hanya berlaku di perangkatmu.</small></fieldset></details><p class="mk-tools-status" role="status"></p>';
     const anchor=document.querySelector('.hubbar')||document.querySelector('.header');if(anchor)anchor.after(toolbar);else document.body.prepend(toolbar);details=toolbar.querySelector('details');body=toolbar.querySelector('.mk-room-controls');status=toolbar.querySelector('[role="status"]');sessionHealth=toolbar.querySelector('.mk-session-health');quickActions=toolbar.querySelector('.mk-quick-actions');if(sessionNotice)toolbar.append(sessionNotice);applyPrefs();renderControls();
     toolbar.addEventListener('change',e=>{if(e.target.matches('[data-mk-sound]')){setPrefs({sound:e.target.checked});unlock();tone('turn');}if(e.target.matches('[data-mk-motion]'))setPrefs({reduced:e.target.checked});});
     toolbar.addEventListener('input',e=>{if(e.target.matches('[data-mk-volume]'))setPrefs({volume:Number(e.target.value)/100});});
     toolbar.addEventListener('click',e=>{const action=e.target.closest('[data-mk-room]')?.dataset.mkRoom;if(action==='refresh'){reloadSession();return;}if(!action||!meta)return;
       if(action==='copy'||action==='copy-code'){const value=action==='copy-code'?meta.code:location.origin+'/'+slug+'/?room='+encodeURIComponent(meta.code);if(navigator.clipboard?.writeText)navigator.clipboard.writeText(value).then(()=>announce(action==='copy-code'?'Kode room tersalin.':'Link undangan tersalin.')).catch(()=>announce('Salin ini: '+value));else announce('Salin ini: '+value);return;}
-      if(action==='backup'){downloadRecovery();return;}
       if(action==='switch'){askSession('');return;}
       if(action==='dissolve'){openDissolve();return;}
       if(action==='lock')command({type:'hub-lock',locked:!meta.locked});
@@ -208,7 +262,7 @@
     if(refreshRequired)sessionHealth.innerHTML=`<div class="mk-recovery" role="status"><b>Game sudah diperbarui · halaman perlu refresh</b><p>${esc(refreshMessage)}</p><button type="button" data-mk-room="refresh">Refresh & sambung ke room yang sama</button><p>Kursi tidak dihapus. Setelah tersambung, host mungkin perlu melanjutkan sesi yang dijeda.</p></div>`;
     else if(meta?.recovering){
       const missing=meta.missing||[];
-      sessionHealth.innerHTML=`<div class="mk-recovery" role="status"><b>Room ${esc(meta.code)} tersambung · permainan sedang dijeda</b><p>Sesi disimpan setelah koneksi server dipulihkan. Refresh tidak otomatis melanjutkan permainan.</p><p>${missing.length?'Menunggu pemain menyambung kembali: '+esc(missing.join(', '))+'.':'Semua pemain sudah kembali.'}</p>${meta.host?`<button type="button" data-mk-room="resume" ${missing.length?'disabled':''}>Lanjutkan permainan</button><p>${missing.length?'Minta pemain di atas membuka link room dan menyambung kembali.':'Klik Lanjutkan permainan untuk meneruskan kartu, giliran, dan saldo yang tersimpan.'}</p>`:'<p>Minta host menekan Lanjutkan permainan setelah semua pemain kembali.</p>'}<button type="button" data-mk-room="switch">Keluar / ganti room</button></div>`;
+      sessionHealth.innerHTML=`<div class="mk-recovery" role="status"><b>Room ${esc(meta.code)} tersambung · permainan sedang dijeda</b><p>Progres permainan tetap tersimpan. Host dapat melanjutkan setelah semua pemain tersambung.</p><p>${missing.length?'Menunggu pemain menyambung kembali: '+esc(missing.join(', '))+'.':'Semua pemain sudah kembali.'}</p>${meta.host?`<button type="button" data-mk-room="resume" ${missing.length?'disabled':''}>Lanjutkan permainan</button><p>${missing.length?'Minta pemain di atas membuka link room dan menyambung kembali.':'Klik Lanjutkan permainan untuk meneruskan kartu, giliran, dan saldo yang tersimpan.'}</p>`:'<p>Minta host menekan Lanjutkan permainan setelah semua pemain kembali.</p>'}<button type="button" data-mk-room="switch">Keluar / ganti room</button></div>`;
     }else sessionHealth.replaceChildren();
     if(focused)sessionHealth.querySelector('[data-mk-room="'+CSS.escape(focused)+'"]')?.focus({preventScroll:true});
   }
@@ -218,7 +272,7 @@
   document.addEventListener('toggle',event=>{const panel=event.target;if(panel.matches?.('[data-mk-custom]')&&panel.isConnected)customViews.set(customKey(panel.dataset.mkCustom),panel.open);},true);
   function announce(text){if(status)status.textContent=text;}
   function command(message){if(!sender||sender(message)===false){announce('Tunggu koneksi atau aksi sebelumnya selesai.');return false;}return true;}
-  function renderControls(){if(!toolbar)return;toolbar.querySelector('[data-mk-summary]').textContent=meta?'Preferensi & pengelolaan room':'Preferensi perangkat';
+  function renderControls(){if(!toolbar)return;renderPresence();toolbar.querySelector('[data-mk-summary]').textContent=meta?'Preferensi & pengelolaan room':'Preferensi perangkat';
     const quickFocus=quickActions.querySelector(':focus')?.dataset.mkRoom;quickActions.hidden=!meta;
     quickActions.innerHTML=meta?`<div class="mk-room-identity"><small>ROOM ${esc(slug==='catur'?'CATUR':slug.toUpperCase())}</small><strong>${esc(meta.code)}</strong><span>${meta.locked?'Akses terkunci':'Bagikan undangan untuk bermain bersama'}</span></div><div class="mk-quick-buttons"><button type="button" data-mk-room="copy">Salin link undangan</button><button type="button" data-mk-room="copy-code">Salin kode</button><button type="button" data-mk-room="switch">Keluar / ganti room</button></div>`:'';
     if(quickFocus)quickActions.querySelector('[data-mk-room="'+CSS.escape(quickFocus)+'"]')?.focus({preventScroll:true});
@@ -226,7 +280,7 @@
     if(dissolveChoice&&(!meta?.host||meta.code!==dissolveChoice.code||meta.roomId!==dissolveChoice.roomId))closeDissolve();
     if(!meta){body.replaceChildren();return;}
     const preserved=body.querySelector(':focus')?.dataset.mkRoom;
-    body.innerHTML=`<div class="mk-room-row"><span>${meta.spectator?'Kamu menonton':'Kamu punya kursi'} · ${meta.saveError?'⚠ Penyimpanan bermasalah, hubungi host':meta.savedAt?'Tersimpan '+new Date(meta.savedAt).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'}):'Menyiapkan save…'}</span><button data-mk-room="backup">Simpan file pemulihan ↓</button>${meta.host?`<button data-mk-room="lock">${meta.locked?'Buka akses room':'Kunci room'}</button><button type="button" class="mk-danger" data-mk-room="dissolve">Bubarkan ruang</button>`:''}</div><p class="mk-room-note">File pemulihan bersifat pribadi untuk mengambil kembali kursimu, termasuk jika link Cloudflare berubah. Bagikan link undangan untuk teman.</p><div class="mk-room-row">${meta.spectator?`<button data-mk-room="queue">${meta.queued?'Batalkan antrean':'Antre kursi ronde berikutnya'}</button>`:`<button data-mk-room="yield">${meta.yielding?'Tetap pegang kursi':'Beri kursi ronde berikutnya'}</button>`}${meta.canNext?'<button class="mk-next" data-mk-room="next">Main lagi & rotasi ↻</button>':''}</div><p class="mk-room-note">${meta.yielding?'Kamu memberi kursi bila ada penonton yang antre. Saldo tetap tercatat. ':''}${meta.queue.length?'Antrean: '+meta.queue.map((p,i)=>`${i+1}. ${esc(p.name)}${p.you?' (kamu)':''}${!p.connected?' · offline':''}`).join(' · '):'Belum ada antrean.'} Penonton menggantikan bot atau kursi yang diberikan saat ronde selesai.</p>${meta.bank.length?`<details class="mk-retired"><summary>Saldo pemain di luar kursi (${meta.bank.length})</summary>${meta.bank.map(p=>`<p>${esc(p.name)}${p.bot?' · bot':''} <b>${p.points>0?'+':''}${p.points} · ${money(p.net)}</b></p>`).join('')}</details>`:''}`;
+    body.innerHTML=`<div class="mk-room-row"><span>${meta.spectator?'Kamu menonton':'Kamu punya kursi'} · ${meta.saveError?'⚠ Penyimpanan bermasalah, hubungi host':meta.savedAt?'Tersimpan '+new Date(meta.savedAt).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'}):'Menyimpan progres…'}</span>${meta.host?`<button data-mk-room="lock">${meta.locked?'Buka akses room':'Kunci room'}</button><button type="button" class="mk-danger" data-mk-room="dissolve">Bubarkan ruang</button>`:''}</div><div class="mk-room-row">${meta.spectator?`<button data-mk-room="queue">${meta.queued?'Batalkan antrean':'Antre kursi ronde berikutnya'}</button>`:`<button data-mk-room="yield">${meta.yielding?'Tetap pegang kursi':'Beri kursi ronde berikutnya'}</button>`}${meta.canNext?'<button class="mk-next" data-mk-room="next">Main lagi & rotasi ↻</button>':''}</div><p class="mk-room-note">${meta.yielding?'Kamu memberi kursi bila ada penonton yang antre. Saldo tetap tercatat. ':''}${meta.queue.length?'Antrean: '+meta.queue.map((p,i)=>`${i+1}. ${esc(p.name)}${p.you?' (kamu)':''}${!p.connected?' · Disconnect':''}`).join(' · '):'Belum ada antrean.'} Penonton menggantikan bot atau kursi yang diberikan saat ronde selesai.</p>${meta.bank.length?`<details class="mk-retired"><summary>Saldo pemain di luar kursi (${meta.bank.length})</summary>${meta.bank.map(p=>`<p>${esc(p.name)}${p.bot?' · bot':''} <b>${p.points>0?'+':''}${p.points} · ${money(p.net)}</b></p>`).join('')}</details>`:''}`;
     if(preserved)body.querySelector('[data-mk-room="'+CSS.escape(preserved)+'"]')?.focus({preventScroll:true});
     if(meta.canNext||meta.queued||meta.saveError)details.open=true;
     toolbar.classList.toggle('mk-save-error',!!meta.saveError);
@@ -250,7 +304,7 @@
     if(message.type==='error'&&message.action==='hub-dissolve'){clearTimeout(dissolveWait);dissolveBusy=false;dissolveFeedback(message.message||message.msg||'Room belum dibubarkan.');}
     window.MejaTools?.receiveEmotes(message);if(sessionMessage(message))return true;if(message.type==='joined'&&message.token){ownSeat={format:1,game:slug,code:message.code,token:message.token,name:profile.name,time:Date.now()};seats=read('mejakita.saved-seats',{});seats[slug]||={};seats[slug][message.code]=ownSeat;write('mejakita.saved-seats',seats);}
     if(message.type==='left'){meta=null;ownSeat=null;previous=null;renderControls();return;}
-    if(message.hub){const changed=JSON.stringify(meta)!==JSON.stringify(message.hub);meta=message.hub;if(changed)renderControls();}
+    if(message.hub){const changed=JSON.stringify(meta)!==JSON.stringify(message.hub);meta=message.hub;presenceClock=Number.isFinite(meta.presenceTime)?meta.presenceTime-Date.now():0;if(changed)renderControls();}
     if(message.type==='chat'){const m=message.msg;if(previous&&m?.from&&m.from!==profile.name)tone('chat');return;}
     if(message.type!=='state'&&message.type!=='lobby')return;
     let turn=false,play='',round='',done=false;
@@ -266,7 +320,6 @@
     if(turn&&!lastMotion&&!prefs.reduced){toolbar?.classList.add('mk-your-turn');setTimeout(()=>toolbar?.classList.remove('mk-your-turn'),900);}lastMotion=turn;
     queueEnhance();
   }
-  function downloadRecovery(){const file=ownSeat||seats[slug]?.[meta.code];if(!file)return announce('Tunggu sesi terhubung sebelum menyimpan file.');const blob=new Blob([JSON.stringify(file,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='meja-kita-'+slug+'-'+file.code+'-pribadi.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);announce('File pemulihan diunduh. Simpan sendiri.');}
   function queueEnhance(){if(tickQueued)return;tickQueued=true;queueMicrotask(()=>{tickQueued=false;enhancePanels();});}
   function applyFold(panel,key,titleText){
     const collapsed=!!folds[key],button=panel.querySelector('[data-mk-fold]');panel.dataset.mkCollapsed=String(collapsed);
@@ -291,5 +344,5 @@
   document.addEventListener('visibilitychange',()=>{if(document.hidden)context?.suspend().catch(()=>{});else if(unlocked&&prefs.sound)context?.resume().catch(()=>{});});
   document.addEventListener('DOMContentLoaded',()=>{mount();queueEnhance();const observer=new MutationObserver(changes=>{if(changes.some(c=>!toolbar.contains(c.target)))queueEnhance();});observer.observe(document.body,{childList:true,subtree:true});});
   applyPrefs();
-  window.MejaRoom={customize,requireRefresh,emote,bank:()=>meta?.bank||[],receive,name,saved,remember,outgoing,connected:sessionConnected,disconnected:sessionDisconnected,preferences:()=>({...prefs}),setPrefs,unlock,tone,esc};
+  window.MejaRoom={connectionLabel,customize,requireRefresh,emote,bank:()=>meta?.bank||[],receive,name,saved,remember,outgoing,connected:sessionConnected,disconnected:sessionDisconnected,preferences:()=>({...prefs}),setPrefs,unlock,tone,esc};
 })();

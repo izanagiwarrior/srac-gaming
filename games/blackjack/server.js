@@ -1,4 +1,5 @@
 'use strict';
+const {createPresence,automated}=require('../shared/connection');
 const http=require('node:http'),fs=require('node:fs'),path=require('node:path');
 const {randomInt,randomUUID}=require('node:crypto');
 const {WebSocketServer}=require('ws');
@@ -10,6 +11,7 @@ function createBlackjackServer({getAddresses=()=>[]}={}){
   const send=(ws,data)=>{if(ws?.readyState===1)ws.send(JSON.stringify(hub?hub.enrich(ws,data):data));};
   const clean=n=>String(n||'Pemain').replace(/[<>"\u0000-\u001f]/g,'').trim().slice(0,24)||'Pemain';
   const all=r=>[...r.players,...r.spectators];
+  const presence=createPresence({exists:r=>rooms.get(r.code)===r,changed(r){broadcast(r);arm(r);}});
   const host=r=>r.players.find(p=>!p.bot&&p.connected)||r.players.find(p=>!p.bot);
   function person(name,bot=false,spectator=false){return {id:randomUUID(),token:bot?null:randomUUID(),name:clean(name),bot,spectator,connected:bot,ws:null,stack:0,totalBuyIn:0,bet:null,hands:[],handIndex:0};}
   function code(){const chars='ABCDEFGHJKLMNPQRSTUVWXYZ';for(let i=0;i<200;i++){let s='';for(let j=0;j<4;j++)s+=chars[randomInt(chars.length)];if(!(rooms.has(s)||hub?.hasCode(s)))return s;}throw Error('Room penuh.');}
@@ -47,11 +49,11 @@ function createBlackjackServer({getAddresses=()=>[]}={}){
   }
   function arm(r){clearTimeout(r.timer);if(closing||r.recovering)return;const rev=r.revision;
     if(r.phase==='dealer'){r.timer=setTimeout(()=>{if(r.revision!==rev||r.phase!=='dealer')return;if(E.value(r.dealer).total<17){r.dealer.push(take(r));note(r,'Dealer mengambil kartu.');change(r);}else settle(r);},3000);return;}
-    const p=r.phase==='betting'?r.players.find(q=>q.bet===null&&(q.bot||!q.connected)):r.phase==='playing'?r.players[r.turn]:null;
-    if(!p||!p.bot&&p.connected)return;r.timer=setTimeout(()=>{if(r.revision!==rev)return;try{if(r.phase==='betting')bet(r,p,r.settings.minBet);else action(r,p,p.bot?E.botAction(p.hands[p.handIndex],r.dealer[0],r.settings.botLevel,options(r,p),randomInt):'stand');}catch(error){note(r,error.message);broadcast(r);}},p.bot?3000:15000);
+    const p=r.phase==='betting'?r.players.find(q=>q.bet===null&&automated(q)):r.phase==='playing'?r.players[r.turn]:null;
+    if(!automated(p))return;r.timer=setTimeout(()=>{if(r.revision!==rev||!automated(p))return;try{if(r.phase==='betting')bet(r,p,r.settings.minBet);else action(r,p,E.botAction(p.hands[p.handIndex],r.dealer[0],r.settings.botLevel,options(r,p),randomInt));}catch(error){note(r,error.message);broadcast(r);}},3000);
   }
-  function attach(ws,r,p){if(p.ws&&p.ws!==ws){p.ws.room=null;p.ws.person=null;send(p.ws,{type:'replaced'});p.ws.close();}p.ws=ws;p.connected=true;ws.room=r;ws.person=p;r.active=Date.now();send(ws,{type:'joined',code:r.code,id:p.id,token:p.token});broadcast(r);arm(r);}
-  function detach(ws,explicit=false){const r=ws.room,p=ws.person;ws.room=null;ws.person=null;if(!r||!p||p.ws!==ws)return;p.ws=null;p.connected=false;r.active=Date.now();if(p.spectator){if(!p.hasAccount)r.spectators=r.spectators.filter(q=>q!==p);}else if(explicit){if(r.phase==='lobby')r.players=r.players.filter(q=>q!==p);else {p.bot=true;p.connected=true;p.token=null;note(r,p.name+' keluar; bot melanjutkan kursi.');}}broadcast(r);arm(r);}
+  function attach(ws,r,p){if(p.ws&&p.ws!==ws){p.ws.room=null;p.ws.person=null;send(p.ws,{type:'replaced'});p.ws.close();}presence.connect(p);p.ws=ws;p.connected=true;ws.room=r;ws.person=p;r.active=Date.now();send(ws,{type:'joined',code:r.code,id:p.id,token:p.token});broadcast(r);arm(r);}
+  function detach(ws,explicit=false){const r=ws.room,p=ws.person;ws.room=null;ws.person=null;if(!r||!p||p.ws!==ws)return;p.ws=null;p.connected=false;r.active=Date.now();presence.disconnect(r,p,explicit);if(p.spectator){if(!p.hasAccount)r.spectators=r.spectators.filter(q=>q!==p);}else if(explicit){if(r.phase==='lobby')r.players=r.players.filter(q=>q!==p);else {p.bot=true;p.connected=true;p.token=null;note(r,p.name+' keluar; bot melanjutkan kursi.');}}broadcast(r);arm(r);}
   const wss=new WebSocketServer({server,maxPayload:8192,verifyClient:info=>{if(!info.origin)return true;try{return new URL(info.origin).host===info.req.headers.host;}catch{return false;}}});
   wss.on('connection',ws=>{ws.alive=true;ws.window=Date.now();ws.count=0;ws.on('pong',()=>ws.alive=true);ws.on('error',()=>{});ws.on('message',raw=>{if(closing)return;try{if(Date.now()-ws.window>1000){ws.window=Date.now();ws.count=0;}if(++ws.count>30)return ws.close(1008,'Too many requests');const m=JSON.parse(raw);if(!m||typeof m!=='object')throw Error('Pesan tidak valid.');if(hub?.handle(ws,m))return;
     if(['create','join','resume'].includes(m.type)){if(ws.person)throw Error('Keluar dari room dulu.');if(m.type==='create'){if(rooms.size>=200)throw Error('Server penuh.');const p=person(m.name),r={code:code(),players:[p],spectators:[],settings:config(m.settings),phase:'lobby',round:0,revision:0,turn:0,dealer:[],shoe:[],house:0,ledger:[],chat:[],events:[],active:Date.now(),timer:null};rooms.set(r.code,r);return attach(ws,r,p);}const r=rooms.get(String(m.code||'').toUpperCase());if(!r)return send(ws,{type:'error',message:'Room tidak ditemukan.',sessionUnavailable:m.type==='resume',fatal:m.type==='resume'});if(m.type==='resume'){const p=all(r).find(q=>q.token&&q.token===m.token);if(!p)return send(ws,{type:'error',message:'Sesi tidak dikenal.',fatal:true,sessionUnavailable:true});return attach(ws,r,p);}const spec=r.phase!=='lobby'||r.players.length+r.settings.bots>=r.settings.seats;if(spec&&r.spectators.filter(p=>p.connected&&!p.bot).length>=16)throw Error('Penonton penuh.');const p=person(m.name,false,spec);(spec?r.spectators:r.players).push(p);return attach(ws,r,p);}
@@ -64,9 +66,9 @@ function createBlackjackServer({getAddresses=()=>[]}={}){
   }catch(error){send(ws,{type:'error',message:error.message});}});ws.on('close',()=>detach(ws));});
   wss.on('error',error=>console.error('Blackjack:',error.message));
   const maintenance=setInterval(()=>{for(const ws of wss.clients){if(!ws.alive){ws.terminate();continue;}ws.alive=false;ws.ping();}for(const [c,r]of rooms)if(!all(r).some(p=>!p.bot&&p.connected)&&Date.now()-r.active>7*86400000){clearTimeout(r.timer);rooms.delete(c);}},30000);maintenance.unref();
-  async function close(){closing=true;clearInterval(maintenance);for(const r of rooms.values())clearTimeout(r.timer);for(const ws of wss.clients){ws.room=null;ws.person=null;ws.terminate();}await new Promise(resolve=>wss.close(resolve));await new Promise(resolve=>server.close(resolve));}
+  async function close(){closing=true;presence.close();clearInterval(maintenance);for(const r of rooms.values())clearTimeout(r.timer);for(const ws of wss.clients){ws.room=null;ws.person=null;ws.terminate();}await new Promise(resolve=>wss.close(resolve));await new Promise(resolve=>server.close(resolve));}
   return {server,wss,rooms,close,
-    setRoomService(value){hub=value;},capacity:r=>r.settings.seats,
+    setRoomService(value){hub=value;},capacity:r=>r.settings.seats,disposeRoom(r){presence.dispose(r);clearTimeout(r.timer);},
     restoreRoom:saved=>({...saved,timer:null}),setSpectator(p,value){p.spectator=value;},
     admit(r,p){p.hands=[];p.handIndex=0;p.bet=null;if(p.totalBuyIn===undefined||p.totalBuyIn===0){p.stack=r.settings.buyIn;p.totalBuyIn=r.settings.buyIn;}},
     broadcastRoom:broadcast,resumeRoom:arm,nextRound:round

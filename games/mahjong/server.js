@@ -1,3 +1,4 @@
+const {createPresence,automated,waiting:waitingForConnection,actionDelay}=require('../shared/connection');
 /* Mahjong P2P server: ruang tunggu, kode ruangan, dan jalannya permainan. */
 const http = require('http'), fs = require('fs'), path = require('path'), os = require('os');
 const { WebSocketServer } = require('ws');
@@ -17,10 +18,11 @@ const claimMode = settings => CLAIM_MODES.includes(settings.claimMode) ? setting
 
 function createMahjongServer() {
 let hub=null,closing=false;
+const presence=createPresence({exists:r=>rooms.get(r.code)===r,changed(r,p){if(r.state==='lobby')r.broadcastLobby();else r.disconnectedAction(p);}});
 const PUBLIC = path.join(__dirname, 'public');
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css', '.png': 'image/png', '.svg': 'image/svg+xml', '.ico': 'image/x-icon' };
 const BOT_NAMES = ['Mei', 'Raka', 'Sinta', 'Bima'];
-const AUTO_NEXT_MS = 30000, OFFLINE_ACT_MS = 4000, UNDO_MS = parseInt(process.env.UNDO_MS || '2000', 10);
+const AUTO_NEXT_MS = 30000, UNDO_MS = parseInt(process.env.UNDO_MS || '2000', 10);
 
 const SPEED = parseFloat(process.env.SPEED || '1');
 const sleep = ms => new Promise(r => setTimeout(r, ms * SPEED));
@@ -52,10 +54,10 @@ class Room {
   rejoin(ws, tok) {
     const p = this.players.find(x => x.token === tok) || this.spectators.find(x => x.token === tok); if (!p) return null;
     if (p.ws && p.ws !== ws && p.ws.readyState === 1) { p.ws.roomPlayer = null; send(p.ws,{type:'replaced'});try { p.ws.close(); } catch (e) { } }
-    p.ws = ws; p.connected = true; return p;
+    presence.connect(p);p.ws = ws; p.connected = true; return p;
   }
   disconnect(p,explicit=false) {
-    p.connected = false; p.ws = null; this.lastActivity = Date.now();
+    p.connected = false; p.ws = null; this.lastActivity = Date.now();presence.disconnect(this,p,explicit);
     if (p.spectator) { if(!p.hasAccount)this.spectators = this.spectators.filter(x => x !== p); this.addChat(null, `${p.name} berhenti menonton.`); if (this.state === 'lobby') this.broadcastLobby(); else this.broadcastState(); return; }
     if (this.state === 'lobby') {
       if(explicit){this.players = this.players.filter(x => x !== p); this.players.forEach((x, i) => x.seat = i);} this.broadcastLobby();
@@ -63,7 +65,7 @@ class Room {
       if(explicit){p.bot=true;p.connected=true;p.token=null;this.addChat(null,p.name+' keluar; bot melanjutkan kursi.');}
       this.broadcastState();
       const G = this.G; if (G && !G.over) {
-        if (G.pending && G.pending.waiting.has(p.seat)) this.humanClaim(p.seat, { claim: 'pass',claimId:G.pending.id });
+        if (explicit && G.pending && G.pending.waiting.has(p.seat)) this.humanClaim(p.seat, { claim: 'pass',claimId:G.pending.id });
         else if (G.current === p.seat && G.phase === 'discard') {if(explicit){const gen=G.gen;this.timers.offline=setTimeout(()=>{if(!this.recovering&&!G.over&&G.gen===gen)this.botAct(p.seat,!!p.drawn);},3000);}else this.scheduleOfflineAct(p.seat);}
       }
     }
@@ -240,9 +242,9 @@ class Room {
     const G=this.G,claims=[],opts={},waiting=new Set(),mode=claimMode(this.settings);
     G.robKong={seat,kind,arg,tileId:tile.id,previousLast:G.last};G.last={tile,from:seat};G.phase='claim';this.bump();
     for(let q=0;q<4;q++)if(q!==seat){
-      const P=this.players[q],o=mode==='manual'&&!P.bot?{manual:true,robOnly:true}:{win:this.winningHand(q,[...P.hand,tile],false,tile),pung:false,kong:false,chows:[],robOnly:true};
-      if(P.bot){if(o.win)claims.push({p:q,type:'win',win:o.win});continue;}
-      opts[q]=o;if(P.connected&&(mode!=='fast'||o.win))waiting.add(q);
+      const P=this.players[q],o=mode==='manual'&&!automated(P)?{manual:true,robOnly:true}:{win:this.winningHand(q,[...P.hand,tile],false,tile),pung:false,kong:false,chows:[],robOnly:true};
+      if(automated(P)){if(o.win)claims.push({p:q,type:'win',win:o.win});continue;}
+      opts[q]=o;if((P.connected||waitingForConnection(P))&&(mode!=='fast'||o.win))waiting.add(q);
     }
     this.log(this.players[seat].name+' menyatakan Kong. Kesempatan merebut untuk Hu.');
     if(waiting.size){G.pending={id:randomBytes(12).toString('hex'),claims,opts,waiting,deadline:null,autoPass:mode==='fast',claimMode:mode};this.broadcastState();}
@@ -266,9 +268,27 @@ class Room {
     this.broadcastState();
     const gen=G.gen;await sleep(3000);if(G.gen!==gen||G.over||closing||this.recovering)return;return this.botAct(p, true);
   }
+  disconnectedAction(P) {
+    const G=this.G;if(!G||G.over||this.recovering||closing)return this.broadcastState();
+    const pending=G.pending;
+    if(P.disconnectBot&&pending?.waiting.has(P.seat)){
+      const seat=P.seat,tile=G.last?.tile;
+      if(tile){
+        const o=pending.opts[seat]?.robOnly?{win:this.winningHand(seat,[...P.hand,tile],false,tile),robOnly:true}:this.claimOptions(seat,tile,seat===(G.last.from+1)%4);
+        const choice=o.robOnly?(o.win?{type:'win',win:o.win}:null):E.botDecideLevel(P.hand,P.melds,o,tile,this.settings.botLevel);
+        if(choice)pending.claims.push({p:seat,...choice});
+      }
+      pending.waiting.delete(P.seat);
+      if(!pending.waiting.size){clearTimeout(this.timers.claim);this.resolveClaims(pending.claims);return;}
+    }
+    if(G.current===P.seat&&G.phase==='discard'&&!P.connected)this.scheduleOfflineAct(P.seat);
+    this.broadcastState();
+  }
   scheduleOfflineAct(p) {
-    const G = this.G; const gen = G.gen; clearTimeout(this.timers.offline);
-    this.timers.offline = setTimeout(() => { const P = this.players[p]; if (G.gen === gen && !G.over && G.current === p && G.phase === 'discard' && !P.connected) this.botAct(p, !!P.drawn); }, OFFLINE_ACT_MS);
+    const G=this.G,P=this.players[p],gen=G.gen;clearTimeout(this.timers.offline);
+    this.timers.offline=setTimeout(()=>{
+      if(!closing&&!this.recovering&&G.gen===gen&&!G.over&&G.current===p&&G.phase==='discard'&&automated(P))this.botAct(p,!!P.drawn);
+    },actionDelay(P));
   }
   async botAct(p, canWin) {
     const G = this.G; if (G.over||this.recovering||closing||G.current!==p||G.phase!=='discard') return; const P = this.players[p];
@@ -323,11 +343,11 @@ class Room {
       if (q === p) continue; const Q = this.players[q];
       // Manual bebas does not precompute or disclose a human's available claims.
       // Bots retain their normal rule-based decisions in all three modes.
-      const o=mode==='manual'&&!Q.bot?{manual:true}:this.claimOptions(q,t,q===(p+1)%4);
-      if (Q.bot) { const d = E.botDecideLevel(Q.hand, Q.melds, o, t, this.settings.botLevel); if (d) claims.push({ p: q, ...d }); continue; }
+      const o=mode==='manual'&&!automated(Q)?{manual:true}:this.claimOptions(q,t,q===(p+1)%4);
+      if (automated(Q)) { const d = E.botDecideLevel(Q.hand, Q.melds, o, t, this.settings.botLevel); if (d) claims.push({ p: q, ...d }); continue; }
       opts[q] = o;
       const hasOption = hasClaimChoice(o);
-      if (Q.connected && (!claimAutoPass || hasOption)) waiting.add(q);
+      if ((Q.connected||waitingForConnection(Q)) && (!claimAutoPass || hasOption)) waiting.add(q);
     }
     if (waiting.size) {
       G.pending = { id:randomBytes(12).toString('hex'),claims, opts, waiting, deadline: null, autoPass: claimAutoPass,claimMode:mode }; this.broadcastState();
@@ -573,7 +593,7 @@ const maintenance = setInterval(() => {
 
 maintenance.unref();
 async function close() {
-  closing=true;clearInterval(maintenance);
+  closing=true;presence.close();clearInterval(maintenance);
   for (const room of rooms.values()) {if(room.G){room.G.over=true;room.G.gen++;}Object.values(room.timers).forEach(clearTimeout);}
   for (const ws of wss.clients) { ws.roomPlayer = null; ws.terminate(); }
   await new Promise(resolve => wss.close(resolve));
@@ -586,7 +606,7 @@ return { server,wss,rooms,close,
   admit(room,p,index){p.seat=index;p.hand=[];p.melds=[];p.discards=[];p.drawn=null;p.score??=0;},
   broadcastRoom(room){if(room.state==='lobby')room.broadcastLobby();else room.broadcastState();},
   resumeRoom(room){const G=room.G;if(!G||G.over)return;G.gen++;if(G.phase==='opening')return room.advanceOpening();if(G.phase==='kong')return room.finishKong(G.current);if(G.phase==='claim'){if(G.pending)return room.broadcastState();return G.resolvingClaims?room.resolveClaims(G.resolvingClaims):room.offerClaims();}if(G.phase==='discard'){const p=room.players[G.current];if(p.bot){const gen=G.gen;room.timers.recovery=setTimeout(()=>{if(G.gen===gen&&!G.over&&!room.recovering)room.botAct(p.seat,!!p.drawn);},3000);}else room.armTurn(p.seat);}},
-  disposeRoom(room){if(room.G){room.G.over=true;room.G.gen++;}Object.values(room.timers).forEach(clearTimeout);},
+  disposeRoom(room){presence.dispose(room);if(room.G){room.G.over=true;room.G.gen++;}Object.values(room.timers).forEach(clearTimeout);},
   nextRound(room){if(room.G.result.final)room.again(room.hostSeat());else room.next(room.hostSeat());}
 };
 }

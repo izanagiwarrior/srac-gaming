@@ -1,6 +1,6 @@
-# Accounts, progression and administration — release3.2.0
+# Accounts, progression and administration — release3.5.0
 
-Status:3.2.0 `2026-10-31-account-safety-1` is deployed, including the [admin ownership/balance editor](ADMIN-CONTROLS.md). Google production credentials are configured and real local/public Google sign-in completed with verified admin identity. See root AGENTS for the release evidence and [account safety validation](ACCOUNT-SAFETY.md) for157passing tests and limits. Git publication is recorded separately; this guide never authorizes a future release.
+Status:3.5.0 `2026-10-31-disconnect-grace-1` is deployed, including the [admin ownership/balance editor](ADMIN-CONTROLS.md). Google production credentials are configured and real local/public Google sign-in completed with verified admin identity. See root AGENTS for the release evidence and [account safety validation](ACCOUNT-SAFETY.md) for historical3.2.0test evidence and current limits; [connection lifecycle](CONNECTIONS.md) documents the3.5.0changes, whose native gameplay has not been newly tested. Git publication is recorded separately; this guide never authorizes a future release.
 
 ## Scope and product rules
 

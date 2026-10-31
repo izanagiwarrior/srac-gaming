@@ -5,6 +5,7 @@
  function makeAvatar(user){const span=document.createElement('span');span.className='mk-account-avatar';const img=document.createElement('img');img.src=skins[user.skin]||skins.jade;img.alt='';span.append(img);if(user.accessory==='gold-frame'){const frame=document.createElement('img');frame.src='/accessory-gold.png';frame.className='mk-account-frame';frame.alt='';span.append(frame);}return span;}
  async function init(){
   let data;try{const r=await fetch('/api/account/me',{cache:'no-store',credentials:'same-origin'});if(!r.ok)return;data=await r.json();}catch{return;}
+  for(const item of data.catalog||[])if(item.kind==='skin'&&/^\/avatar-[a-z-]+\.png$/.test(item.image))skins[item.id]=item.image;
   const user=data.user,game=/^\/(capsa|mahjong|poker|catur|domino|blackjack)\//.test(location.pathname);
   const link=document.createElement('a');link.href='/account/';link.className='mk-account-link';link.setAttribute('aria-label',user?'Profil '+user.name:'Masuk akun');
   if(user){link.append(makeAvatar(user),document.createTextNode(user.name+' · Lv '+user.level));}else link.textContent='Masuk / Buat akun';

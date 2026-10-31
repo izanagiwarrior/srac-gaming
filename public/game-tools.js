@@ -184,7 +184,7 @@
     return '';
   }
   function durationSettings(slug,s,disabled) {
-    if(slug==='catur')return `<label>Mode main<select data-mk-clock-mode ${disabled}>${[['casual','Santai · tanpa jam'],['blitz5','Quick Play · Blitz 5+0'],['blitz3plus2','Blitz 3+2 · tambah 2 detik/langkah']].map(([value,label])=>`<option value="${value}" ${(s.clockMode||'casual')===value?'selected':''}>${label}</option>`).join('')}</select></label><p class="mk-note">Blitz: waktu per pemain, dihitung server. Jam dijeda saat pemain terputus atau sesi dipulihkan. Pilihan terkunci sejak mulai.</p>`;
+    if(slug==='catur')return `<label>Mode main<select data-mk-clock-mode ${disabled}>${[['casual','Santai · tanpa jam'],['blitz5','Quick Play · Blitz 5+0'],['blitz3plus2','Blitz 3+2 · tambah 2 detik/langkah']].map(([value,label])=>`<option value="${value}" ${(s.clockMode||'casual')===value?'selected':''}>${label}</option>`).join('')}</select></label><p class="mk-note">Blitz: waktu per pemain, dihitung server. Jam dijeda saat pemain terputus atau permainan dijeda. Pilihan terkunci sejak mulai.</p>`;
     if(['domino','blackjack'].includes(slug))return `<label>Durasi permainan<select data-mk-play-mode ${disabled}>${[['standard','Santai · ronde bebas'],['quick','Quick Play · 1 ronde']].map(([value,label])=>`<option value="${value}" ${(s.playMode||'standard')===value?'selected':''}>${label}</option>`).join('')}</select></label><p class="mk-note">${s.playMode==='quick'?'Satu ronde lalu tampil rekap selesai. Quick Play baru harus dimulai lagi secara eksplisit; saldo tetap tercatat.':'Setiap ronde selesai sebelum host/pemain memilih main lagi.'}</p>`;
     return '';
   }

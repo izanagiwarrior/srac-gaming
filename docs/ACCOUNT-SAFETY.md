@@ -1,6 +1,12 @@
 # Account ownership, sessions and cross-device safety
 
-Release3.2.0 / `2026-10-31-account-safety-1`. Read root AGENTS for actual deployment/Git status; preparation is not publication.
+Current release3.5.0 / `2026-10-31-disconnect-grace-1`. Read root AGENTS for actual deployment/Git status; preparation is not publication.
+
+## Included in3.5.0: latest game connection controls the account
+
+The user superseded the3.2confirmation flow below. The shared cloud client automatically claims its authenticated owned seat on game connection, moving control from the old device with no confirmation popup. Opening the hub/account profile alone does not steal a game controller. Old controllers stop reconnecting and offer Main di perangkat ini; a human reload reconnects and takes control back. A stale/raced claim stops with manual retry instead of automatically fighting the winning device. Existing socket-bound challenge, account validation and durable token/host checkpoint remain unchanged. The latest successful server-serialized claim wins; clicking or editing an old device's cached data cannot overwrite current game state. An existing occupied room must still be left before changing rooms.
+
+Manual recovery-file removal is included. The157test results below describe installed3.2.0, not validation of this new automatic client flow. No new automated/gameplay checks have been run for this candidate.
 
 ## Identity and persistence
 
@@ -11,6 +17,8 @@ The old game identity was a random browser seat token, **not IP**. IP-derived sa
 - Browser may retain device preferences and legacy recovery hints/tokens. They are not authoritative. Cloud entry clears an unusable cached seat instead of repeatedly trying a different account's session. Old unbound seats can be migrated only with their exact bearer token; names/IP do not prove ownership. Old data is not reset or uploaded from local previews.
 
 ## One occupied room per account; many signed-in devices
+
+The following confirmation description records the3.2.0implementation and tests; the automatic policy above supersedes its UI confirmation requirement in3.5.0.
 
 An account may remain signed in on multiple devices, but only one device controls one occupied room across the six games. Idle game-entry sockets are capped at8per account; login sessions at10. Native global64socket/24room/2MiB-per-game limits remain. Explicit leave releases occupancy without rewriting past settlement. Offline seats still belong to their account and must be resumed or explicitly left before creating another room.
 

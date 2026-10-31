@@ -1,4 +1,5 @@
 'use strict';
+const {createPresence,automated}=require('../shared/connection');
 const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -10,6 +11,7 @@ const {snapshotRoom}=require('../shared/room-service');
 function createDominoServer({ getAddresses = () => [] } = {}) {
   const rooms = new Map();
   let closing = false, hub = null;
+  const presence=createPresence({exists:r=>rooms.get(r.code)===r,changed(r){broadcast(r);armBot(r);}});
   const files = new Map([
     ['/', ['public/index.html','text/html; charset=utf-8']],
     ['/client.js', ['public/client.js','application/javascript; charset=utf-8']],
@@ -32,7 +34,7 @@ function createDominoServer({ getAddresses = () => [] } = {}) {
   const nameFor = value => String(value || '').replace(/[\u0000-\u001f\u007f<>"\\]/g,'').trim().slice(0,24) || 'Pemain';
   const pips = tiles => tiles.reduce((sum,t) => sum + t.a + t.b,0);
   const allEntities = room => [...room.players,...room.spectators];
-  const ready = room => room.players.length >= 2 && room.players.every(p => p.connected);
+  const ready = room => room.players.length >= 2 && room.players.every(p => p.connected||room.phase==='playing'&&automated(p));
   const hostFor = room => room.players.find(p => !p.bot && p.connected) || room.players.find(p => !p.bot);
   function person(name,bot = false,spectator = false) {
     return { id:randomUUID(), token:bot ? null : randomUUID(), name:nameFor(name), bot, spectator, connected:bot, ws:null, hand:[], wins:0, score:0 };
@@ -120,7 +122,7 @@ function createDominoServer({ getAddresses = () => [] } = {}) {
   function armBot(room) {
     clearTimeout(room.botTimer); room.botTimer = null;
     const player = room.players[room.turn];
-    if (closing || room.recovering || room.phase !== 'playing' || !ready(room) || !player?.bot) return;
+    if (closing || room.recovering || room.phase !== 'playing' || !ready(room) || !automated(player)) return;
     const match = room.matchId, revision = room.revision;
     room.botTimer = setTimeout(() => {
       room.botTimer = null;
@@ -166,20 +168,20 @@ function createDominoServer({ getAddresses = () => [] } = {}) {
   function attach(ws,room,entity) {
     const previous = entity.ws;
     if (previous && previous !== ws) { previous.room = null; previous.entity = null; send(previous,{ type:'replaced' }); previous.close(1000,'Session moved'); }
-    entity.ws = ws; entity.connected = true; ws.room = room; ws.entity = entity; room.active = Date.now();
+    presence.connect(entity);entity.ws = ws; entity.connected = true; ws.room = room; ws.entity = entity; room.active = Date.now();
     send(ws,{ type:'joined',code:room.code,token:entity.token,id:entity.id }); broadcast(room); armBot(room);
   }
   function detach(ws,explicit = false) {
     const room = ws.room, entity = ws.entity; ws.room = null; ws.entity = null;
     if (!room || !entity || entity.ws !== ws) return;
-    entity.ws = null; entity.connected = false; room.active = Date.now();
+    entity.ws = null; entity.connected = false; room.active = Date.now();presence.disconnect(room,entity,explicit);
     if (entity.spectator) {if(!entity.hasAccount)room.spectators = room.spectators.filter(p => p !== entity);}
     else if (explicit) {
       if (room.phase === 'lobby') room.players = room.players.filter(p => p !== entity);
       else { entity.bot = true; entity.connected = true; entity.token = null; room.rematch.add(entity.id); }
       event(room,`${entity.name} keluar.${room.phase === 'lobby' ? '' : ' Kursinya dilanjutkan bot.'}`);
     }
-    // A dropped connection pauses the round; only an explicit leave hands a seat to a bot.
+    // A disconnect pauses through the grace; temporary automation preserves the original seat.
     if (explicit && room.phase === 'finished' && room.players.some(p => !p.bot) && ready(room) && room.players.every(p => room.rematch.has(p.id))) { start(room); return; }
     broadcast(room); armBot(room);
   }
@@ -259,13 +261,13 @@ function createDominoServer({ getAddresses = () => [] } = {}) {
     for (const [code,room] of rooms) if (!allEntities(room).some(p => !p.bot && p.connected) && Date.now() - room.active > 7 * 86400000) { clearTimeout(room.botTimer); rooms.delete(code); }
   },30000); maintenance.unref();
   async function close() {
-    closing = true; clearInterval(maintenance);
+    closing = true; presence.close();clearInterval(maintenance);
     for (const room of rooms.values()) clearTimeout(room.botTimer);
     for (const ws of wss.clients) { ws.room = null; ws.entity = null; ws.terminate(); }
     await new Promise(resolve => wss.close(resolve)); await new Promise(resolve => server.close(resolve));
   }
   return { server,wss,rooms,close,
-    setRoomService(value){hub=value;},capacity:r=>r.seats,
+    setRoomService(value){hub=value;},capacity:r=>r.seats,disposeRoom(r){presence.dispose(r);clearTimeout(r.botTimer);},
     restoreRoom:saved=>({...saved,botTimer:null}),setSpectator(p,value){p.spectator=value;},
     admit(room,p){p.hand=[];p.score??=0;p.wins??=0;},
     broadcastRoom:broadcast,resumeRoom:armBot,nextRound:start

@@ -1,4 +1,5 @@
 'use strict';
+const {createPresence,automated}=require('../shared/connection');
 const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -22,6 +23,7 @@ function chessSettings(input={},previous) {
 function createChessServer({ getAddresses = () => [] } = {}) {
   const rooms = new Map();
   let closing = false, hub = null;
+  const presence=createPresence({exists:r=>rooms.get(r.code)===r,changed(r){armBot(r);broadcast(r);}});
   const files = new Map([
     ['/', ['public/index.html','text/html; charset=utf-8']],
     ['/client.js', ['public/client.js','application/javascript; charset=utf-8']],
@@ -53,7 +55,7 @@ function createChessServer({ getAddresses = () => [] } = {}) {
   }
   function playerFor(name,color,bot = false) { return { id:randomUUID(), token:bot ? null : randomUUID(), name:nameFor(name), color, bot, score:0, connected:bot, left:false, ws:null }; }
   function hostFor(room) { return room.players.find(p => !p.bot && !p.left && p.connected) || room.players.find(p => !p.bot && !p.left); }
-  const ready = room => room.players.length === 2 && room.players.every(p => p.connected && !p.left);
+  const ready = room => room.players.length === 2 && room.players.every(p => (p.connected||room.phase==='playing'&&automated(p)) && !p.left);
   function clockView(room,now=Date.now()) {
     const control=CLOCKS[room.settings.clockMode||'casual'];if(!control)return null;
     const c=room.clock,remaining={w:c?.remaining?.w??control.initialMs,b:c?.remaining?.b??control.initialMs};
@@ -158,7 +160,7 @@ function createChessServer({ getAddresses = () => [] } = {}) {
   function armBot(room) {
     clearTimeout(room.botTimer); room.botTimer = null;
     if(armClock(room))broadcast(room);
-    if (closing || room.recovering || room.phase !== 'playing' || !ready(room) || !room.players.find(p => p.color === room.chess.turn())?.bot) return;
+    if (closing || room.recovering || room.phase !== 'playing' || !ready(room) || !automated(room.players.find(p => p.color === room.chess.turn()))) return;
     const match = room.matchId, ply = room.chess.history().length;
     room.botTimer = setTimeout(() => {
       room.botTimer = null;
@@ -195,7 +197,7 @@ function createChessServer({ getAddresses = () => [] } = {}) {
   function attach(ws,room,entity) {
     const previous = entity.ws;
     if (previous && previous !== ws) { previous.room = null; previous.entity = null; send(previous,{ type:'replaced' }); previous.close(1000,'Session moved'); }
-    entity.ws = ws; entity.connected = true; ws.room = room; ws.entity = entity; room.active = Date.now();
+    presence.connect(entity);entity.ws = ws; entity.connected = true; ws.room = room; ws.entity = entity; room.active = Date.now();
     armClock(room);send(ws,{ type:'joined', code:room.code, token:entity.token, id:entity.id }); broadcast(room); armBot(room);
   }
   function detach(ws,explicit = false) {
@@ -203,7 +205,7 @@ function createChessServer({ getAddresses = () => [] } = {}) {
     ws.room = null; ws.entity = null;
     if (!room || !entity || entity.ws !== ws) return;
     clockExpired(room);consumeClock(room);
-    entity.ws = null; entity.connected = false; room.active = Date.now();
+    entity.ws = null; entity.connected = false; room.active = Date.now();presence.disconnect(room,entity,explicit);
     if (entity.color === null) {if(!entity.hasAccount)room.spectators = room.spectators.filter(p => p !== entity);}
     else if (explicit) {
       note(room,`${entity.name} keluar dari room.`);
@@ -306,13 +308,13 @@ function createChessServer({ getAddresses = () => [] } = {}) {
     for (const [code,room] of rooms) if (![...room.players,...room.spectators].some(p => !p.bot && p.connected) && Date.now() - room.active > 7 * 86400000) { clearTimeout(room.botTimer);clearTimeout(room.clockTimer); rooms.delete(code); }
   },30000); maintenance.unref();
   async function close() {
-    closing = true; clearInterval(maintenance);
+    closing = true; presence.close();clearInterval(maintenance);
     for (const room of rooms.values()) {clearTimeout(room.botTimer);clearTimeout(room.clockTimer);consumeClock(room);}
     for (const ws of wss.clients) { ws.room = null; ws.entity = null; ws.terminate(); }
     await new Promise(resolve => wss.close(resolve)); await new Promise(resolve => server.close(resolve));
   }
   return { server,wss,rooms,close,
-    setRoomService(value){hub=value;},capacity:()=>2,
+    setRoomService(value){hub=value;},capacity:()=>2,disposeRoom(r){presence.dispose(r);clearTimeout(r.botTimer);clearTimeout(r.clockTimer);},
     exportRoom(room){const clock=room.clock?{...room.clock,remaining:clockView(room).remaining,active:null,startedAt:null}:null;return {...snapshotRoom({...room,chess:null,clock}),chessPgn:room.chess.pgn()};},
     restoreRoom(saved){const room={...saved,settings:chessSettings(saved.settings),chess:new Chess(),botTimer:null,clockTimer:null,clock:saved.clock?{...saved.clock,active:null,startedAt:null}:null};if(saved.chessPgn)room.chess.loadPgn(saved.chessPgn);return room;},
     setSpectator(p,value){if(value)p.color=null;},

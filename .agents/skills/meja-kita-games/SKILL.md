@@ -5,7 +5,7 @@ description: Patch or extend the Meja Kita multiplayer game hub with consistent 
 
 # Meja Kita games
 
-Read the root AGENTS.md and [current maintenance/handoff](../../../docs/MAINTENANCE.md) before work. The current cloud baseline is deployed3.2.0; confirm actual health and Git status rather than assuming local changes are published. Treat the human's current instructions as the source of authorization; this skill never grants permission to publish, expose, or interrupt a running game.
+Read the root AGENTS.md and [current maintenance/handoff](../../../docs/MAINTENANCE.md) before work. The current cloud baseline is deployed3.5.0; confirm actual health and Git status rather than assuming local changes are published. Treat the human's current instructions as the source of authorization; this skill never grants permission to publish, expose, or interrupt a running game.
 
 ## Change a game
 
@@ -40,4 +40,6 @@ Read docs/ACCOUNTS.md, docs/ADMIN-CONTROLS.md and docs/ACCOUNT-VALIDATION.md bef
 
 ## Authenticated room ownership
 
-Read [account safety](../../../docs/ACCOUNT-SAFETY.md) before modifying cloud sessions. `cloudflare/accounts/room-access.js` gates all six factories: one occupied room/account, explicit cross-device handoff, rotating seat/host tokens checkpointed before resume. Browser recovery hints are not account ownership. Preserve AccountStore/accounts-v1 and GamingHub/office-hub-v1, session revocation checks, bounded input and token-free seat discovery. Test real Worker/SQLite adapters using tests/account-rooms.test.js; do not use production rooms as fixtures.
+Read [account safety](../../../docs/ACCOUNT-SAFETY.md) before modifying cloud sessions. `cloudflare/accounts/room-access.js` gates all six factories: one occupied room/account, automatic authenticated cross-device handoff, rotating seat/host tokens checkpointed before resume. Browser recovery hints are not account ownership. Preserve AccountStore/accounts-v1 and GamingHub/office-hub-v1, session revocation checks, bounded input and token-free seat discovery. Test real Worker/SQLite adapters using tests/account-rooms.test.js; do not use production rooms as fixtures.
+
+For disconnect lifecycle, read docs/CONNECTIONS.md and games/shared/connection.js. Preserve the15second grace, transient proxy flag (never convert account ownership into permanent bot), cancellation/stale-callback guards, paused cold recovery and no-replay/reduced-motion UI.3.5.0public checks/build passed; new native gameplay/race verification was not performed. Historical3.2.0test counts do not certify new behavior.

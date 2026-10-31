@@ -1,4 +1,5 @@
 'use strict';
+const {createPresence,automated,waiting,actionDelay}=require('../shared/connection');
 const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -12,7 +13,7 @@ const BUILD_VERSION = '2026-10-15-dissolve-room-1';
 
 function createApp(options = {}) {
   const rooms = new Map(), timers = new Set();
-  const botDelay = options.botDelay ?? 3000, offlineDelay = options.offlineDelay ?? 8000;
+  const botDelay = options.botDelay ?? 3000, offlineDelay = options.offlineDelay ?? 15000;
   const turnLimit = options.turnLimit ?? 60000;
   const undoLimit = 2;
   let closing = false, hub = null;
@@ -104,7 +105,7 @@ function createApp(options = {}) {
     room.previousWinner = point.previousWinner; room.result = null; room.phase = 'playing';
     room.players.forEach((player,i) => {
       player.score = point.scores[i]; player.offlineTimer = null;
-      if (!player.connected && !player.bot && !player.autoOffline) player.offlineTimer = later(room,offlineDelay,() => {
+      if (!player.connected && !player.bot && !player.autoOffline) player.offlineTimer = later(room,actionDelay(player,offlineDelay),() => {
         player.autoOffline = true; scheduleTurn(room); broadcast(room);
       });
     });
@@ -139,17 +140,16 @@ function createApp(options = {}) {
       room.turnTimer = null; room.turnKey = key;
       room.currentTurnCheckpoint = turnCheckpoint(room);
       room.turnStartedAt = Date.now(); room.turnDeadline = room.turnStartedAt + turnLimit;
-      room.deadlineTimer = later(room, turnLimit, () => {
-        room.deadlineTimer = null;
-        if (!stillCurrent()) return;
-        if (room.game.table) perform(room, seat, { type:'pass' }, null, 'timeout');
-        else {
-          // Passing an empty table is illegal. Open with the lowest legal single.
-          const hand = room.game.hands[seat];
-          const card = room.game.requiredCard === null ? E.sortCards(hand)[0] : hand.find(c => c.id === room.game.requiredCard);
-          if (card) perform(room, seat, { type:'play', ids:[card.id] }, null, 'timeout');
+      const expire=()=>{
+        room.deadlineTimer=null;if(!stillCurrent())return;
+        if(waiting(p)){room.deadlineTimer=later(room,Math.max(0,p.disconnectDeadline-Date.now()),expire);return;}
+        if(room.game.table)perform(room,seat,{type:'pass'},null,'timeout');
+        else{
+          const hand=room.game.hands[seat],card=room.game.requiredCard===null?E.sortCards(hand)[0]:hand.find(c=>c.id===room.game.requiredCard);
+          if(card)perform(room,seat,{type:'play',ids:[card.id]},null,'timeout');
         }
-      });
+      };
+      room.deadlineTimer=later(room,turnLimit,expire);
     }
     if (!p.bot && !p.autoOffline) {
       if (room.turnTimer) clearTimer(room, room.turnTimer);
@@ -185,7 +185,7 @@ function createApp(options = {}) {
     deck.forEach((c,i) => hands[(i + offset) % count].push(c));
     room.game = E.createGame(hands,room.settings);
     room.undoUses = Array(count).fill(0); room.undoPoints = Array(count).fill(null); room.lastUndo = null;
-    room.players.forEach(p => { p.autoOffline = !p.connected; p.offlineTimer = null; });
+    room.players.forEach(p => { p.autoOffline = automated(p); p.offlineTimer = null; });
     say(room, null, 'Ronde ' + room.round + ' dimulai dengan ' + count + ' pemain. ' + room.players[room.game.turn].name + ' membuka dengan kartu atau kombinasi yang menyertakan 3♦.');
     scheduleTurn(room); broadcast(room);
   }
@@ -210,9 +210,10 @@ function createApp(options = {}) {
       if (changed) say(room,null,msg.easyMode ? 'Host mengaktifkan Easy Mode: bantuan curang untuk semua pemain, dengan saran langkah dan undo 2 kali per pemain per ronde.' : 'Host mematikan Easy Mode. Saran langkah dan undo dinonaktifkan.');
     }
   }
+  const presence=createPresence({exists:r=>rooms.get(r.code)===r,changed(r,p){if(p.disconnectBot)p.autoOffline=true;scheduleTurn(r);broadcast(r);}});
   function attach(ws, room, p) {
     const previous = p.ws;
-    p.ws = ws; p.connected = true; p.autoOffline = false;
+    presence.connect(p);p.ws = ws; p.connected = true; p.autoOffline = false;
     if (p.offlineTimer) { clearTimer(room, p.offlineTimer); p.offlineTimer = null; }
     ws.room = room; ws.entity = p;
     if (previous && previous !== ws) { previous.room = null; previous.entity = null; send(previous,{type:'replaced'}); previous.close(1000, 'Session moved'); }
@@ -221,13 +222,13 @@ function createApp(options = {}) {
   function detach(ws, explicit) {
     const room = ws.room, p = ws.entity; ws.room = null; ws.entity = null;
     if (closing || !room || !p || p.ws !== ws) return;
-    p.connected = false; p.ws = null; room.active = Date.now();
+    p.connected = false; p.ws = null; room.active = Date.now();presence.disconnect(room,p,explicit);
     const seat = room.players.indexOf(p);
     if (seat < 0 && explicit) {if(!p.hasAccount)room.spectators = room.spectators.filter(x => x !== p);}
     else if (seat >= 0 && explicit && room.phase === 'lobby') room.players.splice(seat,1);
     else if (seat >= 0 && explicit) { p.bot = true; p.token = null; p.autoOffline = true; }
-    if (seat >= 0 && !explicit && room.phase === 'playing') p.offlineTimer = later(room, offlineDelay, () => { p.autoOffline = true; scheduleTurn(room); broadcast(room); });
-    say(room, null, p.name + (explicit ? ' keluar dari meja.' : ' terputus. Bot mengambil alih setelah 8 detik.'));
+    // Shared grace timer activates temporary automation without releasing account ownership.
+    say(room, null, p.name + (explicit ? ' keluar dari meja.' : ' terputus. Bot mengambil alih setelah 15 detik.'));
     hostIndex(room); scheduleTurn(room); broadcast(room);
   }
   wss.on('connection', ws => {
@@ -348,16 +349,16 @@ function createApp(options = {}) {
     for (const [code, room] of rooms) if (![...room.players,...room.spectators].some(p => p.connected && !p.bot) && Date.now() - room.active > 7 * 86400000) { clearRoomTimers(room); rooms.delete(code); }
   },30000); maintenance.unref();
   function close() {
-    closing = true; clearInterval(maintenance); for (const timer of timers) clearTimeout(timer);
+    closing = true; presence.close();clearInterval(maintenance); for (const timer of timers) clearTimeout(timer);
     for (const ws of wss.clients) ws.terminate();
     return new Promise(resolve => wss.close(() => server.close(resolve)));
   }
   return { server,wss,rooms,close,
-    disposeRoom:clearRoomTimers,
+    disposeRoom(room){presence.dispose(room);clearRoomTimers(room);},
     setRoomService(value){hub=value;},capacity:r=>r.settings.mode==='casual'?8:4,
     restoreRoom(saved){return {...saved,timers:new Set(),turnTimer:null,deadlineTimer:null,turnKey:null,turnStartedAt:null,turnDeadline:null};},
     setSpectator(p,value){p.spectator=value;},admit(room,p){p.score??=0;p.autoOffline=false;},
-    broadcastRoom:broadcast,resumeRoom(room){room.players.forEach(p=>p.autoOffline=!p.connected);scheduleTurn(room);},
+    broadcastRoom:broadcast,resumeRoom(room){room.players.forEach(p=>p.autoOffline=automated(p));scheduleTurn(room);},
     nextRound(room){if(room.phase==='finished'){room.round=0;room.matchId++;room.previousWinner=null;}beginRound(room);}
   };
 }

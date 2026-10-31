@@ -1,4 +1,5 @@
 'use strict';
+const {createPresence,automated}=require('../shared/connection');
 const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -55,6 +56,7 @@ function createPokerServer({dataDir = path.join(__dirname,'data'), botDelay = 30
     fs.renameSync(stateFile+'.tmp',stateFile);
   }
   function send(ws,data) { if (ws && ws.readyState===1) ws.send(JSON.stringify(hub?hub.enrich(ws,data):data)); }
+  const presence=createPresence({exists:r=>rooms.get(r.code)===r,changed(r){r.changed();}});
   class Room {
     constructor(code, saved) {
       this.code=code; this.players=[]; this.settings={...DEFAULTS}; this.phase='lobby'; this.hostId=null;
@@ -62,7 +64,7 @@ function createPokerServer({dataDir = path.join(__dirname,'data'), botDelay = 30
       this.game=null; this.history=[]; this.ledger=[]; this.chat=[]; this.createdAt=Date.now(); this.endedAt=null;
       this.revision=0; this.actionTimer=null; this.hostTimer=null;
       if (saved) {
-        Object.assign(this,saved); this.settings={...DEFAULTS,...this.settings}; this.players=saved.players.map(p=>({...p,ws:null,connected:!!p.bot}));this.spectators=(saved.spectators||[]).map(p=>({...p,ws:null,connected:false}));
+        Object.assign(this,saved); this.settings={...DEFAULTS,...this.settings}; this.players=saved.players.map(p=>({...p,ws:null,connected:!!p.bot,disconnectBot:false,disconnectDeadline:null}));this.spectators=(saved.spectators||[]).map(p=>({...p,ws:null,connected:false}));
         this.game=saved.game ? Game.restore(this.players,this.settings,saved.game,randomInt) : null;
       }
     }
@@ -84,7 +86,7 @@ function createPokerServer({dataDir = path.join(__dirname,'data'), botDelay = 30
     }
     attach(ws,p) {
       const old=p.ws; if (old && old!==ws) {old.player=null;old.room=null;send(old,{type:'replaced'});old.close();}
-      p.ws=ws;p.connected=true;ws.room=this;ws.player=p;
+      presence.connect(p);p.ws=ws;p.connected=true;ws.room=this;ws.player=p;
       if (!p.spectator&&!this.host()?.connected) this.hostId=p.id;
       send(ws,{type:'joined',code:this.code,token:p.token,id:p.id});
     }
@@ -93,7 +95,7 @@ function createPokerServer({dataDir = path.join(__dirname,'data'), botDelay = 30
       this.attach(ws,p);p.sittingOut=p.stack===0&&p.rebuyDeclined;this.changed();
     }
     disconnect(p) {
-      p.connected=false;p.ws=null;
+      p.connected=false;p.ws=null;presence.disconnect(this,p);
       if (this.hostId===p.id) {
         clearTimeout(this.hostTimer);
         this.hostTimer=setTimeout(()=>{if(!this.host()?.connected){const next=this.players.find(q=>!q.bot&&q.connected);if(next){this.hostId=next.id;this.changed();}}},offlineDelay);
@@ -203,13 +205,13 @@ function createPokerServer({dataDir = path.join(__dirname,'data'), botDelay = 30
     }
     schedule() {
       clearTimeout(this.actionTimer);if(!timers||this.recovering||this.phase!=='playing'||this.game?.over)return;
-      const p=this.players[this.game.turn];if(!p||(!p.bot&&p.connected))return;
+      const p=this.players[this.game.turn];if(!automated(p))return;
       const version=this.game.version;
       this.actionTimer=setTimeout(()=>{
-        if(this.phase!=='playing'||this.game.over||this.game.version!==version||(!p.bot&&p.connected))return;
+        if(this.phase!=='playing'||this.game.over||this.game.version!==version||!automated(p))return;
         try {
           const o=this.game.options(this.players.indexOf(p));let action=o.check?'check':'fold',amount;
-          if(p.bot){
+          if(automated(p)){
             // Bots use only their own cards, the board and public betting information.
             const visible=[...p.hole,...this.game.board];
             const power=visible.length>=5?evaluate(visible).score[0]:(p.hole[0].r===p.hole[1].r?2:(Math.max(...p.hole.map(c=>c.r))>=12?1:0));
@@ -231,7 +233,7 @@ function createPokerServer({dataDir = path.join(__dirname,'data'), botDelay = 30
           }
           this.game.act(this.players.indexOf(p),action,amount);this.afterAction(false);this.changed();
         }catch(err){console.error('Table action failed:',err.message);}
-      },p.bot?botDelay:offlineDelay);
+      },botDelay);
     }
   }
   if(stateFile&&fs.existsSync(stateFile)) {
@@ -284,9 +286,9 @@ function createPokerServer({dataDir = path.join(__dirname,'data'), botDelay = 30
     ws.on('error',()=>{});
   });
   const heartbeat=setInterval(()=>{for(const ws of wss.clients){if(!ws.alive){ws.terminate();continue;}ws.alive=false;ws.ping();}},30000);heartbeat.unref();
-  async function close() {clearInterval(heartbeat);for(const r of rooms.values()){clearTimeout(r.actionTimer);clearTimeout(r.hostTimer);}for(const ws of wss.clients){ws.room=null;ws.player=null;ws.terminate();}await new Promise(resolve=>wss.close(resolve));await new Promise(resolve=>server.close(resolve));}
+  async function close() {presence.close();clearInterval(heartbeat);for(const r of rooms.values()){clearTimeout(r.actionTimer);clearTimeout(r.hostTimer);}for(const ws of wss.clients){ws.room=null;ws.player=null;ws.terminate();}await new Promise(resolve=>wss.close(resolve));await new Promise(resolve=>server.close(resolve));}
   return {server,wss,rooms,close,addresses,
-    setRoomService(value){hub=value;},capacity:r=>r.settings.maxPlayers,
+    setRoomService(value){hub=value;},disposeRoom(r){presence.dispose(r);clearTimeout(r.actionTimer);clearTimeout(r.hostTimer);},capacity:r=>r.settings.maxPlayers,
     exportRoom:r=>r.snapshot(),restoreRoom:saved=>new Room(saved.code,saved),setSpectator(p,value){p.spectator=value;},
     admit(r,p){p.spectator=false;p.hole=[];p.folded=false;p.inHand=false;p.contributed=0;p.bet=0;p.handsPlayed??=0;p.dealerRounds??=0;p.rebuyPending=false;p.rebuyDeclined=false;p.sittingOut=false;if(!p.totalBuyIn){p.stack=0;p.totalBuyIn=0;p.buyIns=0;r.book(p,'Initial buy-in');}},
     checkNext(r,projected){if(r.players.some(p=>p.rebuyPending))throw Error('Selesaikan permintaan rebuy dahulu.');if(projected.filter(p=>(!p.totalBuyIn?r.settings.buyIn:p.stack)>0&&!p.sittingOut&&(p.bot||p.connected)).length<2)throw Error('Perlu dua pemain aktif dengan chip. Selesaikan rebuy atau antre pemain baru.');},

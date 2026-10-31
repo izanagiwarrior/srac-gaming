@@ -62,7 +62,7 @@
     pay(index, amount) { const p = this.players[index]; amount = Math.min(p.stack, amount); p.stack -= amount; p.bet += amount; p.contributed += amount; return amount; }
     start() {
       if (!this.over) throw new Error('Finish the current hand first.');
-      const ready = p => p.stack > 0 && !p.sittingOut && (p.connected || p.bot);
+      const ready = p => p.stack > 0 && !p.sittingOut && (p.connected || p.bot || p.disconnectBot);
       if (this.players.filter(ready).length < 2) throw new Error('At least 2 active players with chips are needed.');
       this.dealer = this.next(this.dealer, ready); this.handNo++; this.version++;
       this.deck = shuffle(deck(), this.randomInt); this.board = []; this.burned = [];

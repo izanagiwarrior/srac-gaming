@@ -12,7 +12,15 @@ Build `2026-10-15-social-save-2` / package 1.4.1 adds the same room controls to 
 - A player giving a seat keeps their balance/account and becomes a spectator. A returning funded spectator uses their existing account; a new Poker/Blackjack player receives exactly one configured initial buy-in. Retired bot accounts remain in the recap. Detailed Poker accounting, shared recaps/CSV and Capsa history keep account ownership instead of assigning old results to the new seat occupant.
 - The shared host button starts the next round once seated human players are connected. Existing Catur/Domino consent buttons still work without a waiting queue. When a queue exists, those buttons direct players to the host's shared rotation button. Account settings/rates stay locked after play starts.
 
-## Saving and recovery
+## Installed disconnect lifecycle3.5.0
+
+Unexpected seated-player disconnect uses15seconds of grace, then native temporary AI until reconnect. Public status/animation is shared across all games; ownership and settled data stay with the same account. Read [connection lifecycle](CONNECTIONS.md) for native differences, paused cold recovery, explicit-leave behavior and verification limits. Release3.5.0is deployed; runtime verification limits are documented.
+
+## Account continuation and persistence
+
+Release3.5.0 removes manual player file import/export and Poker’s duplicate “Return to saved room” action. Cloud players continue through authenticated account discovery and the shared confirmation dialog; they do not need a recovery file. Database checkpoints and paused-game host continuation remain necessary and intact. Storage warnings still report real save failures. This removes player-facing file tools, not server persistence, operational backups or game data.
+
+The browser-token description below describes the legacy Node transport; authenticated cloud ownership is described at the end of this guide.
 
 ### Continue a saved seat or switch rooms
 
@@ -20,8 +28,8 @@ Build `2026-10-15-social-save-2` / package 1.4.1 adds the same room controls to 
 - **Lanjutkan room …** reclaims that seat. A temporary WebSocket interruption within the same page reconnects automatically to the same seat without repeating the startup choice.
 - **Keluar dulu & pindah ke …** first authenticates the old seat, sends its native leave command, and waits for the server's `left` acknowledgement. Only then is the current seat credential removed and the entry form restored with the destination code. The player clicks **Gabung** to enter that room. The shared Meja toolbar also offers **Keluar / ganti room**.
 - **Tutup dulu** or Escape only dismisses the popup. An inline reminder remains, and another create/join attempt opens the choice again. Disconnects, timeouts, version errors and transient failures never count as proof that the seat is gone. If connectivity drops during an explicitly confirmed leave, reconnect authenticates that same seat to finish leaving. A server response marked `sessionUnavailable` allows removal of an expired/unknown saved seat; there is still no automatic join or replacement account.
-- Explicit leave follows each game's existing rules: an active Catur game counts as resignation; Poker keeps account totals and checks/folds the hand; active seats in the other games pass to bots. The popup describes these effects. Spectators leave their viewing session. This feature does not change payouts, rules, disconnect timers or private views. Poker's manually chosen **Return to saved room** backup remains available after explicit leave and does not auto-resume.
-- Saved ownership is browser/origin specific. The popup cannot discover a seat created in another browser or on a previous Quick Tunnel hostname unless its private recovery file is imported.
+- Explicit leave follows each game's existing rules: an active Catur game counts as resignation; Poker keeps account totals and checks/folds the hand; active seats in the other games pass to bots. The popup describes these effects. Spectators leave their viewing session. This feature does not change payouts, rules, disconnect timers or private views. Explicit leave does not expose a separate Poker restore button.
+- Legacy Node ownership is browser/origin specific. Cloud ownership is account-based and discovers seats across devices.
 
 ### Private snapshots (Node target)
 
@@ -29,7 +37,7 @@ Build `2026-10-15-social-save-2` / package 1.4.1 adds the same room controls to 
 - Snapshots include the current deck/wall, private hands, turn/claim state, scores/chips, history/chat, host, session tokens, queue and lock. They never serialize sockets, timer handles or callbacks. v8 serialization preserves Sets and shared Mahjong tile references; Catur reconstructs from PGN including move history, Poker from its explicit Game serializer.
 - After a restart, an unfinished saved round is **paused**. Bots, claim transitions, dealer actions and Capsa deadlines stay stopped until seated human players reconnect and the current host selects **Lanjutkan sesi**. Capsa gets a fresh 60-second deadline after resuming. A completed round/lobby needs no artificial paused turn.
 - Mahjong claim resolution and kong replacement draws have explicit resumable phases. A pending discard undo window expires on restart. The historical emoji/manual-claim release used v9; current Hong Kong Mahjong uses v10. Older pages must refresh after approved deployment.
-- Saved seat credentials stay in the original browser. **Simpan file pemulihan** downloads one private JSON file for the viewer's own token. The landing-page import validates its schema/size and restores that seat without putting the token in a URL, room list, chat, or CSV. This file is needed if a new Quick Tunnel hostname changes browser origin. A normal invitation link gives friends the room, not ownership of your seat.
+- Legacy Node seat hints remain in their original browser. Manual player recovery-file tools have been removed; cloud players use their account. A normal invitation link gives friends the room, not ownership of a seat.
 - Fully abandoned rooms are retained for seven days before existing maintenance removes them. Archives are bounded to 128 total accounts per room and existing per-game connected-spectator limits. Back up private runtime separately if longer retention is needed. Local disk loss, user deletion or disk-write failures are not solved by a browser token.
 
 ### First upgrade and Poker migration
