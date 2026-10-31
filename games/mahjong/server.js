@@ -418,7 +418,7 @@ class Room {
     r.round = G.hand; r.maxHands = G.maxHands; r.final = G.hand >= G.maxHands;
     if (r.final) r.ranking = this.players.map((P, i) => ({ seat: i, name: P.name, score: P.score })).sort((a, b) => b.score - a.score);
     this.ledger.push({label:'Ronde '+G.hand,time:Date.now(),rate:this.settings.pointValue,players:this.players.map((P,i)=>({name:P.name,delta:r.delta?.[i]||0,amount:(r.delta?.[i]||0)*this.settings.pointValue}))});this.ledger=this.ledger.slice(-200);
-    G.result = r; this.broadcastState();
+    G.result = r; hub?.recordResult(this,this.players.map((p,i)=>winner!==null&&i===winner),String(G.hand)); this.broadcastState();
   }
   next(seat) {
     const G = this.G; if (!G || !G.over || !G.result) return; if (seat !== this.hostSeat()) return;

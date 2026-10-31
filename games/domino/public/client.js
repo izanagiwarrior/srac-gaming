@@ -90,6 +90,7 @@ function render() {
   document.title = S ? `Gaple · ${S.code} · Meja Kita` : 'Domino Gaple · Meja Kita';
 }
 function entry(create) {
+  enteredName = $('name')?.value || enteredName;
   if (!enteredName.trim()) { $('name').reportValidity(); $('name').focus(); return; }
   if (!create && !enteredCode.trim()) { toast('Isi kode room temanmu.'); $('code').focus(); return; }
   try { localStorage.setItem('mejakita.domino.name',enteredName.trim()); } catch {}

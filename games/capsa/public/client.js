@@ -251,6 +251,8 @@ function downloadMoneyCSV() {
   S.money.rows.forEach(p => rows.push(['saldo',S.code,S.matchId,'',p.name,p.bot ? 'Ya' : 'Tidak','','',p.points,S.money.rate,p.net,'','','',status]));
   S.history.forEach(h => (h.people || S.players).forEach((p,i) => rows.push(['ronde',S.code,h.matchId ?? S.matchId,h.round,p.name,p.bot ? 'Ya' : 'Tidak',h.dealt[i],h.remaining[i],h.delta[i],h.pointValue,h.moneyDelta[i],'','','','Selesai'])));
   if (S.money.final && !S.money.simulation) S.money.transfers.forEach(t => rows.push(['pembayaran',S.code,S.matchId,'','','','','','','','',t.fromName,t.toName,t.amount,'Saran pembayaran akhir']));
+  if(S.hub?.adjustments?.length) rows.push(['Koreksi admin — hingga 20 catatan terakhir']);
+  for (const correction of S.hub?.adjustments || []) for (const change of correction.changes) rows.push(['koreksi admin',S.code,'','',change.name,'','','',change.after.points-change.before.points,S.settings.pointValue,(change.after.points-change.before.points)*S.settings.pointValue,'','','',correction.actor+' · '+correction.reason]);
   const cell = value => {
     let text = String(value ?? '');
     if (typeof value === 'string' && /^\s*[=+\-@]/.test(text)) text = "'" + text;

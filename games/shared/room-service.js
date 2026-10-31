@@ -35,7 +35,7 @@ function settled(slug,r) {
   return ['result','finished'].includes(r.phase);
 }
 function active(slug,r){return (r.state||r.phase)!=='lobby'&&!settled(slug,r);}
-function installRoomService(app,{slug,dataDir,persistence=null,saveInterval=5000}) {
+function installRoomService(app,{slug,dataDir,persistence=null,saveInterval=5000,accountMode=false}) {
   const filename=persistence?null:path.join(dataDir,slug+'.v8');let stopped=false,lastBuffer=null,savedAt=null,saveError=false;
   const closedCodes=new Set();let archives=[];
   const entityFor=ws=>ws.roomPlayer?{room:ws.roomPlayer.room,person:ws.roomPlayer.player}:{room:ws.room,person:ws.entity||ws.player||ws.person};
@@ -60,9 +60,14 @@ function installRoomService(app,{slug,dataDir,persistence=null,saveInterval=5000
       queue:queue.map(id=>room.spectators.find(q=>keyFor(q)===id)).filter(Boolean).map(q=>({name:q.name,you:q===p,connected:q.connected})),
       queued:queue.includes(keyFor(p)),yielding:room.social.yielding.includes(keyFor(p)),canNext:isHost&&settled(slug,room)&&!room.recovering,
       bank:room.spectators.filter(q=>q.hasAccount).map(q=>({id:q.id,name:q.name,bot:!!q.bot,stack:q.totalBuyIn!==undefined?q.stack:undefined,totalBuyIn:q.totalBuyIn,points:q.totalBuyIn!==undefined?q.stack-q.totalBuyIn:q.score||0,net:(q.totalBuyIn!==undefined?q.stack-q.totalBuyIn:q.score||0)*rate})),
-      recoveryFile:true};
+      adjustments:(room.adminAdjustments||[]).slice(-20),profiles:room.players.filter(p=>p.accountId).map(p=>({id:p.id,name:p.name,skin:p.accountSkin||'jade',accessory:p.accountAccessory||null})),recoveryFile:true};
   }
   function enrich(ws,data) {
+    if(accountMode&&ws.account){const {room,person}=entityFor(ws);if(room&&person){
+      const returning=!!person.accountId;if(!person.accountId)person.accountId=ws.account.id;
+      if(person.accountId===ws.account.id){person.accountSkin=ws.account.skin;person.accountAccessory=ws.account.accessory;}
+      if(data.type==='joined'&&ws.accountAuditRoom!==room){ws.accountAuditRoom=room;room.accountActivity||=[];room.accountActivity.push({id:randomUUID(),userId:person.accountId,kind:returning?'game.reconnected':'game.joined',game:slug,room:room.code});room.accountActivity=room.accountActivity.slice(-100);}
+    }}
     if(!['state','lobby','joined'].includes(data.type))return data;
     const {room,person}=entityFor(ws);if(!room||!person)return data;
     return {...data,hub:meta(room,person)};
@@ -122,6 +127,12 @@ function installRoomService(app,{slug,dataDir,persistence=null,saveInterval=5000
       const resume=['resume','rejoin'].includes(msg.type);
       ws.send(JSON.stringify({type:'error',message:'Room tidak ditemukan. Buat room baru atau cek kode.',msg:'Room tidak ditemukan. Buat room baru atau cek kode.',code:String(msg.code).trim().toUpperCase(),sessionUnavailable:resume,fatal:resume,dissolved:resume}));return true;
     }
+    if(accountMode&&ws.account&&['join','resume','rejoin'].includes(msg.type)){
+      const target=app.rooms.get(String(msg.code||'').trim().toUpperCase());
+      const owner=target&&everyone(target).find(p=>p.token&&p.token===msg.token);
+      if(owner?.accountId&&owner.accountId!==ws.account.id){error(ws,'Kursi ini milik akun lain. Masuk dengan akun pemiliknya.');return true;}
+      if(msg.type==='join'&&target&&everyone(target).some(p=>p.accountId===ws.account.id&&!p.left&&!p.bot)){error(ws,'Akunmu sudah ada di room ini. Lanjutkan sesi tersimpan.');return true;}
+    }
     if(msg.type==='join') {
       const target=app.rooms.get(String(msg.code||'').trim().toUpperCase());
       if(target&&everyone(target).length>=128){error(ws,'Batas akun room tercapai. Simpan rekap lalu buat room baru.');return true;}
@@ -167,10 +178,24 @@ function installRoomService(app,{slug,dataDir,persistence=null,saveInterval=5000
     for(const code of loaded.closedCodes||[])closedCodes.add(code);
     archives=Array.isArray(loaded.archives)?loaded.archives.slice(-200):[];
     app.rooms.clear();
-    for(const saved of loaded.rooms){if(closedCodes.has(saved.code))continue;const r=app.restoreRoom(saved);ensurePeople(r);for(const p of everyone(r)){p.ws=null;p.connected=!!p.bot;}r.recovering=active(slug,r);app.rooms.set(r.code,r);}
+    for(const saved of loaded.rooms){if(closedCodes.has(saved.code))continue;const r=app.restoreRoom(saved);ensurePeople(r);for(const p of everyone(r)){p.ws=null;p.connected=!!p.bot;}r.recovering=active(slug,r);for(const track of Object.values(r.progressionTracking||{}))track.last=null;app.rooms.set(r.code,r);}
     savedAt=persistence?persistence.savedAt():fs.statSync(filename).mtimeMs;
   }else for(const r of app.rooms.values()){ensurePeople(r);r.recovering=active(slug,r);}
-  const service={handle,enrich,changed:()=>save(),save,meta,hasCode:code=>closedCodes.has(code)||app.rooms.has(code),roomFor:entityFor,summary(){return [...app.rooms.values()].filter(r=>!r.social?.locked&&everyone(r).some(p=>p.connected&&!p.bot)).map(r=>({game:slug,code:r.code,phase:r.recovering?'paused':settled(slug,r)?'between':r.state==='lobby'||r.phase==='lobby'?'lobby':'playing',capacity:app.capacity(r),players:r.players.filter(p=>!p.bot&&p.connected).map(p=>p.name),seats:r.players.length,spectators:r.spectators.filter(p=>!p.bot&&p.connected).length,queued:r.social?.queue.length||0}));},close(){save();stopped=true;clearInterval(interval);}};
+  function recordResult(room,winners,key,participated=null){
+    if(!accountMode)return;
+    ensurePeople(room);room.progressionEvents||=[];
+    const id=slug+':'+room.social.id+':'+(room.progressionRoundToken||key);
+    if(room.progressionAwardedToken===id)return;
+    room.progressionAwardedToken=id;room.progressionActive=false;
+    const now=Date.now();
+    room.progressionEvents.push({id,game:slug,room:room.code,players:room.players.flatMap((p,i)=>{
+      const track=room.progressionTracking?.[p.id];
+      const seconds=track?Math.floor((track.ms+(p.connected&&track.last?Math.min(120000,now-track.last):0))/1000):0;
+      return p.accountId&&!p.bot&&(!participated||participated[i])?[{userId:p.accountId,seconds,won:!!winners[i]}]:[];
+    })});
+    room.progressionEvents=room.progressionEvents.slice(-200);room.progressionTracking={};
+  }
+  const service={handle,enrich,recordResult,changed:()=>save(),save,meta,hasCode:code=>closedCodes.has(code)||app.rooms.has(code),roomFor:entityFor,summary(){return [...app.rooms.values()].filter(r=>!r.social?.locked&&everyone(r).some(p=>p.connected&&!p.bot)).map(r=>({game:slug,code:r.code,phase:r.recovering?'paused':settled(slug,r)?'between':r.state==='lobby'||r.phase==='lobby'?'lobby':'playing',capacity:app.capacity(r),players:r.players.filter(p=>!p.bot&&p.connected).map(p=>p.name),seats:r.players.length,spectators:r.spectators.filter(p=>!p.bot&&p.connected).length,queued:r.social?.queue.length||0}));},close(){save();stopped=true;clearInterval(interval);}};
   app.setRoomService(service);
   const interval=saveInterval?setInterval(()=>save(),saveInterval):null;interval?.unref();
   return service;

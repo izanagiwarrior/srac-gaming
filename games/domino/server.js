@@ -79,6 +79,7 @@ function createDominoServer({ getAddresses = () => [] } = {}) {
     record(room,room.players.map(p=>winners.includes(p)?base+(winners.indexOf(p)<extra?1:0):-pips(p.hand)),'Ronde '+room.round+' · '+reason);
     clearTimeout(room.botTimer); room.botTimer = null; room.phase = 'finished'; room.rematch.clear();
     for (const p of winners) p.wins++;
+    hub?.recordResult(room,room.players.map(p=>winners.includes(p)),room.matchId+':'+room.round);
     room.result = { reason, winners:winners.map(p => p.id), names:winners.map(p => p.name),
       remaining:room.players.map(p => ({ id:p.id,name:p.name,count:p.hand.length,pips:pips(p.hand) })) };
     event(room,`${winners.map(p => p.name).join(' & ')} ${winners.length > 1 ? 'menang bersama' : 'menang'} — ${reason}.`);

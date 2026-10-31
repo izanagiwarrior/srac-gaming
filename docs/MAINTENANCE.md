@@ -1,6 +1,22 @@
 # Maintenance and agent handoff
 
-Last reconciled: **23 October 2026**. Read root [AGENTS.md](../AGENTS.md) first. This document records context and procedures; it does not authorize push, deployment, interruption, gameplay tests or data migration. Dates below are historical evidence. Recheck actual source and service before acting.
+Last reconciled: **31 October 2026**. Read root [AGENTS.md](../AGENTS.md) first. This document records context and procedures; it does not authorize push, deployment, interruption, gameplay tests or data migration. Dates below are historical evidence. Recheck actual source and service before acting.
+
+## Current release — 31 October 2026
+
+**Running3.1.0 / `2026-10-31-admin-controls-1`** on https://srac-gaming.faiz-triputra.workers.dev/ . User instruction “selesaiin semua” explicitly followed the listed remaining validation, Git publication, Google production secrets and deployment work. Deployment succeeded `71c2f303-58e7-4317-b6ea-25741ce1ebc1`. Google secrets were uploaded with the same version using `wrangler deploy --secrets-file .dev.vars`; never print/commit that ignored0600file. ACCOUNT_PREVIEW is absent in production and public demo login returns404. Existing GamingHub/office-hub-v1/v1 data is retained; AccountStore/accounts-v1/v2-accounts is additive. Legacy Node live and local preview data were not migrated.
+
+Public health reports the new build; landing, account/admin and six game entries return200. Anonymous admin overview401. Real Google login completed on the public callback as faiz.triputra@shopee.com; UI shows verified email/Admin and the live dashboard. Bootstrap Hendy activates when that user signs in with verified Google. No public room/game/result/XP was fabricated. **127tests pass**, including isolated SQLite auth/admin/purchase/reward cases, Google signed-token checks and six-game balance fixtures. [Validation and remaining limits](ACCOUNT-VALIDATION.md): full native six-game rewards/settlement/recovery races, failure injection and quota behavior are not exhaustively proven.
+
+Google project SRAC-AI is owner-approved despite its office account. Shared branding remains Smart Drive Image Tool; audience remains Internal. Neither shared setting nor the previous OAuth client was changed. No Google Drive/Gmail scopes, paid plan or billing change. Account/possession data lives in Cloudflare SQLite. Email/password signup remains unverified and cannot activate admin grants. Account gating is now live for future game connections. Further patch/push/deploy needs a new request. Git publication is authorized for this release; verify HEAD against origin/main independently before reporting push complete. Earlier pending notes below describe preparation history, not current deployment.
+
+## Historical preparation: admin controls — 31 October 2026
+
+Current staging3.1.0/build`2026-10-31-admin-controls-1` includes the account candidate below plus [admin ownership/balance controls](ADMIN-CONTROLS.md). It is not deployed/pushed; cloud last confirmed2.3.1. Use versioned account mutation, preserve SQL receipts/audit, and apply native chip/point corrections only at safe boundaries with funding/transfer accounting. Do not inject an unbalanced point win. Preview evidence is limited to account possession edits and one empty Blackjack funding/broadcast; not full six-game/security/recovery verification. Google client still needs setup. No permission for Git/cloud publication carries over.
+
+## Previous pending accounts candidate3.0.0 — superseded
+
+Staging3.0.0/build`2026-10-31-accounts-1`, not installed/pushed; cloud last confirmed2.3.1. Read [account hosting and Google setup](ACCOUNTS.md) before changing credentials or deploying. Separate SQLite AccountStore/additive migration, no D1 provisioning required; keep game identities/data unchanged. Google OAuth is not configured. Only loopback preview may use demo login. Full provider/security/multiplayer reward verification remains pending; empty dashboard values are real absence of recorded rounds, not failure or seeded production activity. Never infer authorization from the source version. Public activation requires configured Google login and explicit review of mandatory account gating and disconnect impact.
 
 ## Installed alignment correction2.3.1
 
@@ -173,3 +189,5 @@ User confirmation “Tetap deploy sekarang” authorized2.1.0. Deployment/public
 ## Release-history note
 
 Earlier2.0/2.1 sections below are dated historical evidence; current defaults/status are in section1 and root AGENTS. The current0fan=0policy applies to newly configured presets, not stored old casual balances.
+
+Admin extension evidence: one synthetic account possession edit and one unstarted Blackjack initial-funding correction+native broadcast/audit inspected;319px editor has no document horizontal overflow. No six-game gameplay/security/race tests. Preview source and store are isolated from production; Google setup, release approval and focused verification remain pending. See ADMIN-CONTROLS.md.

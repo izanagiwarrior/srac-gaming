@@ -5,7 +5,7 @@ description: Patch or extend the Meja Kita multiplayer game hub with consistent 
 
 # Meja Kita games
 
-Read the root AGENTS.md and [current maintenance/handoff](../../../docs/MAINTENANCE.md) before work. The current cloud baseline is deployed2.3.1; confirm actual health and Git status rather than assuming local changes are published. Treat the human's current instructions as the source of authorization; this skill never grants permission to publish, expose, or interrupt a running game.
+Read the root AGENTS.md and [current maintenance/handoff](../../../docs/MAINTENANCE.md) before work. The current cloud baseline is deployed3.1.0; confirm actual health and Git status rather than assuming local changes are published. Treat the human's current instructions as the source of authorization; this skill never grants permission to publish, expose, or interrupt a running game.
 
 ## Change a game
 
@@ -32,3 +32,8 @@ For an existing host, finish the patch and backup plan before requesting the new
 GitHub push and running-host deployment each require their own explicit current authorization. Neither authorizes the other, and prior approvals do not carry forward to later work. A clear request for the specific action is authorization; do not ask twice for the same action. Verify the selected repo/account, source diff and ignored runtime; commit under the user's approved identity and push normally. Confirm the remote branch matches the intended commit before claiming success.
 
 Return the repo, literal live URL, commit/build, and Running version / Pending to deploy version table. Record private process state in ignored var/ or the operator's workspace. A failed push/deploy remains incomplete; describe the concrete error and preserve the working host/data.
+
+
+## Account operations
+
+Read docs/ACCOUNTS.md, docs/ADMIN-CONTROLS.md and docs/ACCOUNT-VALIDATION.md before touching auth/admin/rewards. Preserve both SQLite actors and migrations; only verified Google ownership activates admin grants. Never enable ACCOUNT_PREVIEW publicly. Keep Google secrets in ignored private config/Cloudflare secrets. The existing Google project uses Internal audience/shared branding; changes affect other clients. `wrangler deploy --secrets-file .dev.vars` can install the two secrets with the authorized version; inspect key names only and never print values. New deployment/push still require new explicit user instructions.

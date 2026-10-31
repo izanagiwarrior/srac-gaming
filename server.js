@@ -10,7 +10,7 @@ const { createChessServer } = require('./games/chess/server');
 const { createDominoServer } = require('./games/domino/server');
 const { createBlackjackServer } = require('./games/blackjack/server');
 
-const VERSION = '2026-10-23-toolbar-alignment-1';
+const VERSION = '2026-10-31-admin-controls-1';
 const {installRoomService}=require('./games/shared/room-service');
 
 function createHub(options = {}) {
@@ -34,6 +34,16 @@ function createHub(options = {}) {
   ]);
   const services = new Map([...games].map(([slug,app])=>[slug,installRoomService(app,{slug,dataDir:path.join(runtimeDir,'rooms')})]));
   const assets = new Map([
+    ['/account/', ['public/account.html','text/html; charset=utf-8']],
+    ['/admin/', ['public/account.html','text/html; charset=utf-8']],
+    ['/account.css', ['public/account.css','text/css; charset=utf-8']],
+    ['/account-app.js', ['public/account-app.js','application/javascript; charset=utf-8']],
+    ['/account-bridge.css', ['public/account-bridge.css','text/css; charset=utf-8']],
+    ['/account-bridge.js', ['public/account-bridge.js','application/javascript; charset=utf-8']],
+    ['/avatar-jade.png', ['public/avatar-jade.png','image/png']],
+    ['/avatar-fox.png', ['public/avatar-fox.png','image/png']],
+    ['/avatar-crane.png', ['public/avatar-crane.png','image/png']],
+    ['/accessory-gold.png', ['public/accessory-gold.png','image/png']],
     ['/', ['public/index.html','text/html; charset=utf-8']],
     ['/index.html', ['public/index.html','text/html; charset=utf-8']],
     ['/hub.css', ['public/hub.css','text/css; charset=utf-8']],

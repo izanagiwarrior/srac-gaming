@@ -12,6 +12,9 @@ await mkdir(assets,{recursive:true});
 const games={capsa:'capsa',mahjong:'mahjong',poker:'poker',catur:'chess',domino:'domino',blackjack:'blackjack'};
 async function copyPublic(from,to){await mkdir(to,{recursive:true});for(const file of await readdir(from,{withFileTypes:true})){if(!file.isFile()||!/^[-a-z0-9.]+\.(html|css|js|svg|png|webp|ico)$/.test(file.name))throw Error('Unexpected public asset: '+file.name);await cp(path.join(from,file.name),path.join(to,file.name));}}
 await copyPublic(path.join(root,'public'),assets);
+await rm(path.join(assets,'account.html'),{force:true});
+await mkdir(path.join(assets,'account'),{recursive:true});
+await cp(path.join(root,'public/account.html'),path.join(assets,'account/index.html'));
 for(const [slug,folder]of Object.entries(games)){await copyPublic(path.join(root,'games',folder,'public'),path.join(assets,slug));if(['capsa','mahjong','poker','blackjack'].includes(slug))await cp(path.join(root,'games',folder,'engine.js'),path.join(assets,slug,'engine.js'));}
 await cp(path.join(root,'games/mahjong/hong-kong.js'),path.join(assets,'mahjong/hong-kong.js'));
 // Build-time link validation catches missing script/style/image payloads.

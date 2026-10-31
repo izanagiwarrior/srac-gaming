@@ -9,6 +9,10 @@ import {installRoomService} from '../games/shared/room-service.js';
 import {prepareStorage,gameStorage} from './storage.js';
 import {timerScope,clearScope} from './compat/globals.js';
 
+import {balanceSnapshot,adjustGame} from './accounts/game-admin.js';
+import {body as readBody,response as accountResponse} from './accounts/security.js';
+import {AccountStore} from './accounts/store.js';
+export {AccountStore};
 const VERSION=__SRAC_BUILD__;
 const GAMES=['capsa','mahjong','poker','catur','domino','blackjack'];
 const JSON_HEADERS={'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'};
@@ -18,7 +22,10 @@ const failed=()=>json({error:'Server belum dapat memproses sesi. Coba hubungkan 
 // One small shared actor for office game nights; not one billed actor per room.
 // Durable Object callbacks carry sockets; native game timers prevent hibernation while connected.
 export class GamingHub extends DurableObject {
-  constructor(ctx,env){super(ctx,env);this.ctx=ctx;this.env=env;this.apps=null;this.services=null;this.resources=new Set();this.sessions=new Map();this.stopping=false;prepareStorage(ctx.storage.sql);
+  constructor(ctx,env){super(ctx,env);this.ctx=ctx;this.env=env;this.apps=null;this.services=null;this.resources=new Set();this.sessions=new Map();this.stopping=false;this.rewardSeen=new Set();prepareStorage(ctx.storage.sql);
+    ctx.storage.sql.exec('CREATE TABLE IF NOT EXISTS account_outbox(id TEXT PRIMARY KEY,payload TEXT NOT NULL)');
+    ctx.storage.sql.exec('CREATE TABLE IF NOT EXISTS account_delivery_meta(name TEXT PRIMARY KEY,value INTEGER NOT NULL)');
+    ctx.storage.sql.exec("INSERT OR IGNORE INTO account_delivery_meta VALUES('retries',0)");
     // A cold actor never guesses an old seat: ask retained sockets to rejoin.
     for(const ws of ctx.getWebSockets()){try{ws.close(1012,'Sesi dipulihkan; hubungkan kembali.');}catch{}}}
   run(fn){return timerScope.run(this.resources,fn);}
@@ -34,15 +41,49 @@ export class GamingHub extends DurableObject {
       this.services=new Map();
       try{
         for(const [slug,app]of this.apps){
-          const service=installRoomService(app,{slug,persistence:gameStorage(this.ctx,slug,()=>!app.wss.disabled),saveInterval:0});
+          const service=installRoomService(app,{slug,persistence:gameStorage(this.ctx,slug,()=>!app.wss.disabled),saveInterval:0,accountMode:!!this.env.ACCOUNTS});
           this.services.set(slug,service);
-          app.wss.beforeSend=()=>{if(!this.stopping&&!app.wss.disabled&&!service.save())throw Error('Durable storage unavailable');};
-          app.wss.afterEvent=()=>{if(!this.stopping&&!app.wss.disabled&&!service.save())this.fail();};
+          app.wss.beforeSend=()=>{if(!this.stopping&&!app.wss.disabled){this.track(app,slug);if(!service.save())throw Error('Durable storage unavailable');this.collect(app);}};
+          app.wss.afterEvent=()=>{if(!this.stopping&&!app.wss.disabled){this.track(app,slug);if(!service.save())this.fail();else this.collect(app);}};
           app.wss.onFailure=()=>this.fail();app.wss.onDisconnect=socket=>{this.sessions.delete(socket.raw);this.idle();};
-          app.wss.beforeMessage=(socket,raw)=>{let msg;try{msg=JSON.parse(raw);}catch{return true;}if(msg?.type==='create'&&[...this.apps.values()].reduce((n,a)=>n+a.rooms.size,0)>=24){socket.send(JSON.stringify({type:'error',message:'Batas 24 room tercapai. Bubarkan room lama dahulu.',msg:'Batas 24 room tercapai. Bubarkan room lama dahulu.'}));return false;}return true;};
+          app.wss.beforeMessage=(socket,raw)=>{let msg;try{msg=JSON.parse(raw);}catch{return true;}if(msg?.type==='create'&&[...this.apps.values()].reduce((n,a)=>n+a.rooms.size,0)>=24){socket.send(JSON.stringify({type:'error',message:'Batas 24 room tercapai. Bubarkan room lama dahulu.',msg:'Batas 24 room tercapai. Bubarkan room lama dahulu.'}));return false;}return ['create','join'].includes(msg?.type)&&socket.account?JSON.stringify({...msg,name:socket.account.name}):true;};
         }
       }catch(error){clearScope(this.resources);this.apps=null;this.services=null;throw error;}
     });
+  }
+  track(app,slug){
+    const now=Date.now();
+    for(const room of app.rooms.values()){
+      const playing=slug==='mahjong'?room.G&&!room.G.over:slug==='poker'?room.game&&!room.game.over:['playing','betting','dealer'].includes(room.phase);
+      if(!playing||room.recovering)continue;
+      if(!room.progressionActive){room.progressionActive=true;room.progressionRoundToken=crypto.randomUUID();room.progressionTracking={};room.accountActivity||=[];for(const p of room.players)if(p.accountId&&!p.bot)room.accountActivity.push({id:crypto.randomUUID(),kind:'game.started',userId:p.accountId,game:slug,room:room.code});room.accountActivity=room.accountActivity.slice(-100);}
+      room.progressionTracking||={};
+      for(const p of room.players){if(!p.accountId||p.bot)continue;const t=room.progressionTracking[p.id]||={ms:0,last:null};if(t.last&&p.connected)t.ms+=Math.max(0,Math.min(120000,now-t.last));t.last=p.connected?now:null;}
+    }
+  }
+  collect(app){
+    if(!this.env.ACCOUNTS)return;
+    for(const room of app.rooms.values())for(const event of [...(room.progressionEvents||[]),...(room.accountActivity||[])]){if(this.rewardSeen.has(event.id))continue;const inserted=this.ctx.storage.sql.exec('INSERT OR IGNORE INTO account_outbox VALUES(?,?)',event.id,JSON.stringify(event));if(inserted.rowsWritten)this.ctx.storage.sql.exec("UPDATE account_delivery_meta SET value=0 WHERE name='retries'");this.rewardSeen.add(event.id);}
+    if(this.flushing)return;
+    if(!this.ctx.storage.sql.exec("SELECT id FROM account_outbox WHERE payload<>'' LIMIT 1").toArray().length)return;
+    this.ctx.waitUntil(this.ctx.storage.setAlarm(Date.now()+60000));
+    this.flushing=true;
+    this.ctx.waitUntil(this.flush().catch(()=>{console.error('Account delivery pending');}).finally(()=>{this.flushing=false;}));
+  }
+  async flush(){
+    const stub=this.env.ACCOUNTS.get(this.env.ACCOUNTS.idFromName('accounts-v1'));
+    for(const row of this.ctx.storage.sql.exec("SELECT * FROM account_outbox WHERE payload<>'' LIMIT 200").toArray()){
+      const result=await stub.fetch(new Request('https://internal/internal/'+(JSON.parse(row.payload).kind?'activity':'reward'),{method:'POST',body:row.payload}));
+      if(!result.ok)break;
+      // Keep a receipt rather than re-inserting acknowledged source events on every broadcast.
+      this.ctx.storage.sql.exec("UPDATE account_outbox SET payload='' WHERE id=?",row.id);
+    }
+  }
+  async alarm(){
+    if(!this.env.ACCOUNTS)return;
+    try{await this.flush();}catch{console.error('Account retry pending');}
+    const pending=this.ctx.storage.sql.exec("SELECT id FROM account_outbox WHERE payload<>'' LIMIT 1").toArray().length;
+    if(pending){const retries=this.ctx.storage.sql.exec("SELECT value FROM account_delivery_meta WHERE name='retries'").toArray()[0].value+1;this.ctx.storage.sql.exec("UPDATE account_delivery_meta SET value=? WHERE name='retries'",retries);if(retries<=5)await this.ctx.storage.setAlarm(Date.now()+Math.min(3600000,60000*2**retries));}else this.ctx.storage.sql.exec("UPDATE account_delivery_meta SET value=0 WHERE name='retries'");
   }
   connections(){return this.apps?[...this.apps.values()].reduce((n,app)=>n+app.wss.clients.size,0):0;}
   fail(){
@@ -61,11 +102,37 @@ export class GamingHub extends DurableObject {
       this.apps=null;this.services=null;this.stopping=false;
     });
   }
-  webSocketMessage(ws,data){const socket=this.sessions.get(ws);if(socket)socket.receive(data);else{try{ws.close(1012,'Hubungkan kembali ke sesi tersimpan.');}catch{}}}
+  async webSocketMessage(ws,data){
+    const socket=this.sessions.get(ws);if(!socket){try{ws.close(1012,'Hubungkan kembali ke sesi tersimpan.');}catch{}return;}
+    if((socket.pendingMessages||0)>=16){socket.close(1008,'Terlalu banyak pesan.');return;}
+    socket.pendingMessages=(socket.pendingMessages||0)+1;
+    const work=async()=>{
+      if(socket.readyState!==1)return;
+      if(this.env.ACCOUNTS){
+        try{const r=await this.env.ACCOUNTS.get(this.env.ACCOUNTS.idFromName('accounts-v1')).fetch(socket.authRequest.clone()),identity=await r.json();if(!identity||identity.id!==socket.account?.id){socket.close(1008,'Sesi akun berakhir. Masuk ulang.');return;}socket.account=identity;}catch{socket.close(1013,'Akun belum dapat diverifikasi.');return;}
+      }
+      socket.receive(data);
+    };
+    socket.accountQueue=(socket.accountQueue||Promise.resolve()).then(work).finally(()=>{socket.pendingMessages--;});
+    await socket.accountQueue;
+  }
   webSocketClose(ws){this.sessions.get(ws)?.finish();this.sessions.delete(ws);}
   webSocketError(ws){this.sessions.get(ws)?.finish();this.sessions.delete(ws);}
   async fetch(request){
     const url=new URL(request.url);
+    if(url.pathname==='/internal/admin-balances'){
+      try{
+        this.init();
+        if(request.method==='GET'){const rooms=[...this.apps.entries()].flatMap(([game,app])=>[...app.rooms.values()].map(r=>balanceSnapshot(game,r)));this.idle();return json({rooms});}
+        const input=await request.json(),app=this.apps.get(input.game),room=app?.rooms.get(input.code),service=this.services.get(input.game);
+        if(!room)return json({error:'Meja tidak ditemukan.'},404);
+        const result=this.run(()=>adjustGame({game:input.game,room,service,app,body:input.body,actor:input.actor}));
+        this.collect(app);
+        if(!result.replayed)this.run(()=>app.broadcastRoom(room));
+        this.idle();return json(result);
+      }catch(e){this.idle();return json({error:e.status?e.message:'Koreksi saldo belum dapat diproses.'},e.status||503);}
+    }
+    if(url.pathname==='/internal/admin-live')return json({rooms:this.services?[...this.services.entries()].flatMap(([game,service])=>[...this.apps.get(game).rooms.values()].map(room=>({game,code:room.code,phase:room.recovering?'paused':room.phase||room.state,players:room.players.filter(p=>!p.bot&&p.connected).map(p=>p.name)}))).filter(r=>r.players.length):[]});
     if(url.pathname==='/api/lobby')return json({version:VERSION,rooms:this.services?[...this.services.values()].flatMap(service=>service.summary()).slice(0,100):[]});
     const slug=url.pathname.split('/')[1];
     if(!GAMES.includes(slug)||url.pathname!=='/'+slug+'/ws')return json({error:'Not found'},404);
@@ -75,9 +142,11 @@ export class GamingHub extends DurableObject {
     if(this.stopping)return failed();
     try{this.init();}catch(error){console.error('Cloud storage restore failed');return failed();}
     if(this.connections()>=64)return json({error:'Meja sedang penuh. Coba lagi nanti.'},503);
+    const principal=this.env.ACCOUNTS?await this.env.ACCOUNTS.get(this.env.ACCOUNTS.idFromName('accounts-v1')).fetch(new Request(new URL('/internal/session',request.url),request)).then(r=>r.json()):null;
+    if(this.env.ACCOUNTS&&!principal)return json({error:'Masuk ke akun dahulu.'},401);
     const app=this.apps.get(slug),pair=new WebSocketPair(),client=pair[0],server=pair[1];this.ctx.acceptWebSocket(server);
     // Client protocol and private views remain owned by each native factory.
-    try{const socket=app.wss.accept(server,request,fn=>this.run(fn));if(socket.readyState===1)this.sessions.set(server,socket);app.wss.afterEvent();}catch{try{server.close(1011,'Sesi belum dapat dipulihkan.');}catch{}}
+    try{const socket=app.wss.accept(server,request,fn=>this.run(fn),principal);if(socket.readyState===1){socket.authRequest=new Request(new URL('/internal/session',request.url),request);this.sessions.set(server,socket);}app.wss.afterEvent();}catch{try{server.close(1011,'Sesi belum dapat dipulihkan.');}catch{}}
     return new Response(null,{status:101,webSocket:client});
   }
 }
@@ -85,6 +154,27 @@ export class GamingHub extends DurableObject {
 export default {
   async fetch(request,env){
     const url=new URL(request.url),path=url.pathname;
+    if(path.startsWith('/api/account/')||path==='/auth/google'||path==='/auth/google/callback'){
+      if(!env.ACCOUNTS)return json({error:'Layanan akun belum dikonfigurasi.'},503);
+      if(path==='/api/account/admin/balances'){
+        if(!['GET','PATCH'].includes(request.method))return json({error:'Method not allowed'},405);
+        const authPath=request.method==='GET'?'/api/account/admin/overview':'/api/account/admin/authorize';
+        const verified=await env.ACCOUNTS.get(env.ACCOUNTS.idFromName('accounts-v1')).fetch(new Request(new URL(authPath,url),{headers:request.headers,method:'GET'}));
+        if(!verified.ok)return verified;
+        const hub=env.GAMING_HUB.get(env.GAMING_HUB.idFromName('office-hub-v1'));
+        if(request.method==='GET')return hub.fetch(new Request(new URL('/internal/admin-balances',url),{method:'GET'}));
+        if(request.headers.get('Origin')!==url.origin||request.headers.get('Sec-Fetch-Site')==='cross-site')return json({error:'Asal permintaan tidak diizinkan.'},403);
+        try{const input=await readBody(request),actor=await verified.json();return hub.fetch(new Request(new URL('/internal/admin-balances',url),{method:'PATCH',body:JSON.stringify({game:input.game,code:input.code,body:input,actor})}));}catch(e){return accountResponse({error:e.status?e.message:'Permintaan tidak valid.'},e.status||400);}
+      }
+      if(path==='/api/account/admin/live'){
+        const auth=await env.ACCOUNTS.get(env.ACCOUNTS.idFromName('accounts-v1')).fetch(new Request(new URL('/api/account/admin/overview',url),request));
+        if(!auth.ok)return auth;
+        return env.GAMING_HUB.get(env.GAMING_HUB.idFromName('office-hub-v1')).fetch(new Request(new URL('/internal/admin-live',url),request));
+      }
+      return env.ACCOUNTS.get(env.ACCOUNTS.idFromName('accounts-v1')).fetch(request);
+    }
+    if(['/account','/admin'].includes(path))return Response.redirect(url.origin+path+'/'+url.search,308);
+    if(['/account/','/admin/'].includes(path))return env.ASSETS.fetch(new Request(new URL('/account/'+url.search,url),request));
     if(path==='/favicon.ico')return new Response(null,{status:204});
     if(path==='/health')return json({ok:true,version:VERSION,games:GAMES,hosting:'cloudflare-workers'});
     if(path==='/api/lobby'||/^\/(capsa|mahjong|poker|catur|domino|blackjack)\/ws$/.test(path)){

@@ -149,6 +149,7 @@ function chooseSquare(square) {
 async function copyLink() { try { await navigator.clipboard.writeText(inviteURL()); toast('Link room tersalin. Bagikan ke teman.'); } catch { toast(inviteURL()); } }
 function downloadPGN() { const blob = new Blob([S.pgn + '\n'],{type:'application/x-chess-pgn'}), url = URL.createObjectURL(blob), link = document.createElement('a'); link.href = url; link.download = 'catur-' + S.code + '.pgn'; link.click(); setTimeout(() => URL.revokeObjectURL(url),1000); }
 function entry(create) {
+  enteredName = $('name')?.value || enteredName;
   if (!enteredName.trim()) { $('name').reportValidity(); $('name').focus(); return; }
   try { localStorage.setItem('mejakita.catur.name',enteredName.trim()); } catch {}
   if (!create && !enteredCode.trim()) { toast('Isi kode room temanmu.'); $('code').focus(); return; }

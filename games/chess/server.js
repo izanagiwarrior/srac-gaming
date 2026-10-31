@@ -112,6 +112,7 @@ function createChessServer({ getAddresses = () => [] } = {}) {
     record(room,room.players.map(p=>winner?(p.color===winner?1:-1):0),'Pertandingan '+room.matchId+' · '+reason);
     clearTimeout(room.botTimer); room.botTimer = null; room.phase = 'finished'; room.drawOffer = null;
     room.result = { reason, winner, name:winner ? room.players.find(p => p.color === winner)?.name : null };
+    hub?.recordResult(room,room.players.map(p=>!!winner&&p.color===winner),String(room.matchId));
     room.chess.setHeader('Result',winner === 'w' ? '1-0' : winner === 'b' ? '0-1' : '1/2-1/2');
     note(room,winner ? `${room.result.name} menang — ${reason}.` : `Remis — ${reason}.`);
   }

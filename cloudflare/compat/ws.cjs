@@ -20,13 +20,13 @@ class Socket extends EventEmitter {
     if(this.readyState!==1||this.owner.disabled)return;
     if(typeof data!=='string'){this.close(1003,'Text messages required');return;}
     if(Buffer.byteLength(data)>this.owner.options.maxPayload){this.close(1009,'Message too large');return;}
-    try{this.run(()=>{if(this.owner.beforeMessage?.(this,data)!==false)this.emit('message',data);});this.owner.afterEvent?.();}catch(error){this.owner.onFailure?.(error);}
+    try{this.run(()=>{const allowed=this.owner.beforeMessage?.(this,data);if(allowed!==false)this.emit('message',typeof allowed==='string'?allowed:data);});this.owner.afterEvent?.();}catch(error){this.owner.onFailure?.(error);}
   }
 }
 class WebSocketServer extends EventEmitter {
   constructor(options={}){super();this.options=options;this.clients=new Set();}
-  accept(raw,request,run){
-    const socket=new Socket(this,raw,run);this.clients.add(socket);
+  accept(raw,request,run,principal=null){
+    const socket=new Socket(this,raw,run);socket.account=principal;this.clients.add(socket);
     // Durable Object class callbacks feed receive()/finish(); no raw listeners.
     try{run(()=>this.emit('connection',socket,{url:'/ws',headers:{host:new URL(request.url).host,origin:request.headers.get('Origin')}}));}catch(error){this.onFailure?.(error);throw error;}
     return socket;

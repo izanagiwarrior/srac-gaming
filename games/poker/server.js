@@ -67,7 +67,7 @@ function createPokerServer({dataDir = path.join(__dirname,'data'), botDelay = 30
       }
     }
     snapshot() {
-      return {code:this.code, settings:this.settings, phase:this.phase, hostId:this.hostId,
+      return {adminRevision:this.adminRevision,adminAdjustments:this.adminAdjustments,adminRequests:this.adminRequests,accountActivity:this.accountActivity,progressionEvents:this.progressionEvents,progressionTracking:this.progressionTracking,progressionActive:this.progressionActive,progressionRoundToken:this.progressionRoundToken,progressionAwardedToken:this.progressionAwardedToken,code:this.code, settings:this.settings, phase:this.phase, hostId:this.hostId,
         spectators:this.spectators.map(({ws,...p})=>({...p,connected:false})),social:this.social,players:this.players.map(({ws,...p})=>({...p,connected:!!p.bot})), game:this.game?.serialize() || null,
         history:this.history,ledger:this.ledger,chat:this.chat,createdAt:this.createdAt,endedAt:this.endedAt,revision:this.revision};
     }
@@ -137,6 +137,7 @@ function createPokerServer({dataDir = path.join(__dirname,'data'), botDelay = 30
     }
     afterAction(wasOver) {
       if (!wasOver && this.game.over) {
+        hub?.recordResult(this,this.players.map((p,i)=>(this.game.result?.delta?.[i]||0)>0),String(this.game.handNo),this.players.map(p=>!!p.inHand));
         for (const p of this.players) if (p.inHand) p.handsPlayed++;
         this.players[this.game.dealer].dealerRounds++;
         this.history.push({handNo:this.game.handNo,board:this.game.board,result:this.game.result,names:this.players.map(p=>p.name),time:Date.now()});
@@ -163,9 +164,9 @@ function createPokerServer({dataDir = path.join(__dirname,'data'), botDelay = 30
         this.requireHost(p);if(this.phase!=='lobby')throw new Error('This session has already started.');
         if(msg.settings){const next=settingsFor(msg.settings);if(this.players.length+next.bots>next.maxPlayers)throw new Error('Not enough seats.');this.settings=next;}
         if(this.players.some(p=>!p.connected))throw new Error('Wait for disconnected players or remove their empty seats.');
-        if(this.players.length+this.settings.bots<2)throw new Error('Invite a friend or add a practice bot in settings.');
+        if(this.players.filter(p=>!p.adminInitialFunding||p.stack>0).length+this.settings.bots<2)throw new Error('Invite a friend or add a practice bot in settings.');
         for(let i=0;i<this.settings.bots;i++)this.players.push({id:uid().slice(0,12),name:BOT_NAMES[i]+' (bot)',bot:true,connected:true,stack:0,totalBuyIn:0,buyIns:0,handsPlayed:0,dealerRounds:0});
-        for(const q of this.players)this.book(q,'Initial buy-in');
+        for(const q of this.players)if(!q.adminInitialFunding)this.book(q,'Initial buy-in');
         this.phase='playing';this.game=new Game(this.players,this.settings,randomInt);this.game.start();this.afterAction(false);
       } else if(msg.type==='action') {
         if(this.phase!=='playing'||!this.game||this.game.over)throw new Error('There is no active hand.');

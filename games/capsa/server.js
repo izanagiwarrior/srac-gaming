@@ -120,6 +120,7 @@ function createApp(options = {}) {
     room.result = E.score(room.game);
     room.result.moneyDelta = room.result.delta.map(n => n * room.settings.pointValue);
     room.players.forEach((p, i) => { p.score += room.result.delta[i]; });
+    hub?.recordResult(room, room.players.map((p,i)=>i===room.game.winner), room.matchId+':'+room.round);
     room.previousWinner = room.game.winner;
     room.phase = room.round >= room.settings.rounds ? 'finished' : 'result';
     room.history.push({ round:room.round, matchId:room.matchId, people:room.players.map(p=>({id:p.id,name:p.name,bot:p.bot})), names:room.players.map(p=>p.name), winner:room.game.winner, delta:room.result.delta, moneyDelta:room.result.moneyDelta, pointValue:room.settings.pointValue, dealt:room.game.initialCounts, remaining:room.game.hands.map(hand => hand.length) });
