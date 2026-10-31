@@ -4,11 +4,11 @@ Satu landing page untuk **Capsa Banting, Mahjong, Poker Texas Hold’em, Catur, 
 
 Repository: [izanagiwarrior/srac-gaming](https://github.com/izanagiwarrior/srac-gaming).
 
-Baseline cloud terpasang 23 Oktober 2026: **2.0.1 / `2026-10-23-mahjong-csp-controls-1`**. [Main online](https://srac-gaming.faiz-triputra.workers.dev/). Periksa `/health` untuk status aktual. Rilis source mencakup panduan agent dan validasi skor HKMA; lihat [status dan panduan maintenance](docs/MAINTENANCE.md).
+Baseline cloud aktif: **3.5.0 / `2026-10-31-disconnect-grace-1`**. Audit status31Oktober2026: [permintaan, bukti, dan batas penyelesaian](docs/PROJECT-STATUS.md). [Main online](https://srac-gaming.faiz-triputra.workers.dev/). Periksa `/health` untuk status aktual. Rilis source mencakup panduan agent dan validasi skor HKMA; lihat [status dan panduan maintenance](docs/MAINTENANCE.md).
 
 Terbaru: dua belas emote chat tersedia di enam game, dengan efek transparan di meja yang terlihat seluruh room. Lobby Mahjong punya Manual bebas, Manual terbantu, serta Fast. Manual bebas membiarkan pemain mencoba klaim tanpa pemeriksaan awal; server menilai saat klaim dikirim. Panduan dapat dilewati dan panel sidebar tetap dapat dilipat.
 
-Fitur: lobby bersama, nama diminta saat create/join game, lalu disimpan untuk prefill enam game, kunci room, save/pemulihan sesi, penonton/antrean/rotasi, panel lipat dan aksi HP, suara/volume serta pengurangan animasi. Saat masih ada sesi tersimpan, popup memberi pilihan lanjut atau keluar dulu sebelum pindah room; koneksi yang terputus tetap bisa menyambung ulang. [Panduan sesi bersama](docs/SOCIAL-SESSIONS.md).
+Fitur: lobby bersama, nama diminta saat create/join game, lalu disimpan untuk prefill enam game, kunci room, save/pemulihan sesi, penonton/antrean/rotasi, panel lipat dan aksi HP, suara/volume serta pengurangan animasi. Pada hosting cloud, koneksi game terbaru mengambil kendali kursi akun otomatis; perangkat lama berhenti dan bisa merebut kembali lewat tindakan sambung manual. Keluar dari room lama sebelum pindah room. Pilihan popup/token tetap berlaku pada transport Node legacy. [Panduan sesi bersama](docs/SOCIAL-SESSIONS.md).
 
 ## Jalankan lokal
 
@@ -27,7 +27,7 @@ Setelah clone/pull, agent mulai dari [AGENTS.md](AGENTS.md), [panduan maintenanc
 
 Panduan memakai path relatif dan tidak menyimpan hostname/PID/token sesi pengguna. Siapa pun dapat membuat origin dan tunnel sendiri dari checkout-nya. GitHub push dan deployment live tetap dua tindakan terpisah.
 
-## Hosting online (opsional)
+## Hosting utama dan alternatif legacy
 
 Alur utama pemilik sekarang Workers + SQLite Durable Object, sudah dipasang dan tidak memerlukan laptop. Build lokal tidak menerbitkan perubahan; deployment baru tetap perlu izin spesifik. Node + Quick Tunnel adalah alternatif terpisah yang memerlukan laptop. Petunjuk Render berikut hanya referensi alternatif; jangan membuat/deploy service tanpa permintaan. Paket gratis dapat tetap meminta kartu untuk verifikasi akun.
 
@@ -125,9 +125,11 @@ Tidak menyertakan sesi pemain, token, data kantor, credential, atau node_modules
 
 ## Pemeriksaan
 
+Terbaru31Oktober2026: **200tes lulus,0gagal**, termasuk native enam game, kepemilikan akun, pemulihan SQLite dan fase Mahjong/Blackjack. [Laporan validasi dan batasnya](docs/CONNECTION-VALIDATION.md). Audit dokumentasi ini tidak menjalankan tes ulang; source tes/runtime tidak berubah. Angka dan authoring di paragraf berikut adalah bukti historis.
+
 Validasi skor HKMA pada 23 Oktober: **106 tes lokal lulus, 0 gagal**, termasuk 95 tes scoring/server Hong Kong serta 1.000 sampel bentuk tangan. [Cakupan, sumber resmi, dan batas validasi](docs/MAHJONG-SCORING-VALIDATION.md). Ini bukan pengujian lengkap pertandingan cloud atau sertifikasi seluruh aturan turnamen.
 
-Build UI-polish sebelumnya (`2026-10-15-ui-polish-1`) mencakup pemeriksaan UI enam game pada lebar 320, 390, 768, 1024 dan 1440 CSS pixel serta interaksi practice dengan nilai rupiah 0. Sebelas tes regresi komponen/sesi tersedia: `npm run test:ui`. Jalankan tes hanya ketika pengguna meminta verifikasi, sesuai AGENTS.md. Cakupan, perbaikan dan batas pemeriksaan ada di [UI-QUALITY.md](docs/UI-QUALITY.md). Tidak ada klaim bahwa seluruh cabang permainan sudah bebas bug.
+Build UI-polish sebelumnya (`2026-10-15-ui-polish-1`) mencakup pemeriksaan UI enam game pada lebar 320, 390, 768, 1024 dan 1440 CSS pixel serta interaksi practice dengan nilai rupiah 0. Pada baseline historis itu terdapat sebelas tes regresi komponen/sesi; suite sekarang lebih luas: `npm run test:ui`. Jalankan tes hanya ketika pengguna meminta verifikasi, sesuai AGENTS.md. Cakupan, perbaikan dan batas pemeriksaan ada di [UI-QUALITY.md](docs/UI-QUALITY.md). Tidak ada klaim bahwa seluruh cabang permainan sudah bebas bug.
 
 Patch social-save ditinjau lewat source, sintaks dan pratinjau authoring terpisah; pertandingan/pemulihan crash dan pengujian otomatis fitur baru belum dijalankan. Tes hanya dijalankan bila diminta pengguna.
 
@@ -165,7 +167,7 @@ The Workers + SQLite Durable Object adapter for all six games was deployed on 23
 
 ## Accounts, progression and administration (3.5.0)
 
-Cloud release3.5.0 includes database accounts, Google/email sign-in, avatar studio, XP/cosmetic coins, admin operations and audited possession/six-game balance controls. Baseline3.2.0passed157targeted/regression tests;3.5.0adds six free portraits, automatic device control and15second disconnect grace. Its build/public checks passed, but no new native gameplay tests were run. See [connection behavior/limits](docs/CONNECTIONS.md), [account safety and verification limits](docs/ACCOUNT-SAFETY.md), [setup and rollout](docs/ACCOUNTS.md), and [AI skin assets](docs/AVATAR-ASSETS.md). Google uses the owner-approved SRAC-AI client with Internal audience and the project’s existing shared consent branding. Secrets and player data are never part of this repo.
+Cloud release3.5.0 includes database accounts, Google/email sign-in, avatar studio, XP/cosmetic coins, admin operations and audited possession/six-game balance controls. Baseline3.2.0passed157targeted/regression tests;3.5.0adds six free portraits, automatic device control and15second disconnect grace. Build/public checks passed; subsequent isolated regression verification passed200tests, including native six-game automation, authenticated handoffs and SQLite cold recovery. See [exact validation scope](docs/CONNECTION-VALIDATION.md). See [connection behavior/limits](docs/CONNECTIONS.md), [account safety and verification limits](docs/ACCOUNT-SAFETY.md), [setup and rollout](docs/ACCOUNTS.md), and [AI skin assets](docs/AVATAR-ASSETS.md). Google uses the owner-approved SRAC-AI client with Internal audience and the project’s existing shared consent branding. Secrets and player data are never part of this repo.
 
 Admin operations and accounting: [ADMIN-CONTROLS.md](docs/ADMIN-CONTROLS.md).
 

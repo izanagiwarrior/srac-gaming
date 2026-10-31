@@ -1,5 +1,7 @@
 # Domino Gaple · Meja Kita
 
+> Current shared release:3.5.0, Workers+SQLite hosting without a laptop, authenticated automatic device control and15second disconnect grace before temporary native AI. See [completion audit](../../docs/PROJECT-STATUS.md) and [200-test validation/scope](../../docs/CONNECTION-VALIDATION.md). Older release/authoring/local-standalone sections below are historical context; they do not declare pending cloud deployment.
+
 Game santai untuk 2–4 pemain. Aturan Gaple berbeda antar meja; versi ini memakai aturan berikut yang juga tersedia pada tombol **Cara main**.
 
 - 28 batu unik double-six (0–0 sampai 6–6), 7 batu per pemain. Sisa batu menjadi stok tertutup untuk meja 2 atau 3 pemain.

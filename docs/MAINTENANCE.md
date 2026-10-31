@@ -8,7 +8,7 @@ User explicitly authorized “deploy push semua”. Running **3.5.0 / `2026-10-3
 
 Manifest37files matched the prepared patch before release,21JS syntax/whitespace and dry-run passed; bundle335.60KiB/gzip93.71KiB,70public assets. Postdeploy health/newbuild/root/account/admin/6entries200,19asset hashes match, anonymous admin and6game sockets401, Google configured true/preview false; catalog9skins and all6newfree portraits. Manual local evidence: avatar free-claim/equip with coins unchanged, Dark/Light desktop; separate connection UI fixture15→bot→reconnect. Subsequent isolated validation authorized by “lanjut”:200tests pass/0fail; native six-game grace/reconnect/full-round conservation, Mahjong claims, Chess clocks, Capsa timeout guard, automatic account client and real-time Worker/SQLite Chess grace. Six-game active cold recovery, paused-action rejection, host continuation and persistent dissolved-code rejection also pass. Additional private phase checks cover Mahjong opening/pending claims/pre-claim undo and Blackjack dealt wagers/dealer/settled restart without duplicate payment.23native cases passed10additional runs. Only a test VM fixture needed an inert setInterval; no runtime fix was needed. See [validation scope and limits](CONNECTION-VALIDATION.md). Public hosting/rooms/data remain untouched during validation. User subsequently requested “selesaikan” to complete the pending Git publication; this follow-up contains tests/docs only and does not authorize runtime deployment. Read docs/CONNECTIONS.md (or CONNECTIONS.md from docs) for behavior/limits.
 
-Release3.5.0was already published as862bf18. No runtime patch remains pending. The validation tests/docs form a Git-only follow-up authorized by “selesaikan”; confirm the remote before reporting publication complete. No runtime deployment is needed. Future changes still require separate publication/deployment authorization. Sections below record historical preparation and earlier releases.
+Release3.5.0was already published as862bf18. No runtime patch remains pending. Validation tests/docs were committed and pushed asadb90f7bd2bfda8c9b7ac91df45876300548402c; remote main matched and the working tree was clean before this final documentation audit. No runtime deployment is needed. Future changes still require separate publication/deployment authorization. Sections below record historical preparation and earlier releases.
 
 ## Preparation history: disconnect grace3.5.0 — 31 October 2026
 
@@ -52,7 +52,7 @@ Staging3.0.0/build`2026-10-31-accounts-1`, not installed/pushed; cloud last conf
 
 Local2.3.1 / `2026-10-23-toolbar-alignment-1` corrects the landing toolbar width and summary/theme baseline; shared grid keeps invitation controls in a separate row. Cloud2.3.1 was installed after the user explicitly requested “deploy push”. Health/root/six entries200, three CSS asset hashes and six empty WSS passed. Public desktop alignment matched the preview with no console errors. No runtime candidate remains pending; personal Git publication of this source/docs is authorized and must be confirmed from the remote. Desktop/mobile390px Dark/Light and expanded preferences were visually reviewed on a separate loopback origin, plus empty Blackjack room toolbar geometry; no gameplay/automated tests. Syntax/build/whitespace passed, preview stopped. Preserve all room data and require fresh publication authorization.
 
-## Current release2.3.0
+## Historical release2.3.0
 
 **2.3.0 / 2026-10-23-lobby-consistency-1** is installed on Cloudflare following the user’s explicit “push dan deploy”. Same Worker/SQLite identities, room data and Free plan preserved. Health/root/six entries200, six empty WSSconnected and12changed assets matched source; no production room actions. No runtime installation is pending. Personal Git publication of the same source/docs is authorized; verify the remote commit before claiming push success. This release includes the previously documented2.2.1session-refresh draft. Future releases need new authorization.
 
@@ -175,9 +175,9 @@ Canonical remote: `https://github.com/izanagiwarrior/srac-gaming.git`. Owner sta
 
 A fresh clone gets only published source. The 2.0.0 source release includes the deployed behavior and this guide; confirm the remote branch actually contains that release before claiming publication. Never use `git pull` in legacy live to deploy, or reset/clean/checkout to hide local edits. Review status/branch/remote, intended diff, new files and ignore rules; stage only reviewed source/docs, no secrets/runtime. Commit/push only when requested, push normally without force, and confirm remote branch contains the intended commit before reporting success. Remote divergence needs inspection, not overwriting.
 
-## 8. Evidence and outstanding work
+## 8. Historical evidence and future verification limits
 
-Last cloud release checks on 23 October: 89 source files matched the release manifest; 45 JS syntax checks, whitespace review, build/dry-run passed; 52 public assets, bundle 272.07 KiB / gzip 76.29 KiB. Local empty-entry preview was stopped. Production root and all six entries returned HTTP 200; health matched build; all six empty WSS connections succeeded; directory was empty; Blackjack entry showed connected with no browser console errors. No room was created/joined/started for cloud checks.
+The original2.0.0cloud checks on23October (historical): 89 source files matched the release manifest; 45 JS syntax checks, whitespace review, build/dry-run passed; 52 public assets, bundle 272.07 KiB / gzip 76.29 KiB. Local empty-entry preview was stopped. Production root and all six entries returned HTTP 200; health matched build; all six empty WSS connections succeeded; directory was empty; Blackjack entry showed connected with no browser console errors. No room was created/joined/started for cloud checks.
 
 **Not yet verified in production cloud:** full matches and winning settlements, reconnect/cold recovery with actual rooms, timer/action races, storage failure/cap behavior, joker performance, real-group usage and Free quota consumption. Subsequent local validation covers native winning settlements, fan/payments, Pao and flower/joker fixtures; see the validation report. It does not prove production durability or races. Earlier UI regression results concern older releases and do not prove these paths. A separate Node Mahjong bot demonstration completed one drawn hand with eight flowers and claims; it was not a cloud payout test. An all-bot spectator result can wait for an absent host to advance; confirm desired behavior before changing that edge.
 
@@ -207,17 +207,21 @@ Cloud **2.0.1 / `2026-10-23-mahjong-csp-controls-1`**, source commit `70236ca`, 
 The user requested HKMA validation after the 2.0.1 cloud release. [Validation report](MAHJONG-SCORING-VALIDATION.md) records 106 passing local tests (95 HK scoring/server + 11 existing session/UI), official reference mapping, test-fixture corrections and remaining limits. No runtime/scoring change, push or deployment was performed for this validation. The owner subsequently authorized this validation/test/documentation release with “pastiin … agent.md … push … deploy”. The runtime remains 2.0.1; verify actual Git/deploy results in the final operator record, rather than treating this authorization as proof of success.
 
 
-## Casual winning candidate 2.1.0
+## Historical casual winning candidate 2.1.0
 
 See [Mahjong rules](../games/mahjong/README.md): new rooms default Santai, no minimum fan; optional HKMA retains 3 fan. Flowers/animation stay available. Casual extends payout below 3 fan with 4/8/16 discard points for 0/1/2 fan (local variation); Zimo each opponent pays half. Existing saves missing winMode restore HKMA. Lobby lock/server eligibility/scoring use the same selected mode. Protocol v11. User explicitly confirmed deploy now on23October; push is separate and not authorized for this patch. Source/syntax/build and private lobby authoring review only; no new automated/gameplay tests.
 
 
-### Installed casual release
+### Historical installed casual release
 
 User confirmation “Tetap deploy sekarang” authorized2.1.0. Deployment/public health and Mahjong asset hashes matched2026-10-23-mahjong-casual-win-1; fresh public entry loaded without console errors and without joining/creating a production room. Private lobby3024 confirmed defaultSantai and HKMA↔Santai changes. Preview stopped. No automated/gameplay tests run; earlier106-test evidence remains2.0.1. Current2.1.0 source remains uncommitted/unpushed on basecbdd547; publication requires separate approval. Older baseline tables above describe2.0.1 history; current cloud is2.1.0.
 
 ## Release-history note
 
-Earlier2.0/2.1 sections below are dated historical evidence; current defaults/status are in section1 and root AGENTS. The current0fan=0policy applies to newly configured presets, not stored old casual balances.
+Earlier2.0/2.1 sections below are dated historical evidence; current defaults/status are in the opening3.5.0section and root AGENTS. The current0fan=0policy applies to newly configured presets, not stored old casual balances.
 
-Admin extension evidence: one synthetic account possession edit and one unstarted Blackjack initial-funding correction+native broadcast/audit inspected;319px editor has no document horizontal overflow. No six-game gameplay/security/race tests. Preview source and store are isolated from production; Google setup, release approval and focused verification remain pending. See ADMIN-CONTROLS.md.
+Admin extension evidence: one synthetic account possession edit and one unstarted Blackjack initial-funding correction+native broadcast/audit inspected;319px editor has no document horizontal overflow. No six-game gameplay/security/race tests. Preview source and store are isolated from production; At that authoring checkpoint Google setup, release approval and focused verification were pending; later3.1–3.5release sections and PROJECT-STATUS.md record their completion. See ADMIN-CONTROLS.md.
+
+## Current completion audit
+
+See [completion audit](PROJECT-STATUS.md) for the reconciled chat requirements, superseded requests and actual completion boundaries. User approved this documentation cleanup/publication; no runtime change or deployment is required. Older candidate/pending statements are preparation history, not current queued work.

@@ -1,5 +1,7 @@
 # Blackjack · Meja Kita
 
+> Current shared release:3.5.0, Workers+SQLite hosting without a laptop, authenticated automatic device control and15second disconnect grace before temporary native AI. See [completion audit](../../docs/PROJECT-STATUS.md) and [200-test validation/scope](../../docs/CONNECTION-VALIDATION.md). Older release/authoring/local-standalone sections below are historical context; they do not declare pending cloud deployment.
+
 Creator **Faiz T**. Halaman /blackjack/, WebSocket /blackjack/ws, satu proses dan port dengan lima game lain.
 
 ## Meja dan aturan
@@ -23,7 +25,7 @@ Rebuy sendiri tersedia di antara ronde, menambah stack dan bought chips bersama 
 
 Easy terkadang mengambil keputusan acak kurang baik; Normal memakai jumlah kartu dan upcard dealer; Hard juga memilih double dan split tertentu. Seluruh bot menunggu 3 detik. Bot membaca tangan sendiri dan upcard, tidak membaca hole card dealer. Dealer tidak mengikuti pilihan kesulitan: aturan stand 17 tetap.
 
-Tidak ada timer manusia terhubung. Pemain offline otomatis stand setelah 15 detik, atau memasang minimum jika belum memilih chip. Kembali dengan browser/token yang sama mengembalikan kursi. Tombol Keluar saat ronde berjalan menyerahkan kursi kepada bot; di lobby menghapus kursi. Penonton tidak dapat mengubah chip/kartu.
+Tidak ada timer manusia terhubung. Pemain disconnect mendapat15detik grace, lalu bot sementara memakai kebijakan kesulitan native (minimum bet atau keputusan legal). Cloud mengembalikan kendali melalui akun; token browser adalah transport Node legacy. Tombol Keluar saat ronde berjalan menyerahkan kursi kepada bot; di lobby menghapus kursi. Penonton tidak dapat mengubah chip/kartu.
 
 Panel kanan: chat, cheat sheet visual, rekap chip/rupiah/CSV, log, pengaturan meja. Pada layar kecil tersusun di bawah. Room, shoe, dan ledger berada di RAM; restart menghapusnya.
 

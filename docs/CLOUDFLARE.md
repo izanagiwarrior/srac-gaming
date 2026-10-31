@@ -1,6 +1,6 @@
 # Run Meja Kita through Cloudflare Quick Tunnel
 
-For actual hosting without a laptop, see [Workers + Durable Objects](CLOUDFLARE-WORKERS.md), the deployed 2.0.0 default target; see [current maintenance status](MAINTENANCE.md). This document describes only the older tunnel target.
+For actual hosting without a laptop, see [Workers + Durable Objects](CLOUDFLARE-WORKERS.md), the current3.5.0default target; see [current maintenance status](MAINTENANCE.md). This document describes only the older tunnel target.
 
 This is a **Node server on your computer** forwarded through a temporary Cloudflare URL. The computer, origin process and cloudflared must stay running. It is the same six-game app and WebSocket origin for all friends, even on different networks. This does not upload the server to a Worker or persistent cloud host.
 

@@ -1,5 +1,7 @@
 # Catur Meja Kita
 
+> Current shared release:3.5.0, Workers+SQLite hosting without a laptop, authenticated automatic device control and15second disconnect grace before temporary native AI. See [completion audit](../../docs/PROJECT-STATUS.md) and [200-test validation/scope](../../docs/CONNECTION-VALIDATION.md). Older release/authoring/local-standalone sections below are historical context; they do not declare pending cloud deployment.
+
 Modul game keempat di hub, tersedia pada `/catur/` dan WebSocket `/catur/ws`. Jalankan dari root repository menggunakan `npm start` (port default 3000).
 
 ## Bermain

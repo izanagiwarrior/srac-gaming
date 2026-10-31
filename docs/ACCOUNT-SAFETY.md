@@ -6,7 +6,7 @@ Current release3.5.0 / `2026-10-31-disconnect-grace-1`. Read root AGENTS for act
 
 The user superseded the3.2confirmation flow below. The shared cloud client automatically claims its authenticated owned seat on game connection, moving control from the old device with no confirmation popup. Opening the hub/account profile alone does not steal a game controller. Old controllers stop reconnecting and offer Main di perangkat ini; a human reload reconnects and takes control back. A stale/raced claim stops with manual retry instead of automatically fighting the winning device. Existing socket-bound challenge, account validation and durable token/host checkpoint remain unchanged. The latest successful server-serialized claim wins; clicking or editing an old device's cached data cannot overwrite current game state. An existing occupied room must still be left before changing rooms.
 
-Manual recovery-file removal is included. The157test results below describe installed3.2.0, not validation of this new automatic client flow. No new automated/gameplay checks have been run for this candidate.
+Manual recovery-file removal is included. The157test results below describe installed3.2.0, not validation of this new automatic client flow. Subsequent validation passed200tests including automatic client claims, native six-game grace and SQLite phase recovery; see CONNECTION-VALIDATION.md. The historical157-test results below remain a distinct baseline.
 
 ## Identity and persistence
 

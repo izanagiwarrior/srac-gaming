@@ -1,4 +1,4 @@
-# Admin controls — included in release3.1.1
+# Admin controls — included in current release3.5.0
 
 Cloud release `2026-10-31-admin-controls-1` is deployed with Google credentials and verified owner admin sign-in. It includes the preceding3.0account work. [128passing tests and limits](ACCOUNT-VALIDATION.md) cover focused auth/admin/reward and six-game balance fixtures; full gameplay/recovery is not exhaustively proven. Preparation evidence below is historical. Read [account setup](ACCOUNTS.md), AGENTS and the maintenance guide before publishing.
 
@@ -46,7 +46,9 @@ Room correction audit delivery uses the existing durable outbox to AccountStore.
 - `public/account-bridge.js/css`: visible public correction notices.
 - Native Poker/Blackjack: respect per-player administered initial funding; Blackjack entry reads displayed account-prefilled name before validation.
 
-## Authoring evidence and limits
+## Historical authoring evidence and limits
+
+The following describes the pre-release preview, not pending setup. Google/admin deployment and Git publication were later completed; current validation and completion status are in CONNECTION-VALIDATION.md and PROJECT-STATUS.md.
 
 Manual isolated localhost3026 authoring only: changed the synthetic demo admin's640→2000XP and180→10000coins, granted4items, equipped Ivory Wanderer+Golden Hour; DB reply/UI showed level5 and resulting balances. Admin audit shows actor and recipient correction entries. Created one empty Blackjack lobby without Start; funded0→50000stack and0→50000bought, saw the updated number and correction disclosure on the game client, and saw corresponding audit entries. No actual game, bet, result or payout occurred.
 

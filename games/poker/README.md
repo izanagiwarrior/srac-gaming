@@ -1,5 +1,7 @@
 > Game terintegrasi di Meja Kita. Jalankan aplikasi dari root repository dengan `npm start`; lihat README utama. Instruksi standalone di bawah adalah dokumentasi source asal.
 
+> Current shared release:3.5.0, Workers+SQLite hosting without a laptop, authenticated automatic device control and15second disconnect grace before temporary native AI. See [completion audit](../../docs/PROJECT-STATUS.md) and [200-test validation/scope](../../docs/CONNECTION-VALIDATION.md). Older release/authoring/local-standalone sections below are historical context; they do not declare pending cloud deployment.
+
 # Poker P2P — your home table
 
 A local, English-language Texas Hold’em game for 2–8 players. It follows the room-code and green-felt style of the Mahjong P2P game: one computer runs the server, and friends use their phone or laptop browsers on the same WiFi.

@@ -4,7 +4,7 @@ Build `2026-10-15-social-save-2` / package 1.4.1 adds the same room controls to 
 
 ## Players
 
-- The landing page never requires a nickname or blocks game/room links. Ask for a nickname only in each game’s create/join entry form. Remember it as a browser preference to prefill future game entries; changing it there updates that preference. Session-file recovery still works from the landing page without a name form.
+- The landing page never requires a nickname or blocks game/room links. Ask for a nickname only in each game’s create/join entry form. Remember it as a browser preference to prefill future game entries; changing it there updates that preference. Manual player recovery files have since been removed; cloud recovery uses authenticated accounts.
 - The shared lobby lists open rooms with an online human, the game, player nicknames, capacity, phase and spectator count. It refreshes every five seconds while visible. No hands, deck, tokens, recovery files or local paths are listed.
 - The host can lock a room. A locked room is omitted from the directory and new joins are rejected even with its code. Existing seat tokens can reconnect. Locking is an invitation control, not an identity-verification system.
 - Spectators can chat and queue for the next round. Poker now also supports spectators and keeps hole cards private. Spectators cannot take gameplay actions or edit settings.
@@ -18,11 +18,11 @@ Unexpected seated-player disconnect uses15seconds of grace, then native temporar
 
 ## Account continuation and persistence
 
-Release3.5.0 removes manual player file import/export and Poker’s duplicate “Return to saved room” action. Cloud players continue through authenticated account discovery and the shared confirmation dialog; they do not need a recovery file. Database checkpoints and paused-game host continuation remain necessary and intact. Storage warnings still report real save failures. This removes player-facing file tools, not server persistence, operational backups or game data.
+Release3.5.0 removes manual player file import/export and Poker’s duplicate “Return to saved room” action. Cloud players continue through authenticated account discovery and automatic latest-device control; they do not need a recovery file. Database checkpoints and paused-game host continuation remain necessary and intact. Storage warnings still report real save failures. This removes player-facing file tools, not server persistence, operational backups or game data.
 
 The browser-token description below describes the legacy Node transport; authenticated cloud ownership is described at the end of this guide.
 
-### Continue a saved seat or switch rooms
+### Legacy Node: continue a saved seat or switch rooms
 
 - All six games show **Lanjutkan atau ganti room?** on a fresh page when a seat is saved. The popup names the previous room and any different invitation code. It appears before reclaiming the old socket; merely opening a different invitation does not silently discard the old token or take over another tab.
 - **Lanjutkan room …** reclaims that seat. A temporary WebSocket interruption within the same page reconnects automatically to the same seat without repeating the startup choice.
@@ -36,7 +36,7 @@ The browser-token description below describes the legacy Node transport; authent
 - The hub writes six private snapshots under `DATA_DIR/rooms/<game>.v8` (default `var/rooms/`). Writes use a mode-0600 temporary file, file fsync and atomic rename. A snapshot is written before broadcasting changed state; a five-second sweep also captures cleanup. Identical snapshots are not rewritten. Save failures are shown in the room controls and logged.
 - Snapshots include the current deck/wall, private hands, turn/claim state, scores/chips, history/chat, host, session tokens, queue and lock. They never serialize sockets, timer handles or callbacks. v8 serialization preserves Sets and shared Mahjong tile references; Catur reconstructs from PGN including move history, Poker from its explicit Game serializer.
 - After a restart, an unfinished saved round is **paused**. Bots, claim transitions, dealer actions and Capsa deadlines stay stopped until seated human players reconnect and the current host selects **Lanjutkan sesi**. Capsa gets a fresh 60-second deadline after resuming. A completed round/lobby needs no artificial paused turn.
-- Mahjong claim resolution and kong replacement draws have explicit resumable phases. A pending discard undo window expires on restart. The historical emoji/manual-claim release used v9; current Hong Kong Mahjong uses v10. Older pages must refresh after approved deployment.
+- Mahjong claim resolution and kong replacement draws have explicit resumable phases. A pending discard undo window expires on restart. The historical emoji/manual-claim release used v9; current Hong Kong Mahjong uses protocolv12. Older pages must refresh after approved deployment.
 - Legacy Node seat hints remain in their original browser. Manual player recovery-file tools have been removed; cloud players use their account. A normal invitation link gives friends the room, not ownership of a seat.
 - Fully abandoned rooms are retained for seven days before existing maintenance removes them. Archives are bounded to 128 total accounts per room and existing per-game connected-spectator limits. Back up private runtime separately if longer retention is needed. Local disk loss, user deletion or disk-write failures are not solved by a browser token.
 
@@ -104,9 +104,9 @@ Room snapshots now optionally retain settings.ruleset/flowers/flowerBonus/jokers
 
 The shared room toolbar has a visible invite/code/leave bar above folded preferences. Backup, host lock/dissolve and queue/rotation stay in management; original server authorization and explicit leave acknowledgement remain required. Recovery/required-refresh status is outside folded details. Customize panels preserve their open state per room instance.
 
-The previously prepared session-refresh draft is included in this pending source: a page opened on the same saved room URL can rejoin directly; a different invitation still offers continue versus leave-and-switch. A10-second resume/leave wait ends in a retryable error, preserving credentials; version mismatch offers a user-clicked cache-busting refresh on the same room URL. None of this proves a disconnected seat is expired. Unavailable/left confirmations retain their existing credential cleanup. These changes were installed in2.3.0 after explicit user authorization and public health/asset/WSS checks. Those checks do not prove full recovery/timeout races.
+The previously prepared session-refresh draft is included in the installed2.3.0source: a page opened on the same saved room URL can rejoin directly; a different invitation still offers continue versus leave-and-switch. A10-second resume/leave wait ends in a retryable error, preserving credentials; version mismatch offers a user-clicked cache-busting refresh on the same room URL. None of this proves a disconnected seat is expired. Unavailable/left confirmations retain their existing credential cleanup. These changes were installed in2.3.0 after explicit user authorization and public health/asset/WSS checks. Those checks do not prove full recovery/timeout races.
 
 
 ## Authenticated cloud sessions
 
-Cloud3.2separates a login session from a game seat. Recoverable seats are linked to AccountStore identity in GamingHub snapshots; a connected seat changes device only after a socket-bound confirmation, token checkpoint/rotation, and native resume. Only one occupied room/control per account across games; explicit leave releases occupancy. Session logout/revocation closes affected controllers but keeps the account seat recoverable. Legacy unbound seats require their exact old token for first binding. Read [account safety](ACCOUNT-SAFETY.md); preserve both database actors and settled ledgers.
+Cloud3.2separates a login session from a game seat. Recoverable seats are linked to AccountStore identity in GamingHub snapshots; in current3.5.0a fresh authenticated game connection automatically claims its owned seat through a socket-bound challenge, checkpointed token rotation and native resume; no normal confirmation dialog. Only one occupied room/control per account across games; explicit leave releases occupancy. Session logout/revocation closes affected controllers but keeps the account seat recoverable. Legacy unbound seats require their exact old token for first binding. Read [account safety](ACCOUNT-SAFETY.md); preserve both database actors and settled ledgers.

@@ -1,6 +1,6 @@
 # Accounts, progression and administration — release3.5.0
 
-Status:3.5.0 `2026-10-31-disconnect-grace-1` is deployed, including the [admin ownership/balance editor](ADMIN-CONTROLS.md). Google production credentials are configured and real local/public Google sign-in completed with verified admin identity. See root AGENTS for the release evidence and [account safety validation](ACCOUNT-SAFETY.md) for historical3.2.0test evidence and current limits; [connection lifecycle](CONNECTIONS.md) documents the3.5.0changes, whose native gameplay has not been newly tested. Git publication is recorded separately; this guide never authorizes a future release.
+Status:3.5.0 `2026-10-31-disconnect-grace-1` is deployed, including the [admin ownership/balance editor](ADMIN-CONTROLS.md). Google production credentials are configured and real local/public Google sign-in completed with verified admin identity. See root AGENTS for the release evidence and [account safety validation](ACCOUNT-SAFETY.md) for historical3.2.0test evidence and current limits; [connection lifecycle](CONNECTIONS.md) documents the3.5.0changes, whose subsequent200-test native/SQLite validation is detailed in CONNECTION-VALIDATION.md. Git publication is recorded separately; this guide never authorizes a future release.
 
 ## Scope and product rules
 
@@ -12,7 +12,7 @@ This is the account feature requested in chat on 31 October, across all six game
 - At least 60 seconds tracked connected participation in a server-owned active round. Daily cap 1,000 XP/coins per account, UTC. Bots/spectators receive none. Poker counts players actually dealt in; positive final hand net counts as a win. Blackjack positive round net counts as a win; other games use actual winner(s), including tied Domino winners. Draws get participation only.
 - Connected time is an estimate from server events, capped to 120 seconds between samples and 2 hours per rewarded participant-round. It is not an exact stopwatch, anti-bot certification, provider usage or billing estimate.
 - Shorter rounds, abandoned/unfinished rounds and past history do not retroactively earn rewards. Existing rooms acquire an identity only when their authenticated holder presents the existing seat token. They retain prior rules/scores.
-- Three AI generated skins (Jade Keeper starter, Midnight Fox 300 coins, Ivory Wanderer 500 coins) and Golden Hour accessory 150 coins. Purchases/equipment are server-authoritative and persist in the account DB. The UI always confirms purchases.
+- Nine AI-generated skins: Jade Keeper starter, Midnight Fox300coins, Ivory Wanderer500coins, and six free human portraits; Golden Hour accessory150coins. Purchases/equipment are server-authoritative and persist in the account DB. The UI always confirms purchases.
 
 ## Database and security architecture
 
@@ -55,7 +55,7 @@ Do this in an owner-approved Google Cloud project, not an arbitrary office proje
    `http://127.0.0.1:3026/auth/google/callback`
    If the UI requests an authorized JavaScript origin, use the corresponding origin without a path. This implementation uses a server redirect, not Google's embedded JS SDK. A personal domain may require verification for consent-screen publication. Workspace policies can require administrator approval; do not bypass them.
 3. Copy Client ID and Secret into private operator configuration. Never paste the Secret in chat or commit it. The repo does not contain usable Google credentials.
-4. Local private `.dev.vars` (ignored): `GOOGLE_CLIENT_ID=...`, `GOOGLE_CLIENT_SECRET=...`. The permanent public callback will not work against the old production build until this candidate is approved/deployed.
+4. Local private `.dev.vars` (ignored): `GOOGLE_CLIENT_ID=...`, `GOOGLE_CLIENT_SECRET=...`. The current production callback is already configured; these steps are for an explicitly approved future setup/rotation, not a pending task.
 5. After approval of the reviewed candidate, store production secrets through Wrangler's interactive secret prompts or the Cloudflare dashboard: `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`. **Secret upload can itself create a production version/restart**, so it requires release authorization; do not perform it while merely preparing source. Do not put `ACCOUNT_PREVIEW` into production.
 6. Deploy with current explicit approval, preserve existing game resources, verify new AccountStore migration and real login using owner-controlled credentials. Testers must be on the Testing audience list until OAuth publishing is complete. Never ask for passwords, OTPs or Google tokens in chat.
 

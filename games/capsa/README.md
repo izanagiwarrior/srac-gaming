@@ -1,5 +1,7 @@
 > Game terintegrasi di Meja Kita. Jalankan aplikasi dari root repository dengan `npm start`; lihat README utama. Instruksi standalone di bawah adalah dokumentasi source asal.
 
+> Current shared release:3.5.0, Workers+SQLite hosting without a laptop, authenticated automatic device control and15second disconnect grace before temporary native AI. See [completion audit](../../docs/PROJECT-STATUS.md) and [200-test validation/scope](../../docs/CONNECTION-VALIDATION.md). Older release/authoring/local-standalone sections below are historical context; they do not declare pending cloud deployment.
+
 # Capsa Banting / Big Two — Capsa Club
 
 Game yang dimainkan bergiliran: keluarkan kartu atau kombinasi, lawan dengan yang lebih tinggi, atau lewat. Urutan kartu **3 < 4 < 5 < … < K < A < 2**. Yang habis kartu pertama menang. Ini versi Banting, bukan versi menyusun tiga baris.
@@ -63,9 +65,9 @@ Host memilih **nilai 1 poin dalam IDR** sebelum pertandingan, antara 0 dan 1.000
 - **Rekap Rp** menampilkan saldo dari ronde selesai, rincian kartu awal/sisa, poin dan rupiah setiap ronde. Ronde berjalan belum masuk saldo.
 - Saldo awal Rp0 dan baru berubah setelah ronde selesai; ini berbeda dari nilai 1 poin yang dipilih host.
 - Pada akhir pertandingan tanpa bot, rekap memberi saran transfer dari saldo negatif ke positif. Gunakan jika saldo belum diselesaikan antarpemain. Aplikasi mencatat saldo; pembayaran dilakukan di luar game.
-- **Unduh CSV** menyimpan saldo, hasil setiap ronde, dan saran pembayaran akhir. Unduh sebelum memulai pertandingan baru atau menghentikan server karena room masih disimpan di memori.
+- **Unduh CSV** menyimpan saldo, hasil setiap ronde, dan saran pembayaran akhir. Unduh sebelum memulai pertandingan baru atau menghentikan server sebagai salinan pribadi; room cloud disimpan pada checkpoint SQLite, sedangkan target Node memakai save privatnya sendiri.
 
-Kartu lawan privat sampai akhir ronde. Jumlah kartu, bantingan, dan giliran adalah informasi publik. Pemain offline diteruskan bot setelah 8 detik; kembali dari browser yang sama untuk mengambil alih. Bot hanya memakai tangan sendiri dan informasi publik.
+Kartu lawan privat sampai akhir ronde. Jumlah kartu, bantingan, dan giliran adalah informasi publik. Pemain disconnect mendapat15detik grace sebelum bot sementara; cloud memakai akun untuk mengambil alih kembali, bukan identitas browser/IP. Bot hanya memakai tangan sendiri dan informasi publik.
 
 ## Pemeriksaan
 

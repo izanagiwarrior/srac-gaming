@@ -1,5 +1,7 @@
 # Current Mahjong setup — 2.2.0 / protocol v12
 
+> Current shared release:3.5.0, Workers+SQLite hosting without a laptop, authenticated automatic device control and15second disconnect grace before temporary native AI. See [completion audit](../../docs/PROJECT-STATUS.md) and [200-test validation/scope](../../docs/CONNECTION-VALIDATION.md). Older release/authoring/local-standalone sections below are historical context; they do not declare pending cloud deployment.
+
 | Preset | Hu requirement | Completed-set highlight | Bots |
 | --- | --- | --- | --- |
 | Easy (default, new rooms) | Hong Kong casual, 0 fan allowed | ON | Easy |
