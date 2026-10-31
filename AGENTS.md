@@ -1,6 +1,12 @@
 # SRAC-Gaming: instructions for coding agents
 
-## Pending3.6.0 — compact explanations (31 October 2026)
+## Installed3.6.0 — compact UI and aligned help (31 October 2026)
+
+User explicitly requested “push, deploy, pastiin obsidian juga up to date”. **3.6.0 / `2026-10-31-compact-help-1`** is installed at https://srac-gaming.faiz-triputra.workers.dev/ , deployment `056c6483-a02a-4e19-b857-9e49a070e884`. Source commit `6f5b0de0daff4109e7ee5215754ca745c38a0014` was pushed through GitHub Desktop personal izanagiwarrior and independently matched remote main. This release includes concise landing/account/six-game copy, optional shared help with aligned28px icons/8px gaps, preserved fold preferences, and responsive header/modal-help fixes. Actual game odds, errors, turn/timer and amounts remain visible.
+
+Build/dry-run passed:72prepared assets,335.59KiB/gzip93.71KiB. Private representative390px six-game entry/lobby and account/landing review, Mahjong Customize, Poker390/768/1280, Dark/Light, checkbox isolation and modal autofocus/help were checked. Postdeploy health/new build and ten routes200;20changed public assets exactly match, Google configured=true and preview=false. Public landing inspected without account/room/gameplay actions. No new automated/gameplay tests; prior200tests are historical evidence. No database migration/reset, secret/audience/policy change, actor/binding change, legacy live update or preview-data upload. Generated review fixture/config excluded and production CSP restored before release. No pending runtime deployment; final release-document publication is identified by subsequent Git history and operator record. Future push/deploy still needs a fresh request.
+
+## Preparation history3.6.0 — compact explanations (31 October 2026)
 
 User requests less on-screen prose and optional `?` explanations. Candidate **3.6.0 / `2026-10-31-compact-help-1`** is prepared in staging only. Shared help supports pointer hover, keyboard focus/Enter/Space/Escape and tap/outside dismissal; viewport-clamped themed popovers retain original dynamic explanation nodes/IDs. Landing/account and six game entries/settings use concise copy or optional help. Cheat sheets start collapsed only when no stored fold preference exists. Poker lobby warm-up/example odds removed; actual in-game odds retained. Core turn/timer, error, balance and confirmation information stays visible.
 

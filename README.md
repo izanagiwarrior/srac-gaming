@@ -4,9 +4,9 @@ Satu landing page untuk **Capsa Banting, Mahjong, Poker Texas Hold’em, Catur, 
 
 Repository: [izanagiwarrior/srac-gaming](https://github.com/izanagiwarrior/srac-gaming).
 
-Baseline cloud aktif: **3.5.1 / `2026-10-31-office-login-note-1`**. Audit status31Oktober2026: [permintaan, bukti, dan batas penyelesaian](docs/PROJECT-STATUS.md). [Main online](https://srac-gaming.faiz-triputra.workers.dev/). Periksa `/health` untuk status aktual. Rilis source mencakup panduan agent dan validasi skor HKMA; lihat [status dan panduan maintenance](docs/MAINTENANCE.md).
+Baseline cloud aktif: **3.6.0 / `2026-10-31-compact-help-1`**. Audit status31Oktober2026: [permintaan, bukti, dan batas penyelesaian](docs/PROJECT-STATUS.md). [Main online](https://srac-gaming.faiz-triputra.workers.dev/). Periksa `/health` untuk status aktual. Rilis source mencakup panduan agent dan validasi skor HKMA; lihat [status dan panduan maintenance](docs/MAINTENANCE.md).
 
-Terbaru: dua belas emote chat tersedia di enam game, dengan efek transparan di meja yang terlihat seluruh room. Lobby Mahjong punya Manual bebas, Manual terbantu, serta Fast. Manual bebas membiarkan pemain mencoba klaim tanpa pemeriksaan awal; server menilai saat klaim dikirim. Panduan dapat dilewati dan panel sidebar tetap dapat dilipat.
+Terbaru: tampilan diringkas dengan bantuan `?` yang sejajar dengan label, ukuran konsisten, dan cheat sheet lipat. Dua belas emote chat tersedia di enam game, dengan efek transparan di meja yang terlihat seluruh room. Lobby Mahjong punya Manual bebas, Manual terbantu, serta Fast. Manual bebas membiarkan pemain mencoba klaim tanpa pemeriksaan awal; server menilai saat klaim dikirim. Panduan dapat dilewati dan panel sidebar tetap dapat dilipat.
 
 Fitur: lobby bersama, nama diminta saat create/join game, lalu disimpan untuk prefill enam game, kunci room, save/pemulihan sesi, penonton/antrean/rotasi, panel lipat dan aksi HP, suara/volume serta pengurangan animasi. Pada hosting cloud, koneksi game terbaru mengambil kendali kursi akun otomatis; perangkat lama berhenti dan bisa merebut kembali lewat tindakan sambung manual. Keluar dari room lama sebelum pindah room. Pilihan popup/token tetap berlaku pada transport Node legacy. [Panduan sesi bersama](docs/SOCIAL-SESSIONS.md).
 
