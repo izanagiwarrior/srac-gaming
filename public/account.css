@@ -50,3 +50,7 @@ input,select,textarea{min-width:0;max-width:100%}@media(max-width:380px){.ac-top
 
 .ac-dragon-login .dragon-aura::before{inset:-18px -14px -8px;filter:blur(5px)}
 @media(max-width:760px){.ac-dragon-login .dragon-aura::before{inset:-10px -8px -5px}}
+
+/* A maximum-length unbroken display name must fit its page-heading column. */
+.ac-pageheading>*{min-width:0;max-width:100%}
+.ac-pageheading h1{overflow-wrap:anywhere}
