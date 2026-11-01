@@ -144,3 +144,6 @@ Supersedes the earlier topbar-credit location: shared game-tools renders creator
 
 ### Readable contextual help
 Use the shared /help.js and /help.css on all entry pages. Supply plain text; separate distinct topics with newline characters. Multiple topics render as semantic bullet lists, long paragraphs split at sentence boundaries, and short one-topic explanations remain a paragraph. Never inject help text as HTML. Preserve native hover/focus/tap/Escape behavior and viewport containment.
+
+### Ranking disclosure alignment
+The shared ranking summary must use flex-start at the same or higher selector specificity as page panel rules. Keep arrow and label adjacent with8pxgap; only the optional trailing hint gets margin-left:auto. Hiding that hint on phones must not distribute space between arrow and title.

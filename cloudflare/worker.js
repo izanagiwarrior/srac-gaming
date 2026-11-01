@@ -151,7 +151,17 @@ export class GamingHub extends DurableObject {
     const origin=request.headers.get('Origin');if(origin&&origin!==url.origin)return json({error:'Origin mismatch'},403);
     if(this.stopping)return failed();
     // Reject anonymous connections before restoring factories or starting native timers.
-    const principal=this.env.ACCOUNTS?await this.env.ACCOUNTS.get(this.env.ACCOUNTS.idFromName('accounts-v1')).fetch(new Request(new URL('/internal/session',request.url),request)).then(r=>r.json()):null;
+    let principal=null;
+    if(this.env.ACCOUNTS){
+      try{
+        const verified=await this.env.ACCOUNTS.get(this.env.ACCOUNTS.idFromName('accounts-v1')).fetch(new Request(new URL('/internal/session',request.url),request));
+        if(!verified.ok)return failed();
+        principal=await verified.json();
+      }catch{return failed();}
+      // Only the private session contract can authorize game initialization.
+      if(principal!==null&&(typeof principal!=='object'||Array.isArray(principal)||typeof principal.id!=='string'||!principal.id||typeof principal.sessionId!=='string'||!principal.sessionId||!Number.isFinite(principal.expires)))return failed();
+      if(principal&&principal.expires<=Date.now())return json({error:'Sesi akun berakhir. Masuk ulang.'},401);
+    }
     if(this.env.ACCOUNTS&&!principal)return json({error:'Masuk ke akun dahulu.'},401);
     try{this.init();}catch(error){console.error('Cloud storage restore failed');return failed();}
     if([...this.sessions.values()].filter(s=>s.account?.id===principal?.id).length>=8)return json({error:'Terlalu banyak tab akun. Tutup tab game yang tidak dipakai.'},429);

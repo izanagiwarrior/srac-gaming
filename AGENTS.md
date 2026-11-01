@@ -1,5 +1,21 @@
 # SRAC-Gaming: instructions for coding agents
 
+## Pending3.11.16 — controlled account-service failure at game handshake (1 November2026)
+
+Local3.11.16/build2026-11-01-auth-availability-1 includes pendingrankingalignment3.11.15. ActualGamingHub.fetch previously let accounttransportfailure/nonJSONescape before its restoretry/catch; privatebeforeprobe reproduced40/40uncaught failures across10games, withnofactoriesstarted. Now catches failedstatus/transport/JSON and returns generic503. Validates privateidentityshape/session/expiry before nativeinitialization; null/expiredsessions401, crossorigin403stillbeforeaccountread. Doesnotgrant accessonfault, leakproviderdetails, retry, changeexistingaccounts/roles/cookies/storage or loggingconfig. Normallegitimatesessions still reach unchangednativefactories.
+
+Build passed.422isolatedcasespass:302regression(includes102newsourcefaultcases),61actualWorker/SQLitefaultcases,59new-game/account/leaderboard/native-resultchecks rerunagainstcandidate.60faultmatrixsubcasesdo notprovehistoricalcause; sixGamingHubWorkerexceptionsearlierremainunattributedwithoutretainedlogs. Existingcompatdate2026-10-23alreadyauto-repliesclosehandshake; no speculativeclosechange. PriorrankingUI30checks remainincluded; no newUI/gameplayrules.
+
+Sourcework/cloud-auth-availability-patch/source; canonical3d19dae/cloud3.11.14/legacyNode unchanged; nocanonicalinstall/commit/push/deploy. Priorpending3.11.15included/superseded. Baselineprobe/logs/manifest/reportprivateoutsideGit. Historicalcloudquotaoutagewasobservedrecovered1November; exactfutureheadroomnotguaranteed. StandardMonopoliduration/balancing andcontrolledproductiontestidentity/workflowsremainfollowups.
+
+
+## Pending3.11.15 — align ranking disclosure labels (1 November2026)
+
+Local3.11.15/build2026-11-01-ranking-arrow-1 based on canonical3d19dae/3.11.14. Shared disclosures.css raises the ranking summary alignment selector to match native page-panel specificity and enforces flex-start. Left arrow and label now stay adjacent with8pxgap even when mobile hides the trailing hint; native toggle/keyboard/theme unchanged. One CSS declaration only; no engine/account/storage changes.
+
+Isolated work/ranking-arrow-patch/source, preview http://127.0.0.1:3043/uno/ privateSQLite/session96587. Build passed; all10game entries measured desktop1280Dark/mobile390Dark/Light (30checks), labels26pxmobile/30pxdesktop fromsummaryleft, gap8px, nohorizontaloverflow. UNO panel opened/closed; no room/gameplay for this CSSpatch. Cloud remains3.11.14, canonical3d19dae clean; no install/commit/push/deploy. Proof outputs/ranking-arrow-mobile-fixed.png.
+
+
 ## Released 3.11.14 — 31 October 2026
 
 User authorized “push, deploy, update obsidian”. Cloud build **2026-10-31-dragon-flame-1 / 3.11.14** is installed at https://srac-gaming.faiz-triputra.workers.dev/ ; deployment **3214c64d-d2bd-4881-85db-da5ef2450ceb**. Source commit **50a0ec8396f48005e0f0172f9e01ad927a3094d9** pushed through personal GitHub Desktop izanagiwarrior and independently matched remote main. All pending3.9.0–3.11.14 work is included: ten games, featured Mahjong/alphabetical grid, database leaderboards, compressed character/card artwork, white Faiz profile, integrated black-dragon brand/favicon/login aura, consistent panels/disclosures, centered creator footer and help bullets. Historical Pending headings below describe preparation, not outstanding deployment.

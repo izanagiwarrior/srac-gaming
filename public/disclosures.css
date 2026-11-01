@@ -5,7 +5,7 @@ html body details>summary::after{content:none!important;display:none!important}
 html body details>summary::before,html body button.mk-fold::before{content:'';display:inline-block;box-sizing:content-box;position:static;flex:0 0 auto;width:0;height:0;margin:0;border:0;border-top:4px solid transparent;border-bottom:4px solid transparent;border-left:6px solid currentColor;color:inherit;background:none;transform:rotate(0);transform-origin:3px 4px;vertical-align:middle}
 html body details[open]>summary::before,html body button.mk-fold[aria-expanded=true]::before{transform:rotate(90deg)}
 html body details>summary:focus-visible{outline:2px solid var(--mk-focus,#edc882);outline-offset:3px;border-radius:6px}
-html[data-theme] body .lb-entry>summary{gap:8px}.lb-entry>summary>span{font:inherit}.lb-entry>summary small{margin-left:auto}
+html[data-theme] body .lb-entry>summary{justify-content:flex-start;gap:8px}.lb-entry>summary>span{font:inherit}.lb-entry>summary small{margin-left:auto}
 html body .mk-room-tools .mk-tools-hint{margin-left:6px}
 html body button.mk-fold{display:inline-flex;align-items:center;justify-content:center;order:-1;float:none;flex:0 0 28px;box-sizing:border-box;width:28px;min-width:28px!important;height:28px;min-height:28px!important;margin:0!important;padding:0!important;border:0!important;border-radius:6px!important;background:transparent!important;color:inherit!important;font-size:0!important;box-shadow:none!important}
 html body button.mk-fold:hover{background:var(--mk-hover,#294e3e)!important}html body button.mk-fold:focus-visible{outline:2px solid var(--mk-focus,#edc882);outline-offset:2px}

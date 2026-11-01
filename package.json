@@ -1,6 +1,6 @@
 {
   "name": "srac-gaming",
-  "version": "3.11.14",
+  "version": "3.11.16",
   "private": true,
   "description": "Ten multiplayer games: Mahjong, Blackjack, Capsa, Chess, Domino, Ludo, Monopoli, Poker, Reversi and UNO",
   "main": "server.js",

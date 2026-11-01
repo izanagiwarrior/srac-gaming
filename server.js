@@ -15,7 +15,7 @@ const {createLudoServer}=require('./games/ludo/server');
 
 const {createMonopoliServer}=require('./games/monopoli/server');
 const {createReversiServer}=require('./games/reversi/server');
-const VERSION = '2026-10-31-dragon-flame-1';
+const VERSION = '2026-11-01-auth-availability-1';
 const {installRoomService}=require('./games/shared/room-service');
 
 function createHub(options = {}) {
