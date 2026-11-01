@@ -16,4 +16,4 @@ Run these suites sequentially because Worker integration fixtures rebuild the sa
 node --test --test-concurrency=1 tests/november-lifecycle.test.js tests/november-cold-new4.test.js tests/november-grace-new4.test.js
 ```
 
-Do not infer all games, long names, populated leaderboard, all viewport/action states or real-time cloud grace behavior are proven. The remaining six-game full spectator/rotation matrix and all-game active UI remain follow-ups. Standard Monopoli bot currently responds to barter but never initiates it; long duration remains unmodified. Historical six cloud exceptions remain unattributed without retained stacks.
+Do not infer all games, long names, populated leaderboard, all viewport/action states or real-time cloud grace behavior are proven. Later six-game lifecycle checks and the3.11.21 private render matrix extend this scope; see TABLE-STATE-UI.md. Release3.11.19 added bounded Monopoli bot trade proposals and development; see MONOPOLI-BOTS.md. Human match duration remains unbounded. Historical six cloud exceptions remain unattributed without retained stacks.

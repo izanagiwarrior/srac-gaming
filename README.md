@@ -1,12 +1,12 @@
 # Meja Kita
 
-Rilis **3.11.20 / `2026-11-01-profile-name-wrap-1`**: **Mahjong, Blackjack, Capsa Banting, Catur, Domino, Ludo, Monopoli Nusantara, Poker, Reversi dan UNO**. Mahjong tampil besar; sembilan game lain berurutan abjad dalam tiga kolom. Termasuk leaderboard global/per game, ilustrasi terkompresi, logo naga hitam, profil Faiz naga putih dan bantuan ringkas berbentuk bullet.
+Rilis **3.11.21 / `2026-11-01-table-state-layout-1`**: **Mahjong, Blackjack, Capsa Banting, Catur, Domino, Ludo, Monopoli Nusantara, Poker, Reversi dan UNO**. Mahjong tampil besar; sembilan game lain berurutan abjad dalam tiga kolom. Termasuk leaderboard global/per game, ilustrasi terkompresi, logo naga hitam, profil Faiz naga putih dan bantuan ringkas berbentuk bullet.
 
 [Main online](https://srac-gaming.faiz-triputra.workers.dev/) · [GitHub personal](https://github.com/izanagiwarrior/srac-gaming) · [Status dan batas verifikasi](docs/PROJECT-STATUS.md) · [Maintenance](docs/MAINTENANCE.md).
 
 Hosting utama adalah **Cloudflare Workers + SQLite Durable Objects**, tanpa laptop. Target Node satu port tetap tersedia terpisah. Rilis tidak menyalin data preview atau mereset akun/room yang sudah ada. Panduan [sepuluh game](docs/TEN-GAMES.md), [leaderboard](docs/LEADERBOARD.md), [artwork](docs/CHARACTER-ART.md) dan [branding](docs/DRAGON-BRAND.md).
 
-**Status operasional1November2026:** cloud3.11.20 aktif; judul profil bernama panjang kini tetap di dalam layar ponsel. Bot Monopoli bisa mengajukan barter dan membangun dengan cadangan kas; panel aksi ponsel serta kontras status Light diperbaiki.65kasus uji lokal dan600simulasi bot lolos, selain validasi rilis terdahulu. Ini bukan jaminan semua keadaan bebasbug atau semua partai manusia cepat selesai. Pengujian produksi dengan akun khusus dan penyebab enam error historis masih terbatas. Tidak ada reset database atau perubahan billing.
+**Status operasional1November2026:** cloud3.11.21 aktif. Layout nama panjang, hasil dan angka di layar kecil dirapikan;270kombinasi tampilan lokal sepuluh game sesuai batas layar. Akun QA email/password produksi berhasil menjalankan alur login/kosmetik gratis/satu ronde Reversi0IDR/rekap/reward/logout; pembelian berbayar sukses dan Google login baru belum diuji di produksi. Enam error historis tidak memiliki detail log tersimpan. Lihat [cakupan validasi](docs/TABLE-STATE-UI.md); ini bukan jaminan semua keadaan bebasbug. Database dan billing tidak direset.
 
 ## Akun kantor untuk login Google
 

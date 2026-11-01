@@ -605,3 +605,11 @@ input::placeholder { color:#819989; }
 
 @media(max-width:720px){.hero{position:relative;isolation:isolate;overflow:clip}}
 @media(max-width:450px){.site-header{flex-wrap:wrap;row-gap:12px}.site-header nav{flex:1;min-width:0;justify-content:flex-end}.brand{flex:none}}
+
+/* Long player names must not stretch table or result panels. */
+.table-heading,.table-meta,.result-banner{flex-wrap:wrap}
+.table-heading>*,.result-banner>*{min-width:0;max-width:100%}
+.table-heading h1,.result-banner h2{overflow-wrap:anywhere}
+
+.site-header{flex-wrap:wrap}.site-header>.brand{min-width:0;max-width:100%}.site-header>.brand>span{min-width:0}
+@media(max-width:480px){.site-header nav{width:100%;justify-content:flex-end;flex-wrap:wrap}}

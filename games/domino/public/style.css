@@ -6,3 +6,10 @@
 
 .player strong{white-space:normal;overflow-wrap:anywhere}
 @media(max-width:450px){.room-heading{flex-wrap:wrap}.room-heading .button-row{justify-content:flex-start}}
+
+/* A grid item may shrink without widening the whole table. */
+.table-area{grid-template-columns:minmax(0,1fr)}
+.table-area>*{min-width:0}
+@media(max-width:380px){.players{grid-template-columns:minmax(0,1fr)}}
+
+.status h2{overflow-wrap:anywhere}.stock-count{flex-shrink:0}

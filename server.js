@@ -15,7 +15,7 @@ const {createLudoServer}=require('./games/ludo/server');
 
 const {createMonopoliServer}=require('./games/monopoli/server');
 const {createReversiServer}=require('./games/reversi/server');
-const VERSION = '2026-11-01-profile-name-wrap-1';
+const VERSION = '2026-11-01-table-state-layout-1';
 const {installRoomService}=require('./games/shared/room-service');
 
 function createHub(options = {}) {

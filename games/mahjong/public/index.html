@@ -40,10 +40,10 @@ button:focus-visible,.tile.click:focus-visible{outline:3px solid var(--gold);out
 .pill .w{color:var(--muted)}
 .pill.turn{border-color:var(--gold);box-shadow:0 0 0 2px rgba(232,184,64,.35)}
 .table{background:radial-gradient(ellipse at 50% 35%,var(--felt),var(--felt2));border-radius:18px;padding:12px;color:#f4efe3;box-shadow:inset 0 0 0 5px var(--rim),inset 0 0 0 7px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.25);display:flex;flex-direction:column;gap:10px}
-.opps{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.opps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 .opp{background:rgba(0,0,0,.22);border-radius:12px;padding:8px 10px;font-size:12px;min-height:72px;border:2px solid transparent}
 .opp.turn{border-color:var(--gold)}
-.opp .nm{display:flex;justify-content:space-between;font-weight:600;font-size:12px}
+.opp .nm{display:flex;justify-content:space-between;gap:4px;flex-wrap:wrap;font-weight:600;font-size:12px;overflow-wrap:anywhere}.opp,.opp .nm>*{min-width:0;max-width:100%}
 .opp .nm span:last-child{color:var(--gold);font-weight:500}
 .opp .cnt{display:flex;align-items:center;gap:5px;margin:4px 0;--tw:14px;flex-wrap:wrap}
 .melds{display:flex;gap:6px;flex-wrap:wrap;--tw:18px}
@@ -186,7 +186,7 @@ input.code{text-transform:uppercase;letter-spacing:.3em;font-weight:700;font-fam
 .bigcode{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:40px;font-weight:700;letter-spacing:.25em;text-align:center;padding:10px;background:var(--bg);border-radius:14px}
 .seats{display:flex;flex-direction:column;gap:6px}
 .seat{display:flex;justify-content:space-between;align-items:center;padding:9px 12px;border-radius:10px;background:var(--bg);font-size:14px}
-.seat .who{display:flex;gap:8px;align-items:center}
+.seat .who{display:flex;gap:8px;align-items:center;flex-wrap:wrap;min-width:0;overflow-wrap:anywhere}.seat{gap:8px}.seat>.cap{flex-shrink:0}
 .dot{width:8px;height:8px;border-radius:50%;background:var(--green)}
 .dot.off{background:var(--red)}.dot.bot{background:var(--muted)}
 .seat.empty{color:var(--muted);border:1px dashed var(--line);background:transparent}

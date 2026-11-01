@@ -42,3 +42,7 @@ html[data-theme="light"][data-mk-game="monopoli"] :is(input,select),html[data-th
 /* Bound the implicit table grid track before auto-fit player rows and scrollable hands size it. */
 .table-area{grid-template-columns:minmax(0,1fr)}
 .table-area>*{min-width:0;max-width:100%}
+
+.hand-panel.result h2{overflow-wrap:anywhere}
+
+.player{grid-template-columns:35px minmax(0,1fr) 44px}.tile-count small{white-space:nowrap;overflow-wrap:normal}

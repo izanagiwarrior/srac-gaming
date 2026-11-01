@@ -1,3 +1,13 @@
+## Released 3.11.21 — 1 November 2026
+
+User authorized “push deploy”. Cloud3.11.21 / `2026-11-01-table-state-layout-1` is installed at https://srac-gaming.faiz-triputra.workers.dev/ . Narrow-screen long-name/result/header layouts are bounded across Capsa, Mahjong, Poker, Chess, Domino, Blackjack and shared party UI. Small Poker summaries stack for readable amounts. CSS-only behavior change; authentication, rules, settlement, permissions and storage remain unchanged. See [table-state validation](docs/TABLE-STATE-UI.md).
+
+Thirteen-file candidate manifest verified against clean5d94e724, with private source backup before installation. Build/whitespace/dry-run passed:134publicassets,396.71KiB/gzip111.46KiB bundle. Final270unique render combinations (ten games ×nine cases ×1280Dark/390Dark/320Light) fit viewport after33original overflow cases; ten expanded cheat/emoji/chat checks and11native fixture-generation checks passed. Recovery is a derived display fixture, not a cold-start proof. Private transport/snapshots/test generators/databases/credentials were excluded from release. Public health confirms ten games/new build;14entries200,seven changed assets match exactly, anonymous account API200.
+
+A separately authorized dedicated email/password production check on3.11.20 passed signup/login, free cosmetic purchase/replay/equip, insufficient-coins rejection and one locked zero-IDR Quick Reversi round, once-only standing,20XP/20coins, dissolution and logout. One clearly labelled QA account/result remains. No owner/other-player-room modifications. Successful paid purchase and real Google consent were not exercised. Six historical exceptions remain unattributed without retained stacks; the selected one-hour GamingHub snapshot showed0exceptions/19clientdisconnects. Do not equate this with complete production or all-state coverage.
+
+No pending runtime patch. Existing actors, bindings, migrations, secrets, account/game data and legacy Node are preserved. Git publication belongs to this same authorization; independently verify remote before reporting completion. Future changes/push/deploy require a new instruction. Older Pending3.11.21 sections are preparation history.
+
 ## Released 3.11.20 — 1 November 2026
 
 User authorized “deploy push” for the reviewed profile-name fix. Cloud3.11.20 / `2026-11-01-profile-name-wrap-1` is installed at https://srac-gaming.faiz-triputra.workers.dev/ . Account page-heading children are bounded to their content rail and long h1 names wrap; a valid24-character unbroken name previously expanded a320px page to454px. No authentication, permission, game, balance or storage changes. See [account/UI validation](docs/ACCOUNT-UI-VALIDATION.md).

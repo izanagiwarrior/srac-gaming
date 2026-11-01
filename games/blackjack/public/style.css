@@ -2,3 +2,5 @@
 
 .bj-table .mk-cards{flex-wrap:wrap}.bj-player{min-width:0;overflow-wrap:anywhere}.bj-heading>div{min-width:0}
 @media(max-width:450px){.bj-heading{flex-wrap:wrap}.bj-bet{flex-wrap:wrap}.bj-bet label{max-width:none}}
+
+.bj-status{overflow-wrap:anywhere}
