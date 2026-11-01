@@ -15,7 +15,7 @@ function move(r,p,steps){const from=p.position,to=(from+steps+40)%40;if(steps>0&
 function rent(r,a,dice){const tile=BOARD[a.at];if(a.mortgaged)return 0;if(tile.kind==='station')return 25000*2**(r.assets.filter(x=>x.owner===a.owner&&BOARD[x.at].kind==='station'&&!x.mortgaged).length-1);if(tile.kind==='utility')return dice*1000*(r.assets.filter(x=>x.owner===a.owner&&BOARD[x.at].kind==='utility'&&!x.mortgaged).length===2?10:4);return a.buildings?tile.rents[a.buildings]:tile.rents[0]*(group(r,a.at).every(x=>x.owner===a.owner&&!x.mortgaged)?2:1);}
 function card(r,p,depth){const i=randomInt(8);if(i===0){p.cash+=100000;r.lastCard='Dagangan laris! Terima Rp100.000.';}else if(i===1){r.lastCard='Servis kendaraan: bayar Rp50.000.';pay(r,p,50000);}else if(i===2){r.lastCard='Pulang kampung lewat Mulai. Terima Rp200.000.';p.position=0;p.cash+=200000;}else if(i===3){jail(r,p);}else if(i===4){r.lastCard='Bonus gotong royong Rp50.000.';p.cash+=50000;}else if(i===5){const amount=r.assets.filter(a=>a.owner===p.id).reduce((n,a)=>n+(a.buildings===5?100000:a.buildings*25000),0);r.lastCard='Renovasi kampung: Rp'+amount.toLocaleString('id-ID')+'.';pay(r,p,amount);}else if(i===6&&depth<2){r.lastCard='Macet! Mundur tiga petak.';move(r,p,-3);land(r,p,depth+1);}else{p.cash+=25000;r.lastCard='Menang lomba tujuh belasan! Rp25.000.';}}
 function land(r,p,depth=0){r.stage='end';const tile=BOARD[p.position],a=r.assets[p.position];r.lastCard=p.name+' tiba di '+tile.name+'.';if(tile.price){if(!a.owner)r.stage='buy';else if(a.owner!==p.id)pay(r,p,rent(r,a,r.dice.reduce((n,x)=>n+x,0)),a.owner);}else if(tile.kind==='tax')pay(r,p,tile.amount);else if(tile.kind==='gojail')jail(r,p);else if(['chest','chance'].includes(tile.kind))card(r,p,depth);}
-function start(r){r.assets=BOARD.map((_,at)=>({at,owner:null,buildings:0,mortgaged:false}));r.players.forEach((p,i)=>{p.hand=[];p.cash=1500000;p.position=0;p.jail=0;p.bankrupt=false;p.tokenIcon=tokens[i];});r.turn=(r.round-1)%r.players.length;r.stage='roll';r.doubles=0;r.dice=[1,1];r.rollId=0;r.turns=0;r.turnCounts=Object.fromEntries(r.players.map(p=>[p.id,0]));r.debt=null;r.auction=null;r.trade=null;r.lastMove=null;r.lastBuild=null;r.lastCard='Selamat datang di Nusantara!';}
+function start(r){r.assets=BOARD.map((_,at)=>({at,owner:null,buildings:0,mortgaged:false}));r.players.forEach((p,i)=>{p.hand=[];p.cash=1500000;p.position=0;p.jail=0;p.bankrupt=false;p.tokenIcon=tokens[i];});r.turn=(r.round-1)%r.players.length;r.stage='roll';r.doubles=0;r.dice=[1,1];r.rollId=0;r.turns=0;r.turnCounts=Object.fromEntries(r.players.map(p=>[p.id,0]));r.debt=null;r.auction=null;r.trade=null;r.tradeOfferTurns={};r.lastMove=null;r.lastBuild=null;r.lastCard='Selamat datang di Nusantara!';}
 function canBuild(r,p,id){const t=BOARD[id],a=r.assets[id];if(!t||t.kind!=='property'||a.owner!==p.id||a.mortgaged||a.buildings>=5||p.cash<t.build)return false;const all=group(r,id),stock=supply(r);return all.every(x=>x.owner===p.id&&!x.mortgaged)&&a.buildings===Math.min(...all.map(x=>x.buildings))&&(a.buildings===4?stock.hotels>0:stock.houses>0);}
 function canSell(r,p,id){const a=r.assets[id],t=BOARD[id];return !!a&&a.owner===p.id&&a.buildings>0&&a.buildings===Math.max(...group(r,id).map(x=>x.buildings))&&(a.buildings!==5||supply(r).houses>=4);}
 function canMortgage(r,p,id){const a=r.assets[id];return !!a&&!!BOARD[id].price&&a.owner===p.id&&!a.mortgaged&&!group(r,id).some(x=>x.buildings);}
@@ -35,7 +35,7 @@ function act(r,p,msg){
  if(msg.type==='redeem'){const a=r.assets[id],cost=Math.round((BOARD[id]?.price||0)*55/100);if(!a||a.owner!==p.id||!a.mortgaged||p.cash<cost)throw Error('Hipotek tidak bisa ditebus.');p.cash-=cost;a.mortgaged=false;return basic(p.name+' menebus '+BOARD[id].name+'.');}
  if(msg.type==='trade'){
   if(!['roll','end'].includes(r.stage))throw Error('Selesaikan aksi petak dahulu.');const to=r.players.find(x=>x.id===msg.target&&!x.bankrupt&&x!==p),ga=msg.giveAsset===null?null:r.assets[msg.giveAsset],ta=msg.takeAsset===null?null:r.assets[msg.takeAsset],gc=msg.giveCash,tc=msg.takeCash;
-  if(!to||msg.giveAsset!==null&&!tradeAllowed(r,p,ga)||msg.takeAsset!==null&&!tradeAllowed(r,to,ta)||!Number.isSafeInteger(gc)||!Number.isSafeInteger(tc)||gc<0||tc<0||gc>p.cash||tc>to.cash||!ga&&!ta&&gc===tc)throw Error('Pilih barter sah dengan aset tanpa bangunan dan kas yang tersedia.');r.trade={from:p.id,target:to.id,giveAsset:ga?.at??null,takeAsset:ta?.at??null,giveCash:gc,takeCash:tc};return basic(p.name+' mengirim tawaran barter ke '+to.name+'.');
+  if(!to||msg.giveAsset!==null&&!tradeAllowed(r,p,ga)||msg.takeAsset!==null&&!tradeAllowed(r,to,ta)||!Number.isSafeInteger(gc)||!Number.isSafeInteger(tc)||gc<0||tc<0||gc>p.cash||tc>to.cash||!ga&&!ta&&gc===tc)throw Error('Pilih barter sah dengan aset tanpa bangunan dan kas yang tersedia.');r.trade={from:p.id,target:to.id,giveAsset:ga?.at??null,takeAsset:ta?.at??null,giveCash:gc,takeCash:tc};r.tradeOfferTurns||={};r.tradeOfferTurns[p.id]=r.turns;return basic(p.name+' mengirim tawaran barter ke '+to.name+'.');
  }
  if(r.stage==='buy'){if(msg.type==='buy'){const t=BOARD[p.position];if(p.cash<t.price)throw Error('Kas tidak cukup. Pilih lelang.');p.cash-=t.price;r.assets[p.position].owner=p.id;r.stage='end';return basic(p.name+' membeli '+t.name+'.');}if(msg.type==='auction'){r.auction={at:p.position,mover:r.turn,bid:0,leader:null,passed:[]};r.stage='auction';r.turn=(r.turn+r.players.length-1)%r.players.length;auctionNext(r);return basic('Lelang '+BOARD[p.position].name+' dibuka.');}throw Error('Beli properti atau buka lelang.');}
  if(msg.type==='bail'){if(r.stage!=='roll'||!p.jail)throw Error('Tidak sedang ditahan.');if(p.cash<50000)throw Error('Kas perlu Rp50.000.');p.cash-=50000;p.jail=0;return basic(p.name+' membayar jaminan.');}
@@ -46,13 +46,44 @@ function act(r,p,msg){
 function canAct(r,p,msg){if(p.bankrupt)return false;if(r.trade)return msg.type==='tradeReply'?p.id===r.trade.target:p.id===r.trade.from&&['cancelTrade','end'].includes(msg.type);return r.players[r.turn]===p;}
 const actor=r=>r.trade?r.players.find(p=>p.id===r.trade.target):r.players[r.turn];
 function view(r,p,can){return {board:BOARD,assets:r.assets||[],stage:r.stage||'roll',dice:r.dice||[1,1],rollId:r.rollId||0,turns:r.turns||0,lastMove:r.lastMove,lastBuild:r.lastBuild,lastCard:r.lastCard||'Keliling Indonesia!',auction:r.auction,trade:r.trade,debt:r.players[r.turn]===p?r.debt:null,stock:r.assets?supply(r):{houses:32,hotels:12},manage:can?{build:r.assets.filter(a=>canBuild(r,p,a.at)).map(a=>a.at),sell:r.assets.filter(a=>canSell(r,p,a.at)).map(a=>a.at),mortgage:r.assets.filter(a=>canMortgage(r,p,a.at)).map(a=>a.at)}:{build:[],sell:[],mortgage:[]}};}
+// Bot valuations use only public ownership, mortgages and cash, never dice or future cards.
+function portfolio(r,p,offer=null){
+ const held=a=>offer&&a.at===offer.giveAsset?offer.target:offer&&a.at===offer.takeAsset?offer.from:a.owner;
+ let value=p.cash;
+ if(offer)value+=p.id===offer.from?offer.takeCash-offer.giveCash:offer.giveCash-offer.takeCash;
+ for(const a of r.assets)if(held(a)===p.id)value+=(BOARD[a.at].price||0)*(a.mortgaged?.5:1);
+ for(const name of new Set(BOARD.map(t=>t.group).filter(Boolean))){const set=r.assets.filter(a=>BOARD[a.at].group===name);if(set.every(a=>held(a)===p.id&&!a.mortgaged))value+=set.reduce((n,a)=>n+BOARD[a.at].price,0)*1.5;}
+ return value;
+}
+function offerTrade(r,p,level,reserve){
+ if(r.tradeOfferTurns?.[p.id]===r.turns)return null;
+ let best=null,bestGain=0;
+ for(const take of r.assets){
+  const tile=BOARD[take.at],to=owner(r,take),set=group(r,take.at);
+  if(tile.kind!=='property'||!to||to===p||to.bankrupt||take.mortgaged||!tradeAllowed(r,to,take)||set.filter(a=>a.owner===p.id).length!==set.length-1)continue;
+  const options=[null,...(level==='easy'?[]:r.assets.filter(a=>a.owner===p.id&&!a.mortgaged&&tradeAllowed(r,p,a)&&!group(r,a.at).every(x=>x.owner===p.id)))];
+  for(const give of options){
+   const giveCash=Math.max(0,Math.ceil((tile.price*(give?1.25:1.5)-(give?BOARD[give.at].price:0))/1000)*1000);
+   if(p.cash-giveCash<reserve)continue;
+   const offer={from:p.id,target:to.id,giveAsset:give?.at??null,takeAsset:take.at,giveCash,takeCash:0};
+   const gain=portfolio(r,p,offer)-portfolio(r,p),theirs=portfolio(r,to,offer)-portfolio(r,to);
+   if(gain>bestGain&&theirs>=0){bestGain=gain;best={type:'trade',target:to.id,giveAsset:offer.giveAsset,takeAsset:offer.takeAsset,giveCash,takeCash:0};}
+  }
+ }
+ return best;
+}
 function bot(r,p,level){
- if(r.trade){const t=r.trade,a=t.giveAsset===null?0:BOARD[t.giveAsset].price,b=t.takeAsset===null?0:BOARD[t.takeAsset].price;return {type:'tradeReply',accept:level==='easy'?randomInt(2)===0:a+t.giveCash>=b+t.takeCash};}
+ if(r.trade)return {type:'tradeReply',accept:level==='easy'?randomInt(2)===0:portfolio(r,p,r.trade)>=portfolio(r,p)};
  if(r.stage==='auction'){const at=r.auction.at,cap=Math.min(p.cash-(level==='hard'?100000:50000),BOARD[at].price*(level==='easy'?.65:level==='hard'?1.15:1));return r.auction.bid+10000<=cap?{type:'bid',amount:r.auction.bid+10000}:{type:'auctionPass'};}
  if(r.stage==='debt'){if(p.cash>=r.debt.amount)return {type:'pay'};const sell=r.assets.find(a=>canSell(r,p,a.at));if(sell)return {type:'sell',asset:sell.at};const mortgage=r.assets.find(a=>canMortgage(r,p,a.at));return mortgage?{type:'mortgage',asset:mortgage.at}:{type:'bankrupt'};}
  if(r.stage==='buy')return p.cash-BOARD[p.position].price>50000&&(level!=='easy'||randomInt(3)!==0)?{type:'buy'}:{type:'auction'};
  if(r.stage==='roll')return {type:'roll'};
- if(level!=='easy'){const a=r.assets.find(a=>canBuild(r,p,a.at)&&p.cash-BOARD[a.at].build>250000);if(a)return {type:'build',asset:a.at};}return {type:'end'};
+ const reserve=level==='easy'?350000:level==='hard'?150000:250000;
+ const redeem=r.assets.find(a=>a.owner===p.id&&a.mortgaged&&group(r,a.at).every(x=>x.owner===p.id)&&p.cash-Math.round(BOARD[a.at].price*.55)>=reserve);
+ if(redeem)return {type:'redeem',asset:redeem.at};
+ const build=r.assets.find(a=>canBuild(r,p,a.at)&&p.cash-BOARD[a.at].build>=reserve);
+ if(build)return {type:'build',asset:build.at};
+ return offerTrade(r,p,level,reserve)||{type:'end'};
 }
 function deltas(r,w){const winners=Array.isArray(w)?w:[w],losers=r.players.filter(p=>!winners.includes(p)),total=losers.length*10;return r.players.map(p=>winners.includes(p)?Math.floor(total/winners.length)+(winners.indexOf(p)<total%winners.length?1:0):-10);}
 const playerView=(r,p)=>({cash:p.cash??1500000,position:p.position||0,jail:p.jail||0,bankrupt:!!p.bankrupt,tokenIcon:p.tokenIcon,turnsPlayed:r.turnCounts?.[p.id]||0,netWorth:r.assets?worth(r,p):0});

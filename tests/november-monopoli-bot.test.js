@@ -1,0 +1,27 @@
+const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
+const engine=require('../games/monopoli/engine');
+const room=(n=2)=>{const r={round:1,revision:0,settings:{playMode:'standard'},players:Array.from({length:n},(_,i)=>({id:'p'+i,name:'QA'+i,hand:[],bot:true}))};engine.start(r);return r;};
+const split=()=>{const r=room();r.stage='end';r.assets[1].owner='p0';r.assets[3].owner='p1';return r;};
+for(const level of ['easy','normal','hard'])test(level+': legal group-completing offer is pure; transfer conserves cash',()=>{
+ const r=split(),[p,q]=r.players,before=JSON.stringify(r),offer=engine.bot(r,p,level);assert.equal(offer.type,'trade');assert.equal(JSON.stringify(r),before);assert.equal(offer.takeAsset,3);assert.equal(offer.target,q.id);const cash=p.cash+q.cash;
+ engine.act(r,p,offer);assert.equal(engine.actor(r),q);assert(!engine.canAct(r,p,{type:'tradeReply'}));engine.act(r,q,{type:'tradeReply',accept:true});assert.equal(p.cash+q.cash,cash);assert.equal(r.assets[3].owner,p.id);assert.equal(engine.bot(r,p,level).type,'build');
+});
+for(const level of ['easy','normal','hard'])test(level+': rejected offer cannot repeat until next ordinary turn',()=>{
+ const r=split(),[p,q]=r.players;engine.act(r,p,engine.bot(r,p,level));const before=JSON.stringify(r.players),owners=r.assets.map(a=>a.owner);engine.act(r,q,{type:'tradeReply',accept:false});assert.equal(JSON.stringify(r.players),before);assert.deepEqual(r.assets.map(a=>a.owner),owners);assert.equal(engine.bot(r,p,level).type,'end');r.turns++;assert.equal(engine.bot(r,p,level).type,'trade');
+});
+for(const level of ['normal','hard'])test(level+': reply values completed groups rather than face price only',()=>{
+ const r=room(),[p,q]=r.players;r.assets[1].owner=q.id;r.assets[3].owner=p.id;r.stage='end';engine.act(r,p,{type:'trade',target:q.id,giveAsset:3,takeAsset:null,giveCash:0,takeCash:70000});assert.equal(engine.bot(r,q,level).accept,true);
+ engine.act(r,q,{type:'tradeReply',accept:false});engine.act(r,p,{type:'trade',target:q.id,giveAsset:null,takeAsset:1,giveCash:0,takeCash:0});assert.equal(engine.bot(r,q,level).accept,false);
+});
+test('cash reserve, mortgages and buildings constrain offers',()=>{const r=split(),p=r.players[0];p.cash=100000;assert.equal(engine.bot(r,p,'hard').type,'end');p.cash=1500000;r.assets[3].mortgaged=true;assert.equal(engine.bot(r,p,'hard').type,'end');r.assets[3].mortgaged=false;r.assets[3].buildings=1;assert.equal(engine.bot(r,p,'hard').type,'end');});
+test('full mortgaged group is redeemed before construction',()=>{const r=split(),p=r.players[0];r.assets[3].owner=p.id;r.assets[3].mortgaged=true;const m=engine.bot(r,p,'normal');assert.deepEqual(m,{type:'redeem',asset:3});engine.act(r,p,m);assert.equal(engine.bot(r,p,'normal').type,'build');});
+test('legacy state and serialized cooldown remain compatible',()=>{const r=split(),p=r.players[0];delete r.tradeOfferTurns;engine.act(r,p,engine.bot(r,p,'normal'));engine.act(r,r.players[1],{type:'tradeReply',accept:false});const restored=JSON.parse(JSON.stringify(r));assert.equal(engine.bot(restored,restored.players[0],'normal').type,'end');engine.start(restored);assert.deepEqual(restored.tradeOfferTurns,{});});
+test('human target retains control of trade acceptance',()=>{const r=split(),[p,q]=r.players;q.bot=false;engine.act(r,p,engine.bot(r,p,'normal'));assert.equal(engine.actor(r),q);assert(r.trade);assert.equal(r.assets[3].owner,q.id);});
+test('Normal/Hard can offer mutually useful property swaps',()=>{const r=room(),[p,q]=r.players;r.stage='end';r.assets[1].owner=p.id;r.assets[3].owner=q.id;r.assets[6].owner=p.id;r.assets[8].owner=q.id;r.assets[9].owner=q.id;p.cash=200000;const offer=engine.bot(r,p,'hard');assert.equal(offer.type,'trade');assert.equal(offer.giveAsset,6);assert.equal(offer.takeAsset,3);engine.act(r,p,offer);assert.equal(engine.bot(r,q,'hard').accept,true);});
+test('Quick termination still uses eight ordinary turns per survivor',()=>{const r=room();r.settings.playMode='quick';r.stage='end';r.turnCounts={p0:7,p1:8};const out=engine.act(r,r.players[0],{type:'end'});assert(out.finished);assert.equal(r.turnCounts.p0,8);});
+const code=fs.readFileSync(require.resolve('../games/monopoli/engine'),'utf8');
+for(const level of ['easy','normal','hard'])for(const seed of [1,42,2026])test('Standard replay '+level+' seed '+seed+' finishes with valid funds and stock',()=>{
+ let rng=seed>>>0;const context={module:{exports:{}},require(name){assert.equal(name,'node:crypto');return {randomInt(a,b){if(b===undefined){b=a;a=0;}rng=(Math.imul(rng,1664525)+1013904223)>>>0;return a+Math.floor(rng/4294967296*(b-a));}};}};vm.runInNewContext(code,context);const e=context.module.exports,r=room(4);e.start(r);let done=false;
+ for(let i=0;i<5000;i++){const p=e.actor(r),msg=e.bot(r,p,level);assert(e.canAct(r,p,msg));const old=r.players.reduce((n,p)=>n+p.cash,0),tradeReply=msg.type==='tradeReply';const result=e.act(r,p,msg);r.revision++;assert(r.players.every(p=>Number.isSafeInteger(p.cash)&&p.cash>=0));if(tradeReply)assert.equal(r.players.reduce((n,p)=>n+p.cash,0),old);const stock=e.view(r,p,false).stock;assert(stock.houses>=0&&stock.hotels>=0);if(result.finished){done=true;assert.equal(result.winners.length,1);assert.equal(e.deltas(r,result.winners).reduce((a,b)=>a+b,0),0);break;}}
+ assert(done,'bound is test-only, not a production turn limit');
+});

@@ -1,12 +1,12 @@
 # Meja Kita
 
-Rilis **3.11.17 / `2026-11-01-active-table-width-1`**: **Mahjong, Blackjack, Capsa Banting, Catur, Domino, Ludo, Monopoli Nusantara, Poker, Reversi dan UNO**. Mahjong tampil besar; sembilan game lain berurutan abjad dalam tiga kolom. Termasuk leaderboard global/per game, ilustrasi terkompresi, logo naga hitam, profil Faiz naga putih dan bantuan ringkas berbentuk bullet.
+Rilis **3.11.19 / `2026-11-01-monopoli-bot-trades-1`**: **Mahjong, Blackjack, Capsa Banting, Catur, Domino, Ludo, Monopoli Nusantara, Poker, Reversi dan UNO**. Mahjong tampil besar; sembilan game lain berurutan abjad dalam tiga kolom. Termasuk leaderboard global/per game, ilustrasi terkompresi, logo naga hitam, profil Faiz naga putih dan bantuan ringkas berbentuk bullet.
 
 [Main online](https://srac-gaming.faiz-triputra.workers.dev/) · [GitHub personal](https://github.com/izanagiwarrior/srac-gaming) · [Status dan batas verifikasi](docs/PROJECT-STATUS.md) · [Maintenance](docs/MAINTENANCE.md).
 
 Hosting utama adalah **Cloudflare Workers + SQLite Durable Objects**, tanpa laptop. Target Node satu port tetap tersedia terpisah. Rilis tidak menyalin data preview atau mereset akun/room yang sudah ada. Panduan [sepuluh game](docs/TEN-GAMES.md), [leaderboard](docs/LEADERBOARD.md), [artwork](docs/CHARACTER-ART.md) dan [branding](docs/DRAGON-BRAND.md).
 
-**Status operasional1November2026:** cloud dan API akun kembali merespons normal. Rilis3.11.17 memperbaiki lebar meja aktif pada layar kecil di empat game baru, serta menyertakan perbaikan3.11.16 yang menangani kegagalan layanan akun sebelum koneksi game dimulai dan merapikan label Peringkat di HP.422kasus uji lokal sebelumnya dan22kasus audit lifecycle tambahan lulus; bukan bukti semua alur produksi bebasbug. Penyebab enam exception historis dan durasi Monopoli Standard masih ditinjau. Tidak ada upgrade billing atau reset database.
+**Status operasional1November2026:** cloud3.11.19 aktif. Bot Monopoli bisa mengajukan barter dan membangun dengan cadangan kas; panel aksi ponsel serta kontras status Light diperbaiki.65kasus uji lokal dan600simulasi bot lolos, selain validasi rilis terdahulu. Ini bukan jaminan semua keadaan bebasbug atau semua partai manusia cepat selesai. Pengujian produksi dengan akun khusus dan penyebab enam error historis masih terbatas. Tidak ada reset database atau perubahan billing.
 
 ## Akun kantor untuk login Google
 

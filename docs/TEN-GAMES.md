@@ -14,7 +14,7 @@ Includes [UNO/Ludo](UNO-LUDO.md). New games use `games/shared/party-server.js`, 
 
 Standard ends with last solvent player. Quick ends after each surviving player completes eight normal turns (extra throws excluded); highest net worth wins, ties split winners. Net worth cash +full property value (half when mortgaged) +building cost. Losers−10table points each; winner(s) split the positive total deterministically. Internal cash, account coins and IDR conversion of table points are separate. Existing admin table correction adjusts recap points, not private in-round Monopoli cash.
 
-Easy/Normal/Hard differ in purchase reserve, auction cap, trade acceptance and building decisions. Bots wait at least3seconds per action.
+Easy/Normal/Hard differ in purchase reserve, auction cap, trade acceptance, trade proposals and building decisions. Bots can propose one group-completing offer per ordinary turn, only with public information and the target's consent. Easy uses cash offers and retains a larger reserve; Normal/Hard can also swap undeveloped properties and value completed groups. All levels can build and redeem mortgages on their full group when reserves permit. See [bot policy](MONOPOLI-BOTS.md). Bots wait at least3seconds per action.
 
 ## Reversi / Othello
 
