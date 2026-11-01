@@ -41,7 +41,7 @@ function inviteURL() {
 function seatsHTML() {
   return Array.from({ length:S.seats },(_,i) => {
     const p = S.players[i], active = S.phase === 'playing' && p?.id === S.turnId;
-    return `<div class="player ${active ? 'active' : ''} ${p?.id === S.you ? 'you' : ''}"><span class="avatar">${p ? p.bot ? '⠿' : esc(p.name[0].toUpperCase()) : '+'}</span><div><strong>${p ? esc(p.name) + (p.id === S.you ? ' · kamu' : '') : 'Kursi ' + (i+1)}</strong><small>${p ? p.bot ? 'BOT' : p.connected ? 'PEMAIN' : 'TERPUTUS' : S.fillBots ? 'BOT JIKA KOSONG' : 'MENUNGGU TEMAN'}</small></div><span class="tile-count">${p && S.phase !== 'lobby' ? p.count : '—'}<small>BATU</small></span><div class="player-bottom"><span>${active ? '● Giliran' : p ? p.wins + ' kemenangan' : 'Bagikan link room'}</span>${p && S.phase !== 'lobby' ? '<i class="tile-back"></i><i class="tile-back"></i><i class="tile-back"></i>' : ''}</div></div>`;
+    return `<div data-mk-player-name="${esc(p?.name||'')}" class="player ${active ? 'active' : ''} ${p?.id === S.you ? 'you' : ''}"><span class="avatar">${p ? p.bot ? '⠿' : esc(p.name[0].toUpperCase()) : '+'}</span><div><strong>${p ? esc(p.name) + (p.id === S.you ? ' · kamu' : '') : 'Kursi ' + (i+1)}</strong><small>${p ? p.bot ? 'BOT' : p.connected ? 'PEMAIN' : 'TERPUTUS' : S.fillBots ? 'BOT JIKA KOSONG' : 'MENUNGGU TEMAN'}</small></div><span class="tile-count">${p && S.phase !== 'lobby' ? p.count : '—'}<small>BATU</small></span><div class="player-bottom"><span>${active ? '● Giliran' : p ? p.wins + ' kemenangan' : 'Bagikan link room'}</span>${p && S.phase !== 'lobby' ? '<i class="tile-back"></i><i class="tile-back"></i><i class="tile-back"></i>' : ''}</div></div>`;
   }).join('');
 }
 function chainHTML() {

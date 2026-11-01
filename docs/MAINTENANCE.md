@@ -1,3 +1,9 @@
+## Pending local3.12.0 — rank cosmetics and effects (1 November2026)
+
+Includes/supersedes3.11.22. English tiers: Initiate/Silver Vanguard/Jade Sentinel/Golden Sovereign/Astral Legend/Celestial Dragon at1/5/10/15/20/30. Fourteen new CSS cosmetics (6paid/8rank-only), plus5existing paid skins unlock byrank. Profile five slots +preview; automatic permanent server-owned rank grants/receipts/audit, owned-slot validation, existing atomic paid purchase, admin controls, sanitized push of style to existing rooms. Additive3nullableAccountStorecolumns+receipt table, same actors/bindings/migrationIDs. Lightweight entrance/aura onsharedstrip/nativepanels10games, reduced-motion and cleanup; no images/reward/XP/game-rule changes. See docs/RANK-COSMETICS.md.
+
+Private authoring:13unique maxrankgrants/no repeats,Level5nonadmin2gifts/nocoincharge,unowned/early/invalidslots rejected,paidUI480→180/replaynocharge/equip/persistence/audit. Actual unstarted Mahjong lobby entrance/live profile update/reducedmotion/dissolution;30native render samples10games fit+auras;14profile/shopactualviewport samplesfit. Syntax/build passed. No automated/gameplay/cloud tests; explicit limits in doc. Canonicalmain621e254/cloud3.11.21 unchanged, isolatedcandidateonly;noinstall/commit/push/deploy. New publication instruction required. Earlier pending3.11.22 is included, not another queuedrelease.
+
 ## Released 3.11.21 — 1 November 2026
 
 User authorized “push deploy”. Cloud3.11.21 / `2026-11-01-table-state-layout-1` is installed at https://srac-gaming.faiz-triputra.workers.dev/ . Narrow-screen long-name/result/header layouts are bounded across Capsa, Mahjong, Poker, Chess, Domino, Blackjack and shared party UI. Small Poker summaries stack for readable amounts. CSS-only behavior change; authentication, rules, settlement, permissions and storage remain unchanged. See [table-state validation](docs/TABLE-STATE-UI.md).

@@ -18,3 +18,5 @@ html[data-theme=light] :is(.lb-heading>a,.lb-message a,.lb-rank,.lb-empty>span,.
 /* Both hosts and their thumbs-up remain visible without circular cropping. */
 .lb-intro .lb-host-dragons{width:clamp(220px,32vw,360px);height:auto;aspect-ratio:3/2;object-fit:contain;border-radius:22px;box-shadow:0 10px 30px #06170d33;border:1px solid var(--mk-border,#c7af76)}
 @media(max-width:760px){.lb-intro:has(.lb-host-dragons){flex-wrap:wrap}.lb-intro .lb-host-dragons{width:min(100%,360px);margin-inline:auto;border-radius:18px}}
+
+.lb-controls [data-lb-page]{min-height:44px;padding:9px 14px;border:1px solid var(--mk-ui-line,#748774);border-radius:8px;background:var(--mk-control,var(--mk-ui-panel,#142f27));color:var(--mk-ui-ink,inherit);font:inherit;cursor:pointer}.lb-controls [data-lb-page]:disabled{opacity:.45;cursor:default}.lb-controls [data-lb-page]:focus-visible{outline:2px solid var(--mk-accent,#e7c38b);outline-offset:3px}

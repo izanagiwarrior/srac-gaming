@@ -15,7 +15,7 @@ const {createLudoServer}=require('./games/ludo/server');
 
 const {createMonopoliServer}=require('./games/monopoli/server');
 const {createReversiServer}=require('./games/reversi/server');
-const VERSION = '2026-11-01-table-state-layout-1';
+const VERSION = '2026-11-01-gacha-recovery-1';
 const {installRoomService}=require('./games/shared/room-service');
 
 function createHub(options = {}) {
@@ -43,6 +43,18 @@ function createHub(options = {}) {
     ['/strategy-ui.js',['public/strategy-ui.js','application/javascript; charset=utf-8']],
     ['/party-client.js',['public/party-client.js','application/javascript; charset=utf-8']],
     ['/party.css',['public/party.css','text/css; charset=utf-8']],
+    ['/player-titles.js',['public/player-titles.js','application/javascript; charset=utf-8']],
+    ['/player-titles.css',['public/player-titles.css','text/css; charset=utf-8']],
+    ['/cosmetics.js',['public/cosmetics.js','application/javascript; charset=utf-8']],
+    ['/cosmetics.css',['public/cosmetics.css','text/css; charset=utf-8']],
+    ['/avatar-velvet-lynx.webp', ['public/avatar-velvet-lynx.webp','image/webp']],
+    ['/avatar-storm-wolf.webp', ['public/avatar-storm-wolf.webp','image/webp']],
+    ['/avatar-coral-axolotl.webp', ['public/avatar-coral-axolotl.webp','image/webp']],
+    ['/avatar-moss-capybara.webp', ['public/avatar-moss-capybara.webp','image/webp']],
+    ['/avatar-amara-sunweaver.webp', ['public/avatar-amara-sunweaver.webp','image/webp']],
+    ['/avatar-niko-cloudrider.webp', ['public/avatar-niko-cloudrider.webp','image/webp']],
+    ['/profile-lantern-garden.webp', ['public/profile-lantern-garden.webp','image/webp']],
+    ['/profile-moonlit-observatory.webp', ['public/profile-moonlit-observatory.webp','image/webp']],
     ['/accessory-amethyst-frame.webp', ['public/accessory-amethyst-frame.webp','image/webp']],
     ['/accessory-crown-frame.webp', ['public/accessory-crown-frame.webp','image/webp']],
     ['/accessory-emerald-frame.webp', ['public/accessory-emerald-frame.webp','image/webp']],

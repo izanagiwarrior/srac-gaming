@@ -47,3 +47,7 @@ Stable cosmetic admin-faiz now uses avatar-admin-faiz-white.webp,512px/49286byte
 ## Tab brand3.11.9
 
 Use the same integrated emblem for all HTML entry favicons: favicon-dragon-v1.png64pxRGBA/3729bytes, SharpPNG palette90/compression9 from96pxbrand-emblem.webp, metadata stripped. Each13entry explicitly references the new filename so old favicon.svg cache does not retain the club-only icon. Legacy favicon.svg now embeds same emblem. Preserve black logo/login and white Faiz profile distinction.
+
+## Collectible art3.14.0
+
+Six new384pxavatar portraits and two768×512profile backgrounds, built-in imagegen; WebP quality76, no metadata, total212224bytes. Eachavatar16–23KB;profile42–54KB. New `profile-*` hard cap64KiB enforced at build; target future avatar artunder32KiB, keep existing100KiB ceiling. Originals stay outside source. Fixed theme URLs/contrast overlays, contain previews, static-only delivery; see [provenance and budgets](COLLECTIBLE-ART.md). Existing admin artwork/ownership unchanged.

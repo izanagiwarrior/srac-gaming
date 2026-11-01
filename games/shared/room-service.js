@@ -60,12 +60,12 @@ function installRoomService(app,{slug,dataDir,persistence=null,saveInterval=5000
       queue:queue.map(id=>room.spectators.find(q=>keyFor(q)===id)).filter(Boolean).map(q=>({name:q.name,you:q===p,connected:q.connected})),
       queued:queue.includes(keyFor(p)),yielding:room.social.yielding.includes(keyFor(p)),canNext:isHost&&settled(slug,room)&&!room.recovering,
       bank:room.spectators.filter(q=>q.hasAccount).map(q=>({id:q.id,name:q.name,bot:!!q.bot,stack:q.totalBuyIn!==undefined?q.stack:undefined,totalBuyIn:q.totalBuyIn,points:q.totalBuyIn!==undefined?q.stack-q.totalBuyIn:q.score||0,net:(q.totalBuyIn!==undefined?q.stack-q.totalBuyIn:q.score||0)*rate})),
-      adjustments:(room.adminAdjustments||[]).slice(-20),presence:room.players.map(q=>({id:q.id,name:q.name,you:q===p,bot:!!q.bot,connected:!!q.connected,proxy:!room.recovering&&!!q.disconnectBot,deadline:room.recovering?null:q.disconnectDeadline||null,left:!!q.left})),presenceTime:Date.now(),presenceActive:active(slug,room),profiles:room.players.filter(p=>p.accountId).map(p=>({id:p.id,name:p.name,skin:p.accountSkin||'jade',accessory:p.accountAccessory||null})),recoveryFile:false};
+      adjustments:(room.adminAdjustments||[]).slice(-20),presence:room.players.map(q=>({id:q.id,name:q.name,you:q===p,bot:!!q.bot,connected:!!q.connected,proxy:!room.recovering&&!!q.disconnectBot,deadline:room.recovering?null:q.disconnectDeadline||null,left:!!q.left})),presenceTime:Date.now(),presenceActive:active(slug,room),profiles:room.players.filter(p=>p.accountId).map(p=>({id:p.id,name:p.name,skin:p.accountSkin||'jade',accessory:p.accountAccessory||null,decoration:p.accountDecoration||null,entrance:p.accountEntrance||null,aura:p.accountAura||null,arrival:p.accountArrival||null})),recoveryFile:false};
   }
   function enrich(ws,data) {
     if(accountMode&&ws.account){const {room,person}=entityFor(ws);if(room&&person){
       const returning=!!person.accountId;if(!person.accountId)person.accountId=ws.account.id;
-      if(person.accountId===ws.account.id){person.accountSkin=ws.account.skin;person.accountAccessory=ws.account.accessory;}
+      if(person.accountId===ws.account.id){person.accountSkin=ws.account.skin;person.accountAccessory=ws.account.accessory;person.accountDecoration=ws.account.decoration||null;person.accountEntrance=ws.account.entrance||null;person.accountAura=ws.account.aura||null;if(data.type==='joined')person.accountArrival=randomUUID();}
       if(data.type==='joined'&&ws.accountAuditRoom!==room){ws.accountAuditRoom=room;room.accountActivity||=[];room.accountActivity.push({id:randomUUID(),userId:person.accountId,kind:returning?'game.reconnected':'game.joined',game:slug,room:room.code});room.accountActivity=room.accountActivity.slice(-100);}
     }}
     if(!['state','lobby','joined'].includes(data.type))return data;

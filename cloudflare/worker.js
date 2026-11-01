@@ -127,6 +127,12 @@ export class GamingHub extends DurableObject {
   webSocketError(ws){this.sessions.get(ws)?.finish();this.sessions.delete(ws);}
   async fetch(request){
     const url=new URL(request.url);
+    if(url.pathname==='/internal/account-appearance'){
+      const b=await request.json();if(!this.apps)return json({ok:true});
+      const fields={skin:b.skin,accessory:b.accessory,decoration:b.decoration,entrance:b.entrance,aura:b.aura};
+      for(const socket of this.sessions.values())if(socket.account?.id===b.userId)Object.assign(socket.account,fields);
+      this.run(()=>{for(const [game,app] of this.apps){for(const room of app.rooms.values()){let changed=false;for(const p of [...room.players,...(room.spectators||[])])if(p.accountId===b.userId){p.accountSkin=b.skin;p.accountAccessory=b.accessory;p.accountDecoration=b.decoration;p.accountEntrance=b.entrance;p.accountAura=b.aura;changed=true;}if(changed){this.services.get(game).save();app.broadcastRoom(room);}}}});return json({ok:true});
+    }
     if(url.pathname==='/internal/account-revoke'){
       const b=await request.json();for(const socket of [...this.sessions.values()])if(socket.account?.id===b.userId&&(b.all?socket.account.sessionId!==b.keep:b.sessionIds?.includes(socket.account.sessionId))){socket.send(JSON.stringify({type:'account-session-ended'}));socket.close(1008,'Sesi akun berakhir. Masuk ulang.');}return json({ok:true});
     }

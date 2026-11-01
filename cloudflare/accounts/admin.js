@@ -1,3 +1,4 @@
+import {STYLE_SLOTS} from './cosmetics.js';
 import {problem,displayName} from './security.js';
 import {CATALOG,canUseCosmetic} from './catalog.js';
 export const MAX_BALANCE=1000000000;
@@ -8,7 +9,7 @@ export function amount(current,operation,minimum=0){
  const value=operation.mode==='set'?operation.value:current+(operation.mode==='subtract'?-operation.value:operation.value);
  if(!Number.isSafeInteger(value)||value<minimum||value>MAX_BALANCE)problem('Saldo hasil perubahan di luar batas.');return value;
 }
-export function possessions(store,user){return {name:user.name,xp:user.xp,coins:user.coins,skin:user.skin,accessory:user.accessory,inventory:store.rows('SELECT item FROM inventory WHERE user_id=? ORDER BY item',user.id).map(r=>r.item),version:user.revision||0};}
+export function possessions(store,user){return {name:user.name,xp:user.xp,coins:user.coins,skin:user.skin,accessory:user.accessory,...Object.fromEntries(STYLE_SLOTS.map(k=>[k,user[k]||null])),inventory:store.rows('SELECT item FROM inventory WHERE user_id=? ORDER BY item',user.id).map(r=>r.item),version:user.revision||0};}
 export function applyUserEdit(store,actor,body,targetId){
  const id=requestId(body.requestId),why=reason(body.reason),signature=JSON.stringify({...body,targetId,requestId:id});
  let result;
@@ -23,6 +24,7 @@ export function applyUserEdit(store,actor,body,targetId){
   const skin=CATALOG.find(i=>i.id===body.skin&&i.kind==='skin'),accessory=body.accessory===null?null:CATALOG.find(i=>i.id===body.accessory&&i.kind==='accessory');
   if(!skin||!body.inventory.includes(skin.id)||body.accessory!==null&&(!accessory||!body.inventory.includes(accessory.id)))problem('Avatar aktif harus dimiliki pemain; sisakan setidaknya satu skin.');
   store.sql.exec('UPDATE users SET name=?,xp=?,coins=?,skin=?,accessory=?,revision=revision+1 WHERE id=?',name,xp,coins,skin.id,accessory?.id||null,targetId);
+  for(const slot of STYLE_SLOTS){const selected=body[slot]===undefined?(body.inventory.includes(user[slot])?user[slot]:null):body[slot];const item=CATALOG.find(i=>i.id===selected&&i.kind===slot);if(selected!==null&&(!item||!body.inventory.includes(selected)))problem('Efek aktif harus dimiliki pemain; pilih jenis yang sesuai.');store.sql.exec(`UPDATE users SET ${slot}=? WHERE id=?`,selected,targetId);}
   for(const item of before.inventory)if(!body.inventory.includes(item))store.sql.exec('DELETE FROM inventory WHERE user_id=? AND item=?',targetId,item);
   for(const item of body.inventory)store.sql.exec('INSERT OR IGNORE INTO inventory VALUES(?,?,?)',targetId,item,Date.now());
   const after=possessions(store,store.one('SELECT * FROM users WHERE id=?',targetId)),detail={actorId:actor.id,actorName:actor.name,targetId,targetName:name,reason:why,before,after};
