@@ -1,3 +1,11 @@
+## Released 3.11.17 — 1 November 2026
+
+User authorized “push deploy” for the reviewed active-table candidate. Cloud 3.11.17 / `2026-11-01-active-table-width-1` is installed at https://srac-gaming.faiz-triputra.workers.dev/ . Shared party table grid now uses an explicit shrinkable column and bounds children: active UNO mobile document width896 at390viewport is fixed without disabling internal hand scrolling. Applies to UNO, Ludo, Monopoli and Reversi; no engine, bot, authentication, accounting or storage changes. Same cloud namespaces, bindings, actors, migrations and secrets; legacy Node live untouched.
+
+Seven-file manifest verified against clean bad2479 before installation, private source backup retained. Candidate22isolated test cases passed (20leaf+2parent): four-game spectator/lock/queue/yield/rotation/boundary, result-once, SQLite cold recovery/tombstones and fake-clock15second proxy/reconnect. Four active game tables390px Dark/Light contained; Ludo/Monopoli/Reversi1280desktop checked. Build/dry-run passed,134publicassets and394.77KiB/gzip110.87KiB bundle. See [validation scope](docs/ACTIVE-TABLE-LAYOUT.md). No production room/account mutation. Git publication is authorized for this release; verify remote before declaring push complete.
+
+No pending runtime source installation. Remaining six-game complete queue/active-state UI matrix, agreed production test identity, six historical exception attribution and Monopoli Standard duration are follow-ups, not claims of complete coverage. Future patch/push/deploy requires a new request. Earlier Pending3.11.17 describes preparation history.
+
 # Maintenance and agent handoff
 
 ## Released3.11.16 —1November2026
