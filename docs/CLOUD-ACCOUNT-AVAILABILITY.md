@@ -1,4 +1,4 @@
-# Cloud account dependency availability — candidate3.11.16
+# Cloud account dependency availability — released3.11.16
 
 ## Observed defect and behavior
 
@@ -18,4 +18,4 @@ Candidate3.11.16 handles dependency transport/non-success HTTP/invalid JSON with
 
 Historical Workers Observability was disabled. A temporary live stream previously returned no events during a successful read-only room-directory request; no historical exception stack was recovered. Sixproductionexceptionsremainunattributed. Compatibilitydate2026-10-23already enables runtime close replies per https://developers.cloudflare.com/durable-objects/api/base/ ; no speculative handshakeclose patch was applied.
 
-Candidate includes3.11.15rankingCSS. Running3.11.14 remainsunchanged. New explicit GitHubpush/deploy authorization is required. Keep both DurableObject actors/migrations/secrets and existing cloud/legacydata; neverenableACCOUNT_PREVIEWpublicly or publishprivatevalidationfixtures.
+Release3.11.16 includes3.11.15rankingCSS and is deployed as58ac318c-1cae-4f41-83f6-097bc302b7e6. Publichealth/accountAPI/14entries/CSS and10anonymoushandshakes checked. New changes still need explicit GitHubpush/deploy authorization. Keep both DurableObject actors/migrations/secrets and existing cloud/legacydata; neverenableACCOUNT_PREVIEWpublicly or publishprivatevalidationfixtures.

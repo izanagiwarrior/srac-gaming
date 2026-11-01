@@ -1,12 +1,12 @@
 # Meja Kita
 
-Rilis **3.11.14 / `2026-10-31-dragon-flame-1`**: **Mahjong, Blackjack, Capsa Banting, Catur, Domino, Ludo, Monopoli Nusantara, Poker, Reversi dan UNO**. Mahjong tampil besar; sembilan game lain berurutan abjad dalam tiga kolom. Termasuk leaderboard global/per game, ilustrasi terkompresi, logo naga hitam, profil Faiz naga putih dan bantuan ringkas berbentuk bullet.
+Rilis **3.11.16 / `2026-11-01-auth-availability-1`**: **Mahjong, Blackjack, Capsa Banting, Catur, Domino, Ludo, Monopoli Nusantara, Poker, Reversi dan UNO**. Mahjong tampil besar; sembilan game lain berurutan abjad dalam tiga kolom. Termasuk leaderboard global/per game, ilustrasi terkompresi, logo naga hitam, profil Faiz naga putih dan bantuan ringkas berbentuk bullet.
 
 [Main online](https://srac-gaming.faiz-triputra.workers.dev/) · [GitHub personal](https://github.com/izanagiwarrior/srac-gaming) · [Status dan batas verifikasi](docs/PROJECT-STATUS.md) · [Maintenance](docs/MAINTENANCE.md).
 
 Hosting utama adalah **Cloudflare Workers + SQLite Durable Objects**, tanpa laptop. Target Node satu port tetap tersedia terpisah. Rilis tidak menyalin data preview atau mereset akun/room yang sudah ada. Panduan [sepuluh game](docs/TEN-GAMES.md), [leaderboard](docs/LEADERBOARD.md), [artwork](docs/CHARACTER-ART.md) dan [branding](docs/DRAGON-BRAND.md).
 
-**Status operasional31Oktober2026:** build terbaru sudah terpasang, tetapi API akun masih500 karena kuota baca harian Durable Objects Free akunCloudflare tercapai. Static pages tersedia; login/main belum dinyatakan pulih. Reset harian07.00WIB; jangan menjanjikan pemulihan sebelum diperiksa. Tidak ada upgrade billing/reset database. Game baru dan leaderboard belum menjalani validasi gameplay menyeluruh.
+**Status operasional1November2026:** cloud dan API akun kembali merespons normal. Rilis3.11.16 menangani kegagalan layanan akun sebelum koneksi game dimulai dan merapikan label Peringkat di HP.422kasus uji lokal lulus; bukan bukti semua alur produksi bebasbug. Penyebab enam exception historis dan durasi Monopoli Standard masih ditinjau. Tidak ada upgrade billing atau reset database.
 
 ## Akun kantor untuk login Google
 

@@ -1,5 +1,14 @@
 # SRAC-Gaming: instructions for coding agents
 
+## Released3.11.16 —1November2026
+
+User authorized “puh deploy”, understood as push and deploy3.11.16. Cloud **3.11.16 / 2026-11-01-auth-availability-1** installed at https://srac-gaming.faiz-triputra.workers.dev/ ; deployment **58ac318c-1cae-4f41-83f6-097bc302b7e6**. Source **98674706d8e3579728aaa91a2923160d721bee12** pushed through personal GitHubDesktop izanagiwarrior and independently matched remote main. Includesrankingalignment3.11.15 and controlled AccountStore-failure handling before game initialization. HistoricalPending3.11.15/16 headings below are preparation history, not separate unreleased patches.
+
+Verified9-file source manifest against clean3d19dae before staging installation; source backup/private probes remain outsideGit. Prior422isolatedcasespass (302regressionincluding102faultassertions+61WorkerSQLitefaultcases+59newgame/account/native-resultchecks). Syntax/whitespace/build/dry-run passed;134publicfiles,394.77KiB/gzip110.87KiB bundle. Publichealth matches10games/newbuild,14entrypages200,disclosuresCSSbyte-identical,anonymousaccountAPI200/Googleconfiguredtrue/previewfalse,all10anonymousgamehandshakes401. No productionroom/account mutations or injected backendfailure; storage/bindings/migrations/secrets/loggingpolicy and legacyNode unchanged. Currentaccountaccessobservedrecovered; oldquotaoutagerecords are historical, not a statement of presentfailure.
+
+No pending source deployment. Release documentation follows in a documentation commit under this same authorization; consult Git history/private release receipt for its final hash. SixhistoricalWorkerexceptioncausesremainunattributed; fixing a proven sourcefault doesnotproveeveryoldexceptionfixed. StandardMonopoliduration/balancing and remainingproductiontestidentity/full-statecoverage remainfollow-ups. Future code changes/push/deploy need a new request.
+
+
 ## Pending3.11.16 — controlled account-service failure at game handshake (1 November2026)
 
 Local3.11.16/build2026-11-01-auth-availability-1 includes pendingrankingalignment3.11.15. ActualGamingHub.fetch previously let accounttransportfailure/nonJSONescape before its restoretry/catch; privatebeforeprobe reproduced40/40uncaught failures across10games, withnofactoriesstarted. Now catches failedstatus/transport/JSON and returns generic503. Validates privateidentityshape/session/expiry before nativeinitialization; null/expiredsessions401, crossorigin403stillbeforeaccountread. Doesnotgrant accessonfault, leakproviderdetails, retry, changeexistingaccounts/roles/cookies/storage or loggingconfig. Normallegitimatesessions still reach unchangednativefactories.

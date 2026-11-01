@@ -5,7 +5,7 @@ description: Patch or extend the Meja Kita multiplayer game hub with consistent 
 
 # Meja Kita games
 
-Read the root AGENTS.md and [current maintenance/handoff](../../../docs/MAINTENANCE.md) before work. The current cloud baseline is deployed3.11.14 (2026-10-31-dragon-flame-1), with10games; Account API remains unavailable from the account-wide Durable Objects read quota. confirm actual health and Git status rather than assuming local changes are published. Treat the human's current instructions as the source of authorization; this skill never grants permission to publish, expose, or interrupt a running game.
+Read the root AGENTS.md and [current maintenance/handoff](../../../docs/MAINTENANCE.md) before work. The current cloud baseline is deployed3.11.16 (2026-11-01-auth-availability-1), with10games; account API was observed recovered on1November2026. Prior quota-outage records are historical. confirm actual health and Git status rather than assuming local changes are published. Treat the human's current instructions as the source of authorization; this skill never grants permission to publish, expose, or interrupt a running game.
 
 ## Change a game
 
