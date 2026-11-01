@@ -369,7 +369,7 @@ Cloud guardrails: **64 sockets, 24 retained rooms total, 2 MiB private snapshot 
 
 ## 5. Patch and authoring workflow
 
-Use Node 22+ and the root lockfile. Install dependencies only if missing/changed (`npm ci --ignore-scripts` for cloud dev); never regenerate lockfiles casually. Existing scripts include build:cloudflare, dev:cloudflare, deploy:cloudflare and test:ui. **Do not run test:ui unless asked.**
+Use Node 22+ and the root lockfile. Install dependencies only if missing/changed (`npm ci --ignore-scripts` for cloud dev); never regenerate lockfiles casually. Existing scripts include build:cloudflare, dev:cloudflare, deploy:cloudflare and test:ui. **Do not run test:ui unless asked.** The command runs test files sequentially to avoid shared generated-build directory races. See [verification closure](VERIFICATION-2026-11-01.md) for the391-test baseline and test-only gacha fixture boundaries.
 
 For behavior changes, bump package/lock version and server build ID together; update any changed native client protocol/version gates. A docs-only change needs no runtime bump. Review Node and cloud compatibility for shared changes: direct fs/listen/process/timer assumptions may need an adapter, not another rules implementation.
 

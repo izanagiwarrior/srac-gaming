@@ -6,7 +6,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "test:ui": "node --test tests/*.test.js",
+    "test:ui": "node --test --test-concurrency=1 tests/*.test.js",
     "build:cloudflare": "node scripts/build-cloudflare.mjs",
     "dev:cloudflare": "wrangler dev --local --ip 127.0.0.1 --port 3024",
     "deploy:cloudflare": "wrangler deploy"
