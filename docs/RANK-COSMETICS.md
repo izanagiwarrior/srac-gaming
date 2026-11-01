@@ -1,3 +1,5 @@
+> **Released in3.16.1 (1November2026).** This feature is installed on Cloudflare and included in personal GitHub sourcebc80d46. Any local/pending/no-deploy descriptions below are historical authoring evidence, not a current release backlog. See [current status](PROJECT-STATUS.md). Gacha's final missing-only policy is poolfirst-light-v2.
+
 # Rank cosmetics and effects — candidate3.12.0
 
 This local candidate includes/supersedes3.11.22. Current cloud/Git is3.11.21 until explicitly released. No production account/room changes or deployment during authoring.

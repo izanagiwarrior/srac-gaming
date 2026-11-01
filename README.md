@@ -1,14 +1,14 @@
-Pending local **3.16.1**: gacha reload recovery and latest-result/coin-display fixes, including all3.16.0/earlier pending work. Pool remains first-light-v2 with missing-only limited selection. See [recovery notes](docs/GACHA-RECOVERY.md). Cloud below remains3.11.21 until a new authorized release.
+**Live3.16.1** — ranks/cosmetics, efficient account reads, new artwork/animations and limited gacha are deployed. [Release status](docs/PROJECT-STATUS.md) · [Gacha policy](docs/GACHA.md).
 
 # Meja Kita
 
-Rilis **3.11.21 / `2026-11-01-table-state-layout-1`**: **Mahjong, Blackjack, Capsa Banting, Catur, Domino, Ludo, Monopoli Nusantara, Poker, Reversi dan UNO**. Mahjong tampil besar; sembilan game lain berurutan abjad dalam tiga kolom. Termasuk leaderboard global/per game, ilustrasi terkompresi, logo naga hitam, profil Faiz naga putih dan bantuan ringkas berbentuk bullet.
+Rilis **3.16.1 / `2026-11-01-gacha-recovery-1`**: **Mahjong, Blackjack, Capsa Banting, Catur, Domino, Ludo, Monopoli Nusantara, Poker, Reversi dan UNO**. Mahjong tampil besar; sembilan game lain berurutan abjad dalam tiga kolom. Termasuk leaderboard global/per game, ilustrasi terkompresi, logo naga hitam, profil Faiz naga putih dan bantuan ringkas berbentuk bullet.
 
 [Main online](https://srac-gaming.faiz-triputra.workers.dev/) · [GitHub personal](https://github.com/izanagiwarrior/srac-gaming) · [Status dan batas verifikasi](docs/PROJECT-STATUS.md) · [Maintenance](docs/MAINTENANCE.md).
 
 Hosting utama adalah **Cloudflare Workers + SQLite Durable Objects**, tanpa laptop. Target Node satu port tetap tersedia terpisah. Rilis tidak menyalin data preview atau mereset akun/room yang sudah ada. Panduan [sepuluh game](docs/TEN-GAMES.md), [leaderboard](docs/LEADERBOARD.md), [artwork](docs/CHARACTER-ART.md) dan [branding](docs/DRAGON-BRAND.md).
 
-**Status operasional1November2026:** cloud3.11.21 aktif; kandidat3.13.0 belum dipasang. Verifikasi terdahulu mencakup alur akun QA/kosmetik berbayar/equip/login ulang, empat ronde Reversi gratis dan Google login baru yang diselesaikan pengguna. Enam error historis ditutup atas permintaan pengguna. Lihat [status/cakupan](docs/PROJECT-STATUS.md); ini bukan jaminan semua keadaan bebasbug. Database dan billing tidak direset.
+**Status operasional1November2026:** cloud3.16.1aktif, sourcebc80d46sudahdipushkeGitHubpersonal.14halaman200,39asetberubahcocok,akun200/katalog73/Googleaktif/demoproduksimati;tidakadaaksiroom/akun/gacha produksisaatverifikasi. Tidak ada source-release pending dari permintaan ini. Validasi lokal dan batasnya ada pada catatan fitur; hasil ini bukan jaminan seluruh keadaan gameplay bebasbug. Database dan billing tidak direset.
 
 ## Akun kantor untuk login Google
 

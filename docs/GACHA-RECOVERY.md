@@ -1,3 +1,5 @@
+> **Released in3.16.1 (1November2026).** This feature is installed on Cloudflare and included in personal GitHub sourcebc80d46. Any local/pending/no-deploy descriptions below are historical authoring evidence, not a current release backlog. See [current status](PROJECT-STATUS.md). Gacha's final missing-only policy is poolfirst-light-v2.
+
 # Gacha recovery follow-up
 
 Pending local3.16.1 / `2026-11-01-gacha-recovery-1`,1November2026. Includes3.16.0/all earlier pending work. Pool remains `first-light-v2`: no cost, chance, missing-only selection, payout, collectible or receipt changes. Current cloud/Git remains3.11.21; no installation/push/deploy.

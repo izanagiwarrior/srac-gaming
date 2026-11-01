@@ -1,3 +1,5 @@
+> **Released in3.16.1 (1November2026).** This feature is installed on Cloudflare and included in personal GitHub sourcebc80d46. Any local/pending/no-deploy descriptions below are historical authoring evidence, not a current release backlog. See [current status](PROJECT-STATUS.md). Gacha's final missing-only policy is poolfirst-light-v2.
+
 # Player titles
 
 Candidate3.12.0 supersedes3.11.22 with English titles and rank cosmetics. The shared definition remains public/player-titles.js. See [rank rewards, ownership, profile configuration and actual verification limits](RANK-COSMETICS.md).

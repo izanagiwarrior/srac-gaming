@@ -1,3 +1,5 @@
+> **Released in3.16.1 (1November2026).** This feature is installed on Cloudflare and included in personal GitHub sourcebc80d46. Any local/pending/no-deploy descriptions below are historical authoring evidence, not a current release backlog. See [current status](PROJECT-STATUS.md). Gacha's final missing-only policy is poolfirst-light-v2.
+
 # Database read discipline
 
 Local candidate 3.13.0 / `2026-11-01-database-pages-1` includes the pending rank/cosmetic work from 3.12.0. Not installed, pushed or deployed. Current cloud/Git remains 3.11.21. This is an original implementation of generic indexed pagination and scoped caching patterns reviewed in Feedback Intelligence; no office source, data or configuration is copied into this repository.

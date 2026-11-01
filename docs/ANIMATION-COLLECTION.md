@@ -1,3 +1,5 @@
+> **Released in3.16.1 (1November2026).** This feature is installed on Cloudflare and included in personal GitHub sourcebc80d46. Any local/pending/no-deploy descriptions below are historical authoring evidence, not a current release backlog. See [current status](PROJECT-STATUS.md). Gacha's final missing-only policy is poolfirst-light-v2.
+
 # Animation collection
 
 Local candidate3.15.0 / `2026-11-01-animation-collection-1`,1November2026. Includes all pending3.14.0 artwork,3.13.0 read optimization and rank cosmetics. Canonical/cloud/Git remains3.11.21 until fresh release authorization.

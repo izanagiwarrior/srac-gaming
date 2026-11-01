@@ -1,3 +1,5 @@
+> Current release3.16.1/build2026-11-01-gacha-recovery-1 was deployed1November2026 to the existing Worker/actors. See [release status](PROJECT-STATUS.md) for evidence and limits. No new actor, migration tag, billing upgrade or data reset was used.
+
 # Cloudflare hosting — Workers + SQLite Durable Object
 
 ## Released3.11.16 —1November2026

@@ -1,3 +1,5 @@
+> **Released in3.16.1 (1November2026).** This feature is installed on Cloudflare and included in personal GitHub sourcebc80d46. Any local/pending/no-deploy descriptions below are historical authoring evidence, not a current release backlog. See [current status](PROJECT-STATUS.md). Gacha's final missing-only policy is poolfirst-light-v2.
+
 # First Light gacha
 
 Pending local3.16.0 / `2026-11-01-limited-gacha-1`,1November2026. Includes3.15.0animations and all earlier pending work. Cloud/Git remains3.11.21. No real users, real currency or production actions were used during authoring.
