@@ -5,7 +5,7 @@ description: Patch or extend the Meja Kita multiplayer game hub with consistent 
 
 # Meja Kita games
 
-Read the root AGENTS.md and [current maintenance/handoff](../../../docs/MAINTENANCE.md) before work. The current cloud baseline is deployed3.11.16 (2026-11-01-auth-availability-1), with10games; account API was observed recovered on1November2026. Prior quota-outage records are historical. confirm actual health and Git status rather than assuming local changes are published. Treat the human's current instructions as the source of authorization; this skill never grants permission to publish, expose, or interrupt a running game.
+Read the root AGENTS.md and [current maintenance/handoff](../../../docs/MAINTENANCE.md) before work. The current cloud baseline is deployed3.16.1 (2026-11-01-gacha-recovery-1), with10games;1November2026 public checks confirmed accountAPI200/catalog73/Googleconfigured/productionpreviewfalse,14entrypages200 and39changedassets exact. Englishrankcosmetics,efficientreadpagination,artwork/animations andmissing-onlygachapoolfirst-light-v2 are included. Prior quota-outage records are historical. confirm actual health and Git status rather than assuming local changes are published. Treat the human's current instructions as the source of authorization; this skill never grants permission to publish, expose, or interrupt a running game.
 
 ## Change a game
 
@@ -40,7 +40,7 @@ Read docs/ACCOUNTS.md, docs/ADMIN-CONTROLS.md and docs/ACCOUNT-VALIDATION.md bef
 
 ## Authenticated room ownership
 
-Read [account safety](../../../docs/ACCOUNT-SAFETY.md) before modifying cloud sessions. `cloudflare/accounts/room-access.js` gates all six factories: one occupied room/account, automatic authenticated cross-device handoff, rotating seat/host tokens checkpointed before resume. Browser recovery hints are not account ownership. Preserve AccountStore/accounts-v1 and GamingHub/office-hub-v1, session revocation checks, bounded input and token-free seat discovery. Test real Worker/SQLite adapters using tests/account-rooms.test.js; do not use production rooms as fixtures.
+Read [account safety](../../../docs/ACCOUNT-SAFETY.md) before modifying cloud sessions. `cloudflare/accounts/room-access.js` gates the configured game factories: one occupied room/account, automatic authenticated cross-device handoff, rotating seat/host tokens checkpointed before resume. Browser recovery hints are not account ownership. Preserve AccountStore/accounts-v1 and GamingHub/office-hub-v1, session revocation checks, bounded input and token-free seat discovery. Test real Worker/SQLite adapters using tests/account-rooms.test.js; do not use production rooms as fixtures.
 
 For disconnect lifecycle, read docs/CONNECTIONS.md and games/shared/connection.js. Preserve the15second grace, transient proxy flag (never convert account ownership into permanent bot), cancellation/stale-callback guards, paused cold recovery and no-replay/reduced-motion UI.3.5.0public checks/build passed. Subsequent isolated validation:200tests pass, including six native grace/reconnect/full-round cases, authenticated handoffs, actual wall-clock Worker/SQLite Chess grace and six-game cold active recovery/closed-code checks plus Mahjong opening/claim/undo and Blackjack dealt/dealer/settled recovery. See docs/CONNECTION-VALIDATION.md for precise scope and remaining gaps; the user subsequently authorized their Git-only publication with “selesaikan”, with no runtime deployment. No claim of exhaustive races/settlements/security.
 
