@@ -62,3 +62,10 @@ body{min-height:100svh}
 .prop-dam{display:flex;gap:5px}.prop-dam i{width:25px;height:25px;border-radius:50%;background:radial-gradient(circle at 30% 20%,#f0897c,#b32d29 75%);border:1px solid #7d1f1c}.prop-dam i:nth-child(2){background:radial-gradient(circle at 30% 20%,#fff,#d9d3c3 85%);border-color:#b9b59e}
 .prop-empat{display:grid;grid-template-columns:repeat(2,22px);gap:4px;padding:5px;background:#1f4e8a;border-radius:8px}.prop-empat i{width:22px;height:22px;border-radius:50%;background:radial-gradient(circle at 30% 20%,#f48b80,#c0302b 75%)}.prop-empat i:nth-child(2),.prop-empat i:nth-child(3){background:radial-gradient(circle at 30% 20%,#fff0a0,#e6b928 75%)}
 .prop-tg{font-size:22px;line-height:1}
+/* Square card art: the character fills the art window; game props sit on a translucent overlay (3.17.1). */
+.game-grid .game-card:not(.game-featured) .game-art{height:auto;min-height:0;aspect-ratio:1/1;background:#143028}
+.game-grid .game-card:not(.game-featured) .game-art .cast-portrait{position:absolute;inset:0;right:auto;top:auto;width:100%;height:100%;max-height:none;object-fit:cover;object-position:50% 30%;mask-image:none;-webkit-mask-image:none}
+.game-grid .game-card:not(.game-featured) .cast-halo{background:linear-gradient(0deg,#08201691 0%,#08201655 30%,transparent 55%)}
+.game-grid .game-card:not(.game-featured) .game-prop-set{left:50%;right:auto;bottom:14px;transform:translateX(-50%);width:auto;max-width:calc(100% - 28px);padding:10px 14px;background:#0f2a2096;border:1px solid #ddc68e66;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+html[data-theme="light"] .game-grid .game-card:not(.game-featured) .game-art{background:#244238}
+.prop-dam i{display:grid;place-items:center;font-style:normal}.prop-dam i.king{background:radial-gradient(circle at 30% 20%,#f0897c,#b32d29 75%);border-color:#7d1f1c;color:#f6d86b;font-size:15px;line-height:1;text-shadow:0 1px 1px #0008}
