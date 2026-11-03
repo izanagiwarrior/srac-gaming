@@ -44,6 +44,7 @@ function createHub(options = {}) {
   const services = new Map([...games].map(([slug,app])=>[slug,installRoomService(app,{slug,dataDir:path.join(runtimeDir,'rooms')})]));
   const assets = new Map([
     ['/strategy-ui.js',['public/strategy-ui.js','application/javascript; charset=utf-8']],
+    ['/card-art.js',['public/card-art.js','application/javascript; charset=utf-8']],
     ['/party-client.js',['public/party-client.js','application/javascript; charset=utf-8']],
     ['/party.css',['public/party.css','text/css; charset=utf-8']],
     ['/player-titles.js',['public/player-titles.js','application/javascript; charset=utf-8']],

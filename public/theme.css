@@ -91,3 +91,7 @@ html[data-theme="light"] .table-shell .turn-banner{background:#244a38;color:#f5e
 html[data-theme="light"] .table-shell .turn-banner.mine{background:#e3c386;color:#20362b;border-color:#e3c386}
 html[data-theme="light"] .table-shell .turn-banner small{color:inherit}
 html[data-theme="light"] #game .table .status{background:transparent;color:#f5efdf}
+
+/* Dropdowns: custom chevron inset from the edge (the native arrow hugs the border). !important survives per-page `background:` shorthands. */
+select:not([multiple]):not([size]){-webkit-appearance:none!important;appearance:none!important;padding-right:38px!important;text-overflow:ellipsis;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none' stroke='%23e8e2cf' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1.5 1.5 6 6l4.5-4.5'/%3E%3C/svg%3E")!important;background-repeat:no-repeat!important;background-position:right 14px center!important;background-size:12px 8px!important}
+html[data-theme="light"] select:not([multiple]):not([size]){background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none' stroke='%23294634' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1.5 1.5 6 6l4.5-4.5'/%3E%3C/svg%3E")!important}

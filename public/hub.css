@@ -62,10 +62,24 @@ body{min-height:100svh}
 .prop-dam{display:flex;gap:5px}.prop-dam i{width:25px;height:25px;border-radius:50%;background:radial-gradient(circle at 30% 20%,#f0897c,#b32d29 75%);border:1px solid #7d1f1c}.prop-dam i:nth-child(2){background:radial-gradient(circle at 30% 20%,#fff,#d9d3c3 85%);border-color:#b9b59e}
 .prop-empat{display:grid;grid-template-columns:repeat(2,22px);gap:4px;padding:5px;background:#1f4e8a;border-radius:8px}.prop-empat i{width:22px;height:22px;border-radius:50%;background:radial-gradient(circle at 30% 20%,#f48b80,#c0302b 75%)}.prop-empat i:nth-child(2),.prop-empat i:nth-child(3){background:radial-gradient(circle at 30% 20%,#fff0a0,#e6b928 75%)}
 .prop-tg{font-size:22px;line-height:1}
-/* Square card art: the character fills the art window; game props sit on a translucent overlay (3.17.1). */
-.game-grid .game-card:not(.game-featured) .game-art{height:auto;min-height:0;aspect-ratio:1/1;background:#143028}
-.game-grid .game-card:not(.game-featured) .game-art .cast-portrait{position:absolute;inset:0;right:auto;top:auto;width:100%;height:100%;max-height:none;object-fit:cover;object-position:50% 30%;mask-image:none;-webkit-mask-image:none}
-.game-grid .game-card:not(.game-featured) .cast-halo{background:linear-gradient(0deg,#08201691 0%,#08201655 30%,transparent 55%)}
-.game-grid .game-card:not(.game-featured) .game-prop-set{left:50%;right:auto;bottom:14px;transform:translateX(-50%);width:auto;max-width:calc(100% - 28px);padding:10px 14px;background:#0f2a2096;border:1px solid #ddc68e66;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
-html[data-theme="light"] .game-grid .game-card:not(.game-featured) .game-art{background:#244238}
+/* Square card art: sharp character, muted (less saturation/brightness + dark-green tint) so the uniform props box leads. */
+.game-grid .game-card:not(.game-featured) .game-art{height:auto;min-height:0;aspect-ratio:1/1;background:#e9efe4}
+.game-grid .game-card:not(.game-featured) .game-art .cast-portrait{position:absolute;inset:0;right:auto;top:auto;width:100%;height:100%;max-height:none;object-fit:cover;object-position:50% 30%;mask-image:none;-webkit-mask-image:none;filter:saturate(.72) brightness(.86);transform:none}
+.game-grid .game-card:not(.game-featured) .cast-halo{background:linear-gradient(0deg,#082016b0 0%,#08201600 58%),#14302852}
+.game-grid .game-card:not(.game-featured) .game-prop-set{box-sizing:border-box;left:12px;bottom:12px;right:auto;top:auto;width:200px;height:200px;max-width:none;min-width:0;padding:14px;gap:8px;overflow:hidden;transform:scale(var(--ps,.6));transform-origin:left bottom;background:#10291fe6;border:1px solid #ddc68e88;box-shadow:0 6px 16px #00180e55}
+html[data-theme="light"] .game-grid .game-card:not(.game-featured) .game-art{background:#e9efe4}
 .prop-dam i{display:grid;place-items:center;font-style:normal}.prop-dam i.king{background:radial-gradient(circle at 30% 20%,#f0897c,#b32d29 75%);border-color:#7d1f1c;color:#f6d86b;font-size:15px;line-height:1;text-shadow:0 1px 1px #0008}
+.prop-fit{display:flex;align-items:center;justify-content:center;gap:5px;width:max-content;flex:none;transform:scale(var(--pi,1));transform-origin:center}
+/* Mahjong (featured row): same square-art concept; its art is exactly as wide as one card below (1/3 of the row, 1/2 when the grid has two columns), text takes the rest. */
+.game-grid .game-card.game-featured{grid-template-columns:calc((100% - 48px)/3) minmax(0,1fr);min-height:0}
+@media(max-width:1000px){.game-grid .game-card.game-featured{grid-template-columns:calc((100% - 24px)/2) minmax(0,1fr)}}
+.game-grid .game-card.game-featured .game-art{height:auto;min-height:0;aspect-ratio:1/1;width:100%;background:#143028}
+.game-grid .game-card.game-featured .game-art .cast-portrait{position:absolute;inset:0;right:auto;top:auto;width:100%;height:100%;max-height:none;object-fit:cover;object-position:50% 30%;mask-image:none;-webkit-mask-image:none;filter:saturate(.72) brightness(.86);transform:none}
+.game-grid .game-card.game-featured .cast-halo{background:linear-gradient(0deg,#082016b0 0%,#08201600 58%),#14302852}
+.game-grid .game-card.game-featured .game-prop-set{box-sizing:border-box;left:12px;bottom:12px;right:auto;top:auto;width:200px;height:200px;max-width:none;min-width:0;padding:14px;gap:8px;overflow:hidden;transform:scale(var(--ps,.6));transform-origin:left bottom;background:#10291fe6;border:1px solid #ddc68e88;box-shadow:0 6px 16px #00180e55}
+@media(max-width:560px){.game-grid .game-card.game-featured{display:flex;flex-direction:column}}
+.game-grid .game-card.game-featured .game-art{align-self:stretch}
+.game-grid .game-card.game-featured .game-card-body{padding:26px 36px}
+.game-grid .game-card.game-featured h3{font-size:40px}
+.game-grid .game-card.game-featured .game-meta{margin-bottom:12px}
+.game-grid .game-card.game-featured .game-card-bottom{margin-top:14px}
