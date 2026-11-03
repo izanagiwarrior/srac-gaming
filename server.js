@@ -18,7 +18,7 @@ const {createReversiServer}=require('./games/reversi/server');
 const {createDamServer}=require('./games/dam/server');
 const {createTanggaServer}=require('./games/tangga/server');
 const {createEmpatServer}=require('./games/empat/server');
-const VERSION = '2026-11-03-three-games-1';
+const VERSION = '2026-11-03-card-art-1';
 const {installRoomService}=require('./games/shared/room-service');
 
 function createHub(options = {}) {
