@@ -1,6 +1,6 @@
 import {problem,response} from './security.js';
 import {CATALOG,canUseCosmetic} from './catalog.js';
-export const GAMES=['capsa','mahjong','poker','catur','domino','blackjack','uno','ludo','monopoli','reversi'];
+export const GAMES=['capsa','mahjong','poker','catur','domino','blackjack','uno','ludo','monopoli','reversi','dam','tangga','empat'];
 const MAX=9000000000000000;
 export function initLeaderboard(store){
  const sql=store.sql;

@@ -1,6 +1,6 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
 const source=fs.readFileSync(path.join(__dirname,'../cloudflare/worker.js'),'utf8'),start=source.indexOf('  async fetch(request){'),end=source.indexOf('\n}\n\nexport default',start),method=source.slice(start,end).replace('  async fetch(request){','return async function(request){');
-const games=['capsa','mahjong','poker','catur','domino','blackjack','uno','ludo','monopoli','reversi'];
+const games=['capsa','mahjong','poker','catur','domino','blackjack','uno','ludo','monopoli','reversi','dam','tangga','empat'];
 const handler=new Function('GAMES','json','failed','WebSocketPair',method)(games,(v,s=200)=>new Response(JSON.stringify(v),{status:s}),()=>new Response(JSON.stringify({error:'Server belum dapat memproses sesi. Coba hubungkan kembali.'}),{status:503}),()=>{throw Error('Unexpected socket allocation');});
 const cases=[
  ['transport',()=>{throw Error('private-transport-detail');},503],

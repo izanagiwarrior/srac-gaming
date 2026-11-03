@@ -1,6 +1,6 @@
 'use strict';
 (function(){
-  const games=['capsa','mahjong','poker','catur','domino','blackjack','uno','ludo','monopoli','reversi'];
+  const games=['capsa','mahjong','poker','catur','domino','blackjack','uno','ludo','monopoli','reversi','dam','tangga','empat'];
   const slug=location.pathname.split('/')[1],read=(key,fallback)=>{try{return JSON.parse(localStorage.getItem(key))??fallback;}catch{return fallback;}};
   const write=(key,value)=>{try{localStorage.setItem(key,JSON.stringify(value));}catch{}};
   const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -316,7 +316,7 @@
     if(slug==='mahjong'){turn=!message.over&&!message.spectator&&(message.phase==='discard'&&message.you===message.current||message.claimWaiting?.includes(message.you));play=message.last?.tile?.id;round=message.hand;done=message.over;}
     if(slug==='poker'){turn=!!message.game?.options&&!message.spectator;play=message.game?.version;round=message.game?.handNo;done=message.game?.over||message.phase==='ended';}
     if(slug==='catur'){turn=message.ready&&!message.spectator&&message.phase==='playing'&&message.turn===message.yourColor;play=message.ply;round=message.matchId;done=message.phase==='finished';}
-    if(['domino','uno','ludo','monopoli','reversi'].includes(slug)){turn=message.ready&&!message.spectator&&message.phase==='playing'&&message.turnId===message.you;play=message.revision;round=message.matchId;done=message.phase==='finished';}
+    if(['domino','uno','ludo','monopoli','reversi','dam','tangga','empat'].includes(slug)){turn=message.ready&&!message.spectator&&message.phase==='playing'&&message.turnId===message.you;play=message.revision;round=message.matchId;done=message.phase==='finished';}
     if(slug==='blackjack'){turn=!message.spectator&&(message.phase==='playing'&&message.turnId===message.you||message.phase==='betting'&&message.players?.find(p=>p.id===message.you)?.bet===null);play=message.events?.at(-1)?.text;round=message.round;done=message.phase==='finished';}
     const chat=JSON.stringify(message.chat?.at(-1)||null),room=message.code;
     if(previous&&previous.room===room&&!meta?.recovering){if(done&&!previous.done)tone('result');else if(turn&&(!previous.turn||round!==previous.round))tone('turn');else if(play!==previous.play&&round===previous.round)tone('play');else if(chat!==previous.chat&&message.chat?.at(-1)?.name!==profile.name)tone('chat');}

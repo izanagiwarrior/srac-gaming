@@ -1,3 +1,9 @@
+## Pending local 3.17.0 — Dam, Ular Tangga, Empat Berturut (3 November 2026)
+
+User asked for three new games (Dam, Ular Tangga, and one of my choice — Empat Berturut/Connect Four). Local candidate **3.17.0 / `2026-11-03-three-games-1`** on branch `feature/dam-ular-tangga-game3`, thirteen games total. Authoritative engines, shared party server/client, Node + Workers registration, leaderboard/account/admin names, hub cards (alphabetical, 4×3) and CSS-only boards. Rules, bot policy, scoring and limits: [NEW-GAMES.md](NEW-GAMES.md). No new dependency, asset, actor or migration.
+
+Evidence: `tests/new-games-engine.test.js` (17 rule/bot/self-play cases) plus the lifecycle, cold-recovery and availability tests extended to the new slugs. Full `npm run test:ui`: **447 pass/0 fail/0 skip/0 todo**. Local browser check of all three lobbies/rounds incl. a Dam select-and-move against a bot, and 320 px layout with no horizontal scroll. Not checked: human rule play-testing against another implementation, real phones, assistive technology, light theme per game. Local only: not committed, pushed, installed or deployed; cloud remains 3.16.1. New instruction required for commit/push/deploy.
+
 ## Verification follow-up — 1 November 2026
 
 User requested all pending checks completed. Staging-only test maintenance: sequential test files prevent shared build-directory races; audit/history assertions follow pagination. New test-only SQLite fixture covers rank/cosmetic/gacha boundaries, missing-only assets, complete acknowledgement, replay/concurrency/restart/rollback/isolation/rate and10simultaneous users/100draws. Full `npm run test:ui`: **391pass/0fail/0skip/0todo**. See [verification closure](docs/VERIFICATION-2026-11-01.md) for exact coverage and limits. Controls are test-bundle-only, never deployed.

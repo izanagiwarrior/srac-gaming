@@ -9,7 +9,7 @@
   MejaCosmetics.configure(data.catalog);cosmeticsReady=true;
   for(const item of data.catalog||[])if(item.kind==='skin'&&/^\/avatar-[a-z-]+\.webp$/.test(item.image))skins[item.id]=item.image;
   for(const item of data.catalog||[])if(item.kind==='accessory'&&/^\/accessory-[a-z-]+\.webp$/.test(item.image))accessories[item.id]=item.image;
-  const user=data.user,game=/^\/(capsa|mahjong|poker|catur|domino|blackjack|uno|ludo|monopoli|reversi)\//.test(location.pathname);
+  const user=data.user,game=/^\/(capsa|mahjong|poker|catur|domino|blackjack|uno|ludo|monopoli|reversi|dam|tangga|empat)\//.test(location.pathname);
   const link=document.createElement('a');link.href='/account/';link.className='mk-account-link';link.setAttribute('aria-label',user?'Profil '+user.name:'Masuk akun');
   if(user){const title=MejaTitles.get(user.level).name;link.title=title+' · Level '+user.level;link.setAttribute('aria-label','Profil '+user.name+' · '+title+' · Level '+user.level);link.append(makeAvatar(user),document.createTextNode(user.name+' · Lv '+user.level));}else link.textContent='Masuk / Buat akun';
   const bar=game?document.querySelector('.hubbar'):null;const nav=document.querySelector('.header nav');if(bar){bar.classList.add('mk-game-topbar');bar.append(link);}else if(nav)nav.append(link);else{const box=document.createElement('div');box.className='mk-account-strip';box.append(link);document.body.prepend(box);}

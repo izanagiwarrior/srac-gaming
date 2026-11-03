@@ -4,9 +4,11 @@
 
 Rilis **3.16.1 / `2026-11-01-gacha-recovery-1`**: **Mahjong, Blackjack, Capsa Banting, Catur, Domino, Ludo, Monopoli Nusantara, Poker, Reversi dan UNO**. Mahjong tampil besar; sembilan game lain berurutan abjad dalam tiga kolom. Termasuk leaderboard global/per game, ilustrasi terkompresi, logo naga hitam, profil Faiz naga putih dan bantuan ringkas berbentuk bullet.
 
+**Kandidat lokal 3.17.0 / `2026-11-03-three-games-1`** menambah **Dam, Ular Tangga dan Empat Berturut** (13 game). Belum di-commit ke main, di-push atau di-deploy; cloud tetap 3.16.1. Lihat [docs/NEW-GAMES.md](docs/NEW-GAMES.md).
+
 [Main online](https://srac-gaming.faiz-triputra.workers.dev/) · [GitHub personal](https://github.com/izanagiwarrior/srac-gaming) · [Status dan batas verifikasi](docs/PROJECT-STATUS.md) · [Maintenance](docs/MAINTENANCE.md).
 
-Hosting utama adalah **Cloudflare Workers + SQLite Durable Objects**, tanpa laptop. Target Node satu port tetap tersedia terpisah. Rilis tidak menyalin data preview atau mereset akun/room yang sudah ada. Panduan [sepuluh game](docs/TEN-GAMES.md), [leaderboard](docs/LEADERBOARD.md), [artwork](docs/CHARACTER-ART.md) dan [branding](docs/DRAGON-BRAND.md).
+Hosting utama adalah **Cloudflare Workers + SQLite Durable Objects**, tanpa laptop. Target Node satu port tetap tersedia terpisah. Rilis tidak menyalin data preview atau mereset akun/room yang sudah ada. Panduan [sepuluh game](docs/TEN-GAMES.md), [tiga game baru: Dam, Ular Tangga, Empat Berturut](docs/NEW-GAMES.md), [leaderboard](docs/LEADERBOARD.md), [artwork](docs/CHARACTER-ART.md) dan [branding](docs/DRAGON-BRAND.md).
 
 **Status operasional1November2026:** cloud3.16.1aktif, sourcebc80d46sudahdipushkeGitHubpersonal.14halaman200,39asetberubahcocok,akun200/katalog73/Googleaktif/demoproduksimati;tidakadaaksiroom/akun/gacha produksisaatverifikasi. Tidak ada source-release pending dari permintaan ini. Validasi lokal dan batasnya ada pada catatan fitur; hasil ini bukan jaminan seluruh keadaan gameplay bebasbug. Database dan billing tidak direset.
 
