@@ -11,7 +11,7 @@ test('Cloud SQLite cold active recovery preserves all four new games and closed 
  const store=fs.mkdtempSync(path.join(os.tmpdir(),'srac-cold-active-'));let mf=fixture(store);const peers=[],saved=[];
  t.after(async()=>{peers.forEach(p=>p.close());await mf.dispose();fs.rmSync(store,{recursive:true,force:true});});
  const stable=(game,s)=>({hand:s.hand,board:s.board,assets:s.assets,turn:s.turnId,round:s.round,match:s.matchId,revision:s.revision,stage:s.stage,stock:s.stock,discard:s.discard,players:s.players.map(p=>({id:p.id,count:p.count,pawns:p.pawns,position:p.position,cash:p.cash,score:p.score,wins:p.wins})),ledger:s.ledger});
- for(const game of ['uno','ludo','monopoli','reversi']){
+ for(const game of ['uno','ludo','monopoli','reversi','dam','tangga','empat']){
   const signup=await api(mf,'signup',null,{name:'Cold '+game,email:'cold-'+game+'@example.invalid',password:'private-cold-runtime-test'});assert.equal(signup.status,201);
   const p=await peer(mf,game,signup.cookie);peers.push(p);p.send({type:'create',name:'Ignored',seats:2,fillBots:true,practice:true,settings:{bots:game==='blackjack'?0:1}});const j=await p.next('joined');await p.next(game==='mahjong'?'lobby':'state');p.q.length=0;
   p.send({type:'start',settings:{tablePreset:'custom',animateDeal:false,bots:game==='blackjack'?0:1,clockMode:'blitz5'}});const state=await p.next('state',s=>s.phase!=='lobby');

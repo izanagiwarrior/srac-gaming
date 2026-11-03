@@ -59,3 +59,6 @@ html[data-theme="light"] .game-grid .game-card .game-art{background:radial-gradi
 @media(max-width:560px){.game-featured{display:flex;flex-direction:column}.game-featured .card-art{width:100%}.header nav{gap:12px}.game-card .game-prop-set{max-width:44%}.footer{align-items:flex-start}.hero h1{overflow-wrap:break-word}}
 
 body{min-height:100svh}
+.prop-dam{display:flex;gap:5px}.prop-dam i{width:25px;height:25px;border-radius:50%;background:radial-gradient(circle at 30% 20%,#f0897c,#b32d29 75%);border:1px solid #7d1f1c}.prop-dam i:nth-child(2){background:radial-gradient(circle at 30% 20%,#fff,#d9d3c3 85%);border-color:#b9b59e}
+.prop-empat{display:grid;grid-template-columns:repeat(2,22px);gap:4px;padding:5px;background:#1f4e8a;border-radius:8px}.prop-empat i{width:22px;height:22px;border-radius:50%;background:radial-gradient(circle at 30% 20%,#f48b80,#c0302b 75%)}.prop-empat i:nth-child(2),.prop-empat i:nth-child(3){background:radial-gradient(circle at 30% 20%,#fff0a0,#e6b928 75%)}
+.prop-tg{font-size:22px;line-height:1}

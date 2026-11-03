@@ -9,13 +9,13 @@
   MejaCosmetics.configure(data.catalog);cosmeticsReady=true;
   for(const item of data.catalog||[])if(item.kind==='skin'&&/^\/avatar-[a-z-]+\.webp$/.test(item.image))skins[item.id]=item.image;
   for(const item of data.catalog||[])if(item.kind==='accessory'&&/^\/accessory-[a-z-]+\.webp$/.test(item.image))accessories[item.id]=item.image;
-  const user=data.user,game=/^\/(capsa|mahjong|poker|catur|domino|blackjack|uno|ludo|monopoli|reversi)\//.test(location.pathname);
+  const user=data.user,game=/^\/(capsa|mahjong|poker|catur|domino|blackjack|uno|ludo|monopoli|reversi|dam|tangga|empat)\//.test(location.pathname);
   const link=document.createElement('a');link.href='/account/';link.className='mk-account-link';link.setAttribute('aria-label',user?'Profil '+user.name:'Masuk akun');
   if(user){const title=MejaTitles.get(user.level).name;link.title=title+' · Level '+user.level;link.setAttribute('aria-label','Profil '+user.name+' · '+title+' · Level '+user.level);link.append(makeAvatar(user),document.createTextNode(user.name+' · Lv '+user.level));}else link.textContent='Masuk / Buat akun';
   const bar=game?document.querySelector('.hubbar'):null;const nav=document.querySelector('.header nav');if(bar){bar.classList.add('mk-game-topbar');bar.append(link);}else if(nav)nav.append(link);else{const box=document.createElement('div');box.className='mk-account-strip';box.append(link);document.body.prepend(box);}
   if(user){
    if(game){
-    const fill=()=>{for(const input of document.querySelectorAll('input[autocomplete=nickname]')){if(input.dataset.accountName===user.name)continue;input.value=user.name.slice(0,input.maxLength>0?input.maxLength:24);input.readOnly=true;input.dataset.accountName=user.name;input.title='Ubah nama melalui Profil → Pengaturan';}};
+    const fill=()=>{for(const input of document.querySelectorAll('input[autocomplete=nickname]')){if(input.dataset.accountName===user.name)continue;input.value=user.name.slice(0,input.maxLength>0?input.maxLength:24);input.readOnly=true;input.hidden=true;input.dataset.accountName=user.name;input.parentNode.querySelectorAll(':scope > .mk-name-chip').forEach(n=>n.remove());const chip=document.createElement('div');chip.className='mk-name-chip';const text=document.createElement('strong');text.textContent=input.value;const edit=document.createElement('a');edit.className='mk-name-edit';edit.href='/account/#profile';edit.textContent='✎';edit.title='Ubah nama di Profil';edit.setAttribute('aria-label','Ubah nama di Profil');chip.append(text,edit);input.after(chip);}};
     fill();const observer=new MutationObserver(fill);observer.observe(document.body,{childList:true,subtree:true});
    }
    if(latestCosmeticFrame)renderProfiles(latestCosmeticFrame.profiles||[],latestCosmeticFrame);

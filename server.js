@@ -15,7 +15,10 @@ const {createLudoServer}=require('./games/ludo/server');
 
 const {createMonopoliServer}=require('./games/monopoli/server');
 const {createReversiServer}=require('./games/reversi/server');
-const VERSION = '2026-11-01-gacha-recovery-1';
+const {createDamServer}=require('./games/dam/server');
+const {createTanggaServer}=require('./games/tangga/server');
+const {createEmpatServer}=require('./games/empat/server');
+const VERSION = '2026-11-03-three-games-1';
 const {installRoomService}=require('./games/shared/room-service');
 
 function createHub(options = {}) {
@@ -36,7 +39,7 @@ function createHub(options = {}) {
     ['catur',createChessServer({ getAddresses:sharedAddresses })],
     ['domino',createDominoServer({ getAddresses:sharedAddresses })],
     ['blackjack',createBlackjackServer({ getAddresses:sharedAddresses })],
-    ['uno',createUnoServer({getAddresses:sharedAddresses})],['ludo',createLudoServer({getAddresses:sharedAddresses})],['monopoli',createMonopoliServer({getAddresses:sharedAddresses})],['reversi',createReversiServer({getAddresses:sharedAddresses})]
+    ['uno',createUnoServer({getAddresses:sharedAddresses})],['ludo',createLudoServer({getAddresses:sharedAddresses})],['monopoli',createMonopoliServer({getAddresses:sharedAddresses})],['reversi',createReversiServer({getAddresses:sharedAddresses})],['dam',createDamServer({getAddresses:sharedAddresses})],['tangga',createTanggaServer({getAddresses:sharedAddresses})],['empat',createEmpatServer({getAddresses:sharedAddresses})]
   ]);
   const services = new Map([...games].map(([slug,app])=>[slug,installRoomService(app,{slug,dataDir:path.join(runtimeDir,'rooms')})]));
   const assets = new Map([
@@ -142,7 +145,7 @@ function createHub(options = {}) {
     ['/domino-art.svg', ['public/domino-art.svg','image/svg+xml']]
   ]);
   function route(url) {
-    const match = /^\/(capsa|mahjong|poker|catur|domino|blackjack|uno|ludo|monopoli|reversi)(\/.*)?$/.exec(url.pathname);
+    const match = /^\/(capsa|mahjong|poker|catur|domino|blackjack|uno|ludo|monopoli|reversi|dam|tangga|empat)(\/.*)?$/.exec(url.pathname);
     return match ? { slug:match[1], remainder:match[2] || '/', app:games.get(match[1]), bare:!match[2] } : null;
   }
   const server = http.createServer((req,res) => {

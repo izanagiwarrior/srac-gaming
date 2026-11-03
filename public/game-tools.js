@@ -1,6 +1,6 @@
 'use strict';
 (function () {
-  const creators = { capsa:'Faiz T',mahjong:'Hendy W',poker:'Hendy W',catur:'Faiz T',domino:'Faiz T',blackjack:'Faiz T',uno:'Faiz T',ludo:'Faiz T',monopoli:'Faiz T',reversi:'Faiz T' };
+  const creators = { capsa:'Faiz T',mahjong:'Hendy W',poker:'Hendy W',catur:'Faiz T',domino:'Faiz T',blackjack:'Faiz T',uno:'Faiz T',ludo:'Faiz T',monopoli:'Faiz T',reversi:'Faiz T',dam:'Faiz T',tangga:'Faiz T',empat:'Faiz T' };
   const esc = value => String(value ?? '').replace(/[&<>"']/g,c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const idr = n => new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(n || 0);
   const SUITS = {s:'♠',h:'♥',d:'♦',c:'♣'};
@@ -36,8 +36,8 @@
     emojiMenu.innerHTML='<div class="mk-emoji-popover-heading"><b>Pilih emoji</b><button type="button" data-mk-emoji-close aria-label="Tutup pilihan emoji">×</button></div>'+emojiBar();
     document.body.append(emojiMenu);placeEmojiMenu();emojiMenu?.querySelector('[data-mk-emoji]')?.focus({preventScroll:true});
   }
-  const EMOTE_STAGES={capsa:'.bt-table',mahjong:'#game .table',poker:'.table-shell',catur:'.board-area .board',domino:'.domino-table',blackjack:'.bj-table',uno:'.party-table',ludo:'.party-table',monopoli:'.party-table',reversi:'.party-table'};
-  const FEEDBACK_COLUMNS={capsa:'#view',mahjong:'#lobby .lcol',poker:'.mk-layout > div',catur:'.board-area',domino:'.table-area',blackjack:'.mk-layout > section',uno:'.table-area',ludo:'.table-area',monopoli:'.table-area',reversi:'.table-area'};
+  const EMOTE_STAGES={capsa:'.bt-table',mahjong:'#game .table',poker:'.table-shell',catur:'.board-area .board',domino:'.domino-table',blackjack:'.bj-table',uno:'.party-table',ludo:'.party-table',monopoli:'.party-table',reversi:'.party-table',dam:'.party-table',tangga:'.party-table',empat:'.party-table'};
+  const FEEDBACK_COLUMNS={capsa:'#view',mahjong:'#lobby .lcol',poker:'.mk-layout > div',catur:'.board-area',domino:'.table-area',blackjack:'.mk-layout > section',uno:'.table-area',ludo:'.table-area',monopoli:'.table-area',reversi:'.table-area',dam:'.table-area',tangga:'.table-area',empat:'.table-area'};
   let emoteRoom=null,emotesReady=false,emoteLayer=null,emoteFrame=null,emoteUndo=null;
   const seenEmotes=new Set(),bursts=new Map();
   let floatingLayer=null,floatingFrame=null;
@@ -185,7 +185,7 @@
   }
   function durationSettings(slug,s,disabled) {
     if(slug==='catur')return `<label>Mode main<select data-mk-clock-mode ${disabled}>${[['casual','Santai · tanpa jam'],['blitz5','Quick Play · Blitz 5+0'],['blitz3plus2','Blitz 3+2 · tambah 2 detik/langkah']].map(([value,label])=>`<option value="${value}" ${(s.clockMode||'casual')===value?'selected':''}>${label}</option>`).join('')}</select></label><p class="mk-note">Blitz: waktu per pemain, dihitung server. Jam dijeda saat pemain terputus atau permainan dijeda. Pilihan terkunci sejak mulai.</p>`;
-    if(['domino','blackjack','uno','ludo','monopoli','reversi'].includes(slug))return `<label>Durasi permainan<select data-mk-play-mode ${disabled}>${[['standard','Santai · ronde bebas'],['quick',slug==='ludo'?'Quick Play · 1 pion':slug==='reversi'?'Quick Play · 6×6':slug==='monopoli'?'Quick Play · 8 giliran/pemain':'Quick Play · 1 ronde']].map(([value,label])=>`<option value="${value}" ${(s.playMode||'standard')===value?'selected':''}>${label}</option>`).join('')}</select></label><p class="mk-note">${s.playMode==='quick'?'Satu ronde lalu tampil rekap selesai. Quick Play baru harus dimulai lagi secara eksplisit; saldo tetap tercatat.':'Setiap ronde selesai sebelum host/pemain memilih main lagi.'}</p>`;
+    if(['domino','blackjack','uno','ludo','monopoli','reversi','dam','tangga','empat'].includes(slug))return `<label>Durasi permainan<select data-mk-play-mode ${disabled}>${[['standard','Santai · ronde bebas'],['quick',slug==='ludo'?'Quick Play · 1 pion':slug==='reversi'||slug==='dam'||slug==='tangga'?'Quick Play · 6×6':slug==='empat'?'Quick Play · 6×5':slug==='monopoli'?'Quick Play · 8 giliran/pemain':'Quick Play · 1 ronde']].map(([value,label])=>`<option value="${value}" ${(s.playMode||'standard')===value?'selected':''}>${label}</option>`).join('')}</select></label><p class="mk-note">${s.playMode==='quick'?'Satu ronde lalu tampil rekap selesai. Quick Play baru harus dimulai lagi secara eksplisit; saldo tetap tercatat.':'Setiap ronde selesai sebelum host/pemain memilih main lagi.'}</p>`;
     return '';
   }
   function settings(data) {

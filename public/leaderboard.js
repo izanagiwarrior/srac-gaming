@@ -1,6 +1,6 @@
 'use strict';
 (()=>{
- const games={all:'Semua game',mahjong:'Mahjong',blackjack:'Blackjack',capsa:'Capsa Banting',catur:'Catur',domino:'Domino',ludo:'Ludo',monopoli:'Monopoli',poker:'Poker',reversi:'Reversi / Othello',uno:'UNO'},esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),fmt=n=>Number(n||0).toLocaleString('id-ID'),money=n=>(n<0?'−':n>0?'+':'')+'Rp'+fmt(Math.abs(n)),cache=new Map();
+ const games={all:'Semua game',mahjong:'Mahjong',blackjack:'Blackjack',capsa:'Capsa Banting',catur:'Catur',domino:'Domino',ludo:'Ludo',monopoli:'Monopoli',poker:'Poker',reversi:'Reversi / Othello',dam:'Dam',tangga:'Ular Tangga',empat:'Empat Berturut',uno:'UNO'},esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),fmt=n=>Number(n||0).toLocaleString('id-ID'),money=n=>(n<0?'−':n>0?'+':'')+'Rp'+fmt(Math.abs(n)),cache=new Map();
  const slug=location.pathname.split('/')[1],gamePage=games[slug]&&slug!=='all';let panel,visible=true;
  window.MejaLeaderboard={state(show){visible=show;if(panel){panel.hidden=!show;if(!show)panel.open=false;}}};
  function metric(row,sort){return sort==='money'?money(row.money):sort==='level'?'Lv '+fmt(row.level):fmt(row.points)+' poin';}

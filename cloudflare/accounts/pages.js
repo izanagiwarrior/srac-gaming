@@ -21,7 +21,7 @@ function page(rows,scope,key){const more=rows.length>SIZE,items=rows.slice(0,SIZ
 export function eventPage(store,url,user,admin=false){
  const category=(url.searchParams.get('kind')||'').replace(/\.$/,'');if(category&&!CATEGORIES.includes(category))problem('Kategori tidak valid.');
  if(!admin&&category)problem('Gunakan filter kategori di audit admin.');
- const game=admin?url.searchParams.get('game')||'':'';if(game&&!['mahjong','capsa','poker','catur','domino','blackjack','uno','ludo','monopoli','reversi'].includes(game))problem('Game tidak valid.');
+ const game=admin?url.searchParams.get('game')||'':'';if(game&&!['mahjong','capsa','poker','catur','domino','blackjack','uno','ludo','monopoli','reversi','dam','tangga','empat'].includes(game))problem('Game tidak valid.');
  const days=Number(url.searchParams.get('days')||7);if(![1,7,30,90].includes(days))problem('Rentang waktu tidak valid.');
  // The selected window is cursor-scoped; paging never expands into older history.
  const scope=JSON.stringify([admin?'admin':user.id,category,game,days]);const key=cursor(url,scope);

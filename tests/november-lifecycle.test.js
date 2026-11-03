@@ -11,7 +11,7 @@ test('Four new games: spectator privacy, lock, queue, boundary and seat rotation
  execFileSync(process.execPath,['scripts/build-cloudflare.mjs'],{cwd:root,stdio:'pipe'});
  const store=fs.mkdtempSync(path.join(os.tmpdir(),'srac-native-results-'));const mf=fixture(store);t.after(async()=>{await mf.dispose();fs.rmSync(store,{recursive:true,force:true});});
  
- for(const game of ['uno','ludo','monopoli','reversi'])await t.test(game,async()=>{
+ for(const game of ['uno','ludo','monopoli','reversi','dam','tangga','empat'])await t.test(game,async()=>{
   const cc=(await api(mf,'preview',null,{role:'player'})).cookie;const ca=(await api(mf,'signup',null,{name:'QA A',email:game+'-a@example.invalid',password:'qa-fixture-password'})).cookie,cb=(await api(mf,'signup',null,{name:'QA B',email:game+'-b@example.invalid',password:'qa-fixture-password'})).cookie;assert(ca&&cb);const peers=[await peer(mf,game,ca),await peer(mf,game,cb)];
   try{
    peers[0].send({type:'create',name:'QA A',seats:2,fillBots:false});const j=await peers[0].next('joined');await peers[0].next('state');
@@ -28,7 +28,9 @@ test('Four new games: spectator privacy, lock, queue, boundary and seat rotation
     const seat=states.findIndex(s=>s.you===s.turnId);assert(seat>=0);const s=states[seat];let msg;
     if(game==='uno')msg=s.legal.length?{type:'play',id:s.legal[0],color:'red'}:{type:s.drawn?'pass':'draw'};
     if(game==='ludo')msg=s.canRoll?{type:'roll'}:{type:'move',pawn:s.legal[0]};
-    if(game==='reversi')msg={type:'place',at:s.legal[0]};
+    if(game==='reversi'||game==='empat')msg={type:'place',at:s.legal[0]};
+    if(game==='dam')msg={type:'move',from:s.legal[0].from,to:s.legal[0].to};
+    if(game==='tangga')msg={type:'roll'};
     if(game==='monopoli'){
      const me=s.players.find(p=>p.id===s.you);
      msg=s.stage==='roll'?{type:'roll'}:s.stage==='end'?{type:'end'}:s.stage==='buy'?{type:me.cash>=s.board[me.position].price?'buy':'auction'}:s.stage==='auction'?{type:'auctionPass'}:s.stage==='debt'?me.cash>=s.debt.amount?{type:'pay'}:s.manage.mortgage.length?{type:'mortgage',asset:s.manage.mortgage[0]}:{type:'bankrupt'}:null;
